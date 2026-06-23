@@ -1,3 +1,4 @@
+import { supabase } from "./lib/supabase";
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, HelpCircle, Send } from 'lucide-react';
 
@@ -5,7 +6,7 @@ type AuthView = 'login' | 'register';
 
 export default function AuthenticationPortal() {
   const [view, setView] = useState<AuthView>('login');
-  
+
   // Form Input States
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -74,12 +75,57 @@ export default function AuthenticationPortal() {
     setPasswordError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password.trim() || emailError || passwordError) return;
-    console.log('Authenticating...', { email, view, firstName, lastName });
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
+  if (!email.trim() || !password.trim() || emailError || passwordError) {
+    return;
+  }
+
+  if (view === "login") {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    console.log(data.user);
+    alert("Login successful!");
+  } else {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (data.user?.id) {
+  const { error: profileError } = await supabase
+    .from("student_profiles")
+    .insert({
+      auth_user_id: data.user.id,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+    });
+
+  if (profileError) {
+    console.error(profileError);
+    alert(profileError.message);
+    return;
+  }
+}
+
+    alert("Registration successful! Please verify your email.");
+  }
+};
   return (
     <div className="h-screen w-screen bg-slate-50 flex items-center justify-center font-sans antialiased selection:bg-[#002D62]/10 selection:text-[#002D62] overflow-hidden">
       
