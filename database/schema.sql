@@ -93,3 +93,5 @@ create table staff_profiles (
   phone text,
   created_at timestamp default now()
 );
+ALTER TABLE student_profiles
+ADD COLUMN register_no text UNIQUE;
