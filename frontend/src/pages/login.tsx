@@ -3,9 +3,16 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react
 import AuthBackground from '../components/ui/AuthBackground';
 import collegeLogo from '../assets/logo.jpg';
 
+interface UserData {
+  fullName: string;
+  email: string;
+  idNumber?: string;
+  contactNo?: string;
+}
+
 interface LoginProps {
   onNavigateToRegister: () => void;
-  onLoginSuccess: (role: 'student' | 'staff', email: string) => void;
+  onLoginSuccess: (role: 'student' | 'staff', user: UserData) => void;
 }
 
 export default function Login({ onNavigateToRegister, onLoginSuccess }: LoginProps) {
@@ -58,31 +65,41 @@ export default function Login({ onNavigateToRegister, onLoginSuccess }: LoginPro
     }
   };
 
+  const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
   // --- FORM SUBMIT HANDLING ---
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setLoginError('');
+
     handleEmailValidation(email);
     handlePasswordValidation(password);
 
-    if (!email.trim() || !password.trim() || emailError || passwordError) {
-      return;
+    if (!email.trim() || !password.trim() || emailError || passwordError) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setLoginError(result.error || 'Login failed');
+        return;
+      }
+
+      setShowToast(true);
+      setTimeout(() => onLoginSuccess(result.role, result.user), 1000);
+    } catch {
+      setLoginError('Unable to connect to server. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    // Details are correct -> Show Success Toast
-    setShowToast(true);
-
-    // Short delay so the user experiences the successful toast before being redirected
-    setTimeout(() => {
-      const lowerEmail = email.toLowerCase();
-      // Route based on key administrative naming tags
-      const assignedRole = lowerEmail.includes('staff') || lowerEmail.includes('admin') 
-        ? 'staff' 
-        : 'student';
-      
-      // Successfully fire off the fully matching structural arguments parent handler
-      onLoginSuccess(assignedRole, email);
-    }, 1000);
   };
 
   return (
@@ -211,12 +228,20 @@ export default function Login({ onNavigateToRegister, onLoginSuccess }: LoginPro
             <a href="#forgot" className="text-[#002D62] hover:text-[#052349] hover:underline">Forgot Password?</a>
           </div>
 
+          {loginError && (
+            <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
           {/* Form Trigger Button */}
           <button 
-            type="submit" 
-            className="w-full mt-2 py-3.5 px-4 bg-[#002D62] hover:bg-[#052349] text-white font-bold text-[15px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98]"
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-2 py-3.5 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[15px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98]"
           >
-            Login
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

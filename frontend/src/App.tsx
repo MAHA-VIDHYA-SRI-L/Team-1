@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Login from './pages/Login';
+import Login from './pages/login';
 import Registration from './pages/Registration';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
@@ -22,17 +22,9 @@ export default function App() {
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(null);
 
   // --- ACCOUNT MATCH INTERCEPTOR ---
-  const handleLoginSuccess = (role: 'student' | 'staff', emailInput: string) => {
+  const handleLoginSuccess = (role: 'student' | 'staff', user: UserSessionData) => {
     setUserRole(role);
-    
-    // Generating local dynamic fallback info based on what they filled into the input bar
-    setActiveUser({
-      fullName: role === 'staff' ? 'Faculty Member' : 'Student Pro Account',
-      email: emailInput,
-      idNumber: role === 'staff' ? 'KSR-FAC-883' : '22CSE104',
-      contactNo: '9876543210'
-    });
-    
+    setActiveUser(user);
     setIsAuthenticated(true);
   };
 
@@ -59,8 +51,7 @@ export default function App() {
       {currentPage === 'login' ? (
         <Login 
           onNavigateToRegister={() => setCurrentPage('register')} 
-          // Custom wrapper to pass down both role type and input string value
-          onLoginSuccess={(role, emailStr) => handleLoginSuccess(role, emailStr || '')}
+          onLoginSuccess={handleLoginSuccess}
         />
       ) : (
         <Registration 

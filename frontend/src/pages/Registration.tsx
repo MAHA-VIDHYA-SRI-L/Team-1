@@ -28,6 +28,8 @@ export default function Registration({ onNavigateToLogin }: RegistrationProps) {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [registerError, setRegisterError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // --- AUTO-HIDE TOAST EFFECT ---
   useEffect(() => {
@@ -131,31 +133,66 @@ export default function Registration({ onNavigateToLogin }: RegistrationProps) {
   }, [role]);
 
   // --- FORM SUBMIT HANDLING ---
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setRegisterError('');
 
-    handleNameValidation(fullName);
-    handleIdValidation(idNumber);
-    handleContactValidation(contactNo);
-    handleEmailValidation(email);
-    handlePasswordValidation(password);
-    handleConfirmPasswordValidation(confirmPassword);
+  handleNameValidation(fullName);
+  handleIdValidation(idNumber);
+  handleContactValidation(contactNo);
+  handleEmailValidation(email);
+  handlePasswordValidation(password);
+  handleConfirmPasswordValidation(confirmPassword);
 
-    if (
-      !fullName.trim() || !idNumber.trim() || !contactNo.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() ||
-      nameError || idError || contactError || emailError || passwordError || confirmPasswordError
-    ) {
+  if (
+    !fullName.trim() ||
+    !idNumber.trim() ||
+    !contactNo.trim() ||
+    !email.trim() ||
+    !password.trim() ||
+    !confirmPassword.trim() ||
+    nameError ||
+    idError ||
+    contactError ||
+    emailError ||
+    passwordError ||
+    confirmPasswordError
+  ) {
+    return;
+  }
+
+  setIsLoading(true);
+
+  const endpoint = role === 'student'
+    ? 'http://localhost:3000/api/auth/register/student'
+    : 'http://localhost:3000/api/auth/register/staff';
+
+  const body = role === 'student'
+    ? { full_name: fullName, register_no: idNumber, phone: contactNo, email, password }
+    : { full_name: fullName, faculty_id: idNumber, phone: contactNo, email, password };
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setRegisterError(result.error || 'Registration failed');
       return;
     }
 
-    // Show registration success banner
     setShowToast(true);
-
-    // Delayed route toggle to give the user time to view the successful alert
-    setTimeout(() => {
-      onNavigateToLogin();
-    }, 1500);
-  };
+    setTimeout(() => onNavigateToLogin(), 1500);
+  } catch (err) {
+    setRegisterError('Unable to connect to server. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <AuthBackground>
@@ -408,12 +445,20 @@ export default function Registration({ onNavigateToLogin }: RegistrationProps) {
             )}
           </div>
 
+          {registerError && (
+            <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{registerError}</span>
+            </div>
+          )}
+
           {/* Form Trigger Button Submission */}
           <button 
-            type="submit" 
-            className="w-full mt-3 py-3 px-4 bg-[#002D62] hover:bg-[#052349] text-white font-bold text-[14px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98]"
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-3 py-3 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[14px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98]"
           >
-            Register
+            {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
 

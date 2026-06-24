@@ -1,32 +1,16 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import supabase from "./config/supabase.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 
-app.get("/", async (req, res) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("*");
-
-  if (error) {
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-
-  res.json({
-    success: true,
-    data,
-  });
-});
+app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
