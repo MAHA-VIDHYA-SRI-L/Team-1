@@ -1,5 +1,9 @@
 import supabase from "../config/supabase.js";
 
+const NAME_REGEX = /^[a-zA-Z\s]+$/;
+const EMAIL_REGEX = /^[^\s@]+@(gmail\.com|ksrce\.ac\.in)$/;
+const REG_NO_REGEX = /^\d+$/;
+
 export const registerStudent = async (req, res) => {
   try {
     const { full_name, register_no, phone, email, password } = req.body;
@@ -7,6 +11,15 @@ export const registerStudent = async (req, res) => {
     if (!full_name || !register_no || !phone || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
+
+    if (!NAME_REGEX.test(full_name))
+      return res.status(400).json({ error: "Name must contain letters only" });
+
+    if (!EMAIL_REGEX.test(email.trim().toLowerCase()))
+      return res.status(400).json({ error: "Email must end with @gmail.com or @ksrce.ac.in" });
+
+    if (!REG_NO_REGEX.test(register_no))
+      return res.status(400).json({ error: "Register number must contain digits only" });
 
     const cleanEmail = email.trim().toLowerCase();
 
@@ -37,6 +50,12 @@ export const registerStaff = async (req, res) => {
     if (!full_name || !faculty_id || !phone || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
+
+    if (!NAME_REGEX.test(full_name))
+      return res.status(400).json({ error: "Name must contain letters only" });
+
+    if (!EMAIL_REGEX.test(email.trim().toLowerCase()))
+      return res.status(400).json({ error: "Email must end with @gmail.com or @ksrce.ac.in" });
 
     const cleanEmail = email.trim().toLowerCase();
 
