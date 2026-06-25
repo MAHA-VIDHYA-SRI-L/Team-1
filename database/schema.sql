@@ -46,13 +46,14 @@ create table academic_details (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references student_profiles(id) on delete cascade,
   tenth_school text,
-  tenth_percentage numeric,
+  tenth_percentage float8,
   twelfth_school text,
-  twelfth_percentage numeric,
+  twelfth_percentage float8,
   ug_college text,
-  ug_cgpa numeric,
+  ug_cgpa float8,
   pg_college text,
-  pg_cgpa numeric,
+  pg_cgpa float8,
+  placement_status text not null,
   created_at timestamp default now()
 );
 
