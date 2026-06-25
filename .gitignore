@@ -4,7 +4,12 @@ backend/node_modules/
 frontend/node_modules/
 # Environment files
 .env
-.env.*
+.env.local
+.env.production
+!.env.example
+
+# Requirements file
+doc/requirements.txt
 
 # Build files
 dist/
