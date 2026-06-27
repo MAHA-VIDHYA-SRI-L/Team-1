@@ -101,7 +101,6 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
-  const [error, setError] = useState('');
 
   // modal state
   const [modal, setModal] = useState<'add-student' | 'add-staff' | 'view-student' | 'view-staff' | 'edit-student' | 'edit-staff' | null>(null);
@@ -513,8 +512,13 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         return (
           <ModalWrapper title="Student Profile" onClose={() => setModal(null)}>
             <div className="space-y-3 text-[13px]">
-              {[['Full Name', s.full_name], ['Roll Number', s.register_no], ['Email', s.email], ['Phone', s.phone],
-                ['Status', s.is_blocked ? '🔴 Blocked' : '🟢 Active']].map(([k, v]) => (
+              {[
+                ['Full Name', s.full_name], 
+                ['Roll Number', s.register_no], 
+                ['Email', s.email], 
+                ['Phone', s.phone],
+                ['Status', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
+              ].map(([k, v]) => (
                 <div key={k} className="flex justify-between border-b border-slate-100 pb-2">
                   <span className="font-semibold text-slate-500">{k}</span>
                   <span className="text-slate-800">{v}</span>
@@ -531,8 +535,13 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         return (
           <ModalWrapper title="Staff Profile" onClose={() => setModal(null)}>
             <div className="space-y-3 text-[13px]">
-              {[['Full Name', s.full_name], ['Staff ID', s.faculty_id], ['Email', s.email], ['Phone', s.phone],
-                ['Status', s.is_blocked ? '🔴 Blocked' : '🟢 Active']].map(([k, v]) => (
+              {[
+                ['Full Name', s.full_name], 
+                ['Staff ID', s.faculty_id], 
+                ['Email', s.email], 
+                ['Phone', s.phone],
+                ['Status', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
+              ].map(([k, v]) => (
                 <div key={k} className="flex justify-between border-b border-slate-100 pb-2">
                   <span className="font-semibold text-slate-500">{k}</span>
                   <span className="text-slate-800">{v}</span>
