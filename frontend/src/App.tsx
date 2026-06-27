@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import Login from './pages/login';
-import Registration from './pages/Registration';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
-// Unified User Definition Interface
 interface UserSessionData {
   fullName: string;
   email: string;
@@ -13,16 +12,11 @@ interface UserSessionData {
 }
 
 export default function App() {
-  // --- CORE ROUTING & AUTHSYSTEM STATE ---
-  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'student' | 'staff' | null>(null);
-  
-  // Storing fallback context mock metrics extracted straight from active text field submission values
+  const [userRole, setUserRole] = useState<'student' | 'staff' | 'admin' | null>(null);
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(null);
 
-  // --- ACCOUNT MATCH INTERCEPTOR ---
-  const handleLoginSuccess = (role: 'student' | 'staff', user: UserSessionData) => {
+  const handleLoginSuccess = (role: 'student' | 'staff' | 'admin', user: UserSessionData) => {
     setUserRole(role);
     setActiveUser(user);
     setIsAuthenticated(true);
@@ -32,32 +26,13 @@ export default function App() {
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
-    setCurrentPage('login');
   };
 
-  // 1. View Dispatcher Module: Handle Authenticated States
   if (isAuthenticated && activeUser) {
-    if (userRole === 'student') {
-      return <StudentDashboard user={activeUser} onLogout={handleLogout} />;
-    }
-    if (userRole === 'staff') {
-      return <StaffDashboard user={activeUser} onLogout={handleLogout} />;
-    }
+    if (userRole === 'student') return <StudentDashboard user={activeUser} onLogout={handleLogout} />;
+    if (userRole === 'staff') return <StaffDashboard user={activeUser} onLogout={handleLogout} />;
+    if (userRole === 'admin') return <AdminDashboard user={activeUser} onLogout={handleLogout} />;
   }
 
-  // 2. View Dispatcher Module: Render Basic Auth Screens
-  return (
-    <>
-      {currentPage === 'login' ? (
-        <Login 
-          onNavigateToRegister={() => setCurrentPage('register')} 
-          onLoginSuccess={handleLoginSuccess}
-        />
-      ) : (
-        <Registration 
-          onNavigateToLogin={() => setCurrentPage('login')} 
-        />
-      )}
-    </>
-  );
+  return <Login onLoginSuccess={handleLoginSuccess} />;
 }
