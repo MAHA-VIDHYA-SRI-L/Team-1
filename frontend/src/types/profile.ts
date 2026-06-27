@@ -13,7 +13,7 @@ export interface StudentProfileData {
   alternativePhone: string;
   address: string;
   isOtherState: boolean;
-  stateName: string; // Will hold "Tamil Nadu" or custom input
+  stateName: string;
   pinCode: string;
   district: string;
 
@@ -25,6 +25,15 @@ export interface StudentProfileData {
   diplomaPercentage: string;
   ugCgpa: string; 
   sgpaSemesterValues: string[]; // Length 8 array tracking Sem 1 to Sem 8
+
+  // Additional fields required by StudentDashboard.tsx
+  profilePic?: string;
+  finalCgpa: string;
+  tenthSchool: string;
+  twelfthSchool: string;
+  boardType: string;
+  profileCreatedDate: string;
+  profileUpdatedDate: string;
 }
 
 export interface FormErrors {
