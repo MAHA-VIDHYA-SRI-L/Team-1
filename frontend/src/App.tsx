@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import Login from './pages/login';
-import Registration from './pages/Registration';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
-import Badges from './pages/Badges'; // 1. Imported your new Badges page view
+import AdminDashboard from './pages/AdminDashboard';
+import Badges from './pages/Badges'; 
 
-// Unified User Definition Interface
 interface UserSessionData {
   fullName: string;
   email: string;
@@ -14,19 +13,14 @@ interface UserSessionData {
 }
 
 export default function App() {
-  // --- CORE ROUTING & AUTHSYSTEM STATE ---
-  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'student' | 'staff' | null>(null);
+  const [userRole, setUserRole] = useState<'student' | 'staff' | 'admin' | null>(null);
   
   // Sub-view state management for logged-in student routing (e.g., 'home' or 'badges')
   const [studentSubPage, setStudentSubPage] = useState<'home' | 'badges'>('home');
-  
-  // Storing fallback context mock metrics extracted straight from active text field submission values
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(null);
 
-  // --- ACCOUNT MATCH INTERCEPTOR ---
-  const handleLoginSuccess = (role: 'student' | 'staff', user: UserSessionData) => {
+  const handleLoginSuccess = (role: 'student' | 'staff' | 'admin', user: UserSessionData) => {
     setUserRole(role);
     setActiveUser(user);
     setIsAuthenticated(true);
@@ -37,11 +31,10 @@ export default function App() {
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
-    setCurrentPage('login');
   };
 
-  // 1. View Dispatcher Module: Handle Authenticated States
   if (isAuthenticated && activeUser) {
+    // --- 1. STUDENT DOMAIN ---
     if (userRole === 'student') {
       // If the student has chosen the badges page from the sidebar layout, intercept and mount it
       if (studentSubPage === 'badges') {
@@ -69,29 +62,21 @@ export default function App() {
         <StudentDashboard 
           user={activeUser} 
           onLogout={handleLogout} 
-          onNavigateToBadges={() => setStudentSubPage('badges')} // Pass this down to connect to your sidebar trigger
+          onNavigateToBadges={() => setStudentSubPage('badges')} 
         />
       );
     }
     
+    // --- 2. STAFF DOMAIN ---
     if (userRole === 'staff') {
       return <StaffDashboard user={activeUser} onLogout={handleLogout} />;
     }
+
+    // --- 3. ADMIN DOMAIN ---
+    if (userRole === 'admin') {
+      return <AdminDashboard user={activeUser} onLogout={handleLogout} />;
+    }
   }
 
-  // 2. View Dispatcher Module: Render Basic Auth Screens
-  return (
-    <>
-      {currentPage === 'login' ? (
-        <Login 
-          onNavigateToRegister={() => setCurrentPage('register')} 
-          onLoginSuccess={handleLoginSuccess}
-        />
-      ) : (
-        <Registration 
-          onNavigateToLogin={() => setCurrentPage('login')} 
-        />
-      )}
-    </>
-  );
+  return <Login onLoginSuccess={handleLoginSuccess} />;
 }

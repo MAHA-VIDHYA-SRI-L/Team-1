@@ -18,3 +18,11 @@ export const verifyToken = async (req, res, next) => {
   req.user = data.user;
   next();
 };
+
+export const verifyAdmin = (req, res, next) => {
+  const adminKey = req.headers["x-admin-key"];
+  if (!adminKey || adminKey !== process.env.ADMIN_PASSWORD) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+};

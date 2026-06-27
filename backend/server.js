@@ -10,6 +10,7 @@ import internshipsRoutes from "./routes/internshipsRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/api/student/internships", internshipsRoutes);
 app.use("/api/student/resume", resumeRoutes);
 app.use("/api/student/analyze", analysisRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 3000;
 
