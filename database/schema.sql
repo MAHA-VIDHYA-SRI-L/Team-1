@@ -17,7 +17,8 @@ create table student_profiles (
   updated_at timestamp default now(),
   -- added via ALTER (first_name & last_name were dropped)
   full_name text not null,
-  register_no text unique
+  register_no text unique,
+  is_blocked boolean default false
 );
 
 alter table student_profiles
@@ -33,7 +34,8 @@ create table staff_profiles (
   email text unique not null,
   faculty_id text unique,
   phone text,
-  created_at timestamp default now()
+  created_at timestamp default now(),
+  is_blocked boolean default false
 );
 
 alter table staff_profiles
@@ -104,3 +106,10 @@ create table placement_analysis (
 );
 
 
+
+-- ============================================================
+-- Migration: Add is_blocked column for admin block/unblock
+-- Run these on the live database if tables already exist
+-- ============================================================
+alter table student_profiles add column if not exists is_blocked boolean default false;
+alter table staff_profiles add column if not exists is_blocked boolean default false;

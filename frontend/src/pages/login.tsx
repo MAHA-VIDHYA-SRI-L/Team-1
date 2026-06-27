@@ -11,11 +11,10 @@ interface UserData {
 }
 
 interface LoginProps {
-  onNavigateToRegister: () => void;
-  onLoginSuccess: (role: 'student' | 'staff', user: UserData) => void;
+  onLoginSuccess: (role: 'student' | 'staff' | 'admin', user: UserData) => void;
 }
 
-export default function Login({ onNavigateToRegister, onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess }: LoginProps) {
   // --- VIEW SWITCHER ---
   const [view, setView] = useState<'login' | 'forgot'>('login');
 
@@ -457,10 +456,7 @@ export default function Login({ onNavigateToRegister, onLoginSuccess }: LoginPro
               </button>
             </form>
 
-            {/* Alternate Action Navigation Link */}
-            <div className="text-[12px] font-medium text-slate-400 pt-3">
-              New User? <button type="button" onClick={onNavigateToRegister} className="text-[#002D62] font-black hover:underline">Create Identity</button>
-            </div>
+
           </>
         ) : (
           <>
