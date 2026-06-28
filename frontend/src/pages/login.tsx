@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, WifiOff, Phone, ArrowLeft } from 'lucide-react';
 import AuthBackground from '../components/ui/AuthBackground';
 import collegeLogo from '../assets/logo.jpg';
@@ -71,17 +71,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const validateEmailText = (text: string): boolean => {
     const trimmed = text.trim();
     if (!trimmed) {
-      setEmailError('Email ID is required to access records');
+      setEmailError('Email ID is required');
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
-      setEmailError('Please present a structurally sound email identity');
+      setEmailError('Please enter a valid email address');
       return false;
     }
     const lower = trimmed.toLowerCase();
     if (!lower.endsWith('@gmail.com') && !lower.endsWith('@ksrce.ac.in')) {
-      setEmailError('Access restricted strictly to @ksrce.ac.in or @gmail.com domains');
+      setEmailError('Access restricted to @ksrce.ac.in or @gmail.com domains');
       return false;
     }
     setEmailError('');
@@ -90,7 +90,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   const validatePasswordText = (text: string): boolean => {
     if (!text) {
-      setPasswordError('Account access passcode security is required');
+      setPasswordError('Password security is required');
       return false;
     }
     setPasswordError('');
@@ -118,7 +118,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLastFivePhone(numbersOnly);
 
     if (numbersOnly.length === 0) {
-      setPhoneError('Last 5 digits of your phone number are required');
+      setPhoneError('Last 5 digits of your phone are required');
       return false;
     } else if (numbersOnly.length !== 5) {
       setPhoneError('Must be exactly the last 5 digits');
@@ -144,7 +144,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     if (!/[!@#$%^&*(),.?":{}|<>_]/.test(val)) requirements.push('a special symbol');
 
     if (requirements.length > 0) {
-      setNewPasswordError(`Password requires: ${requirements.join(', ')}`);
+      setNewPasswordError(`Requires: ${requirements.join(', ')}`);
       return false;
     } else {
       setNewPasswordError('');
@@ -192,7 +192,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     if (!emailStatus || !passwordStatus) return;
 
     if (!navigator.onLine) {
-      setLoginError('Local area connection pipeline down. Verify physical connection configurations.');
+      setLoginError('Connection down. Verify physical connection configurations.');
       return;
     }
 
@@ -207,7 +207,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const result = await response.json();
 
       if (!response.ok) {
-        setLoginError(result.error || 'Server validation failed. Verify profile credentials.');
+        setLoginError(result.error || 'Server validation failed. Verify your credentials.');
         return;
       }
 
@@ -252,7 +252,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const result = await response.json();
 
       if (!response.ok) {
-        setRecoveryGeneralError(result.error || 'Verification failed. Double check provided details.');
+        setRecoveryGeneralError(result.error || 'Verification failed. Double check details.');
         return;
       }
 
@@ -307,12 +307,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
       )}
 
-      {/* Interactive Auth Card */}
-      <div className="w-full max-w-[480px] mx-auto my-6 flex flex-col items-center text-center p-6 sm:p-8 rounded-[28px] bg-white border border-slate-100 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-thin">
+      {/* Interactive Auth Card (Resized to maximum width 420px, refined padding and spacing) */}
+      <div className="w-full max-w-[420px] mx-auto my-4 flex flex-col items-center text-center p-6 sm:p-7 rounded-[24px] bg-white border border-slate-100 shadow-xl relative max-h-[92vh] overflow-y-auto scrollbar-thin">
         
         {/* Institutional Identity Frame */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="h-14 w-14 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm ring-4 ring-slate-100 overflow-hidden">
+          <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm ring-4 ring-slate-100 overflow-hidden">
             <img 
               src={collegeLogo} 
               alt="Institution Logo" 
@@ -320,26 +320,26 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             />
           </div>
           <div className="space-y-0.5">
-            <h2 className="text-lg font-black text-[#002D62] tracking-wider uppercase leading-none">Placemate</h2>
-            <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Student Placement Tracker</p>
+            <h2 className="text-base font-black text-[#002D62] tracking-wider uppercase leading-none">Placemate</h2>
+            <p className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Student Placement Tracker</p>
           </div>
         </div>
 
         {view === 'login' ? (
           <>
             <div className="w-full flex flex-col items-center space-y-0.5 pt-4">
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Welcome Back!</h1>
-              <p className="text-xs text-slate-400 font-medium">Login to your account</p>
-              <div className="w-12 h-[2.5px] bg-orange-500 rounded-full mt-1.5"></div>
+              <h1 className="text-lg font-bold text-slate-800 tracking-tight">Welcome Back!</h1>
+              <p className="text-xs text-slate-400 font-medium">Login to your workstation account</p>
+              <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
             </div>
 
             {/* LOGIN INPUT INTERFACE */}
-            <form onSubmit={handleAuthSubmission} className="w-full text-left space-y-3 pt-3">
+            <form onSubmit={handleAuthSubmission} className="w-full text-left space-y-3.5 pt-3">
               
               {/* Email Processing Input Block */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-0.5">
-                  <label htmlFor="email-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
+                  <label htmlFor="email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
                     Email Identity
                   </label>
                   {email && !email.includes('@') && (
@@ -363,7 +363,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Mail className="h-[15px] w-[15px]" />
+                    <Mail className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="email-input"
@@ -372,7 +372,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={email} 
                     onChange={(e) => { setEmail(e.target.value); validateEmailText(e.target.value); }}
                     placeholder="username@ksrce.ac.in" 
-                    className={`w-full pl-11 pr-4 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
                       emailError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
                     }`}
                   />
@@ -387,12 +387,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
               {/* Passcode Security Input Block */}
               <div className="space-y-1">
-                <label htmlFor="password-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
+                <label htmlFor="password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
                   Secure Password
                 </label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[15px] w-[15px]" />
+                    <Lock className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="password-input"
@@ -401,7 +401,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={password} 
                     onChange={(e) => { setPassword(e.target.value); validatePasswordText(e.target.value); }}
                     placeholder="••••••••" 
-                    className={`w-full pl-11 pr-11 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
                       passwordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
                     }`}
                   />
@@ -414,7 +414,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </button>
                 </div>
                 
-                {/* RECOVERY LINK SUBTLE ALIGNMENT - Positioned cleanly right underneath the password input container */}
+                {/* RECOVERY LINK SUBTLE ALIGNMENT */}
                 <div className="flex justify-end px-0.5 pt-0.5">
                   <button type="button" onClick={handleSwitchToRecovery} className="text-[11px] font-bold text-[#002D62] hover:text-orange-500 transition-colors">
                     Recover Password?
@@ -440,7 +440,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3.5 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[14px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[13px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -455,20 +455,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </button>
             </form>
-
-
           </>
         ) : (
           <>
             <div className="w-full flex flex-col items-center space-y-0.5 pt-4">
               <div className="w-full flex items-center justify-start">
-                <button type="button" onClick={handleSwitchToLogin} className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors">
+                <button type="button" onClick={handleSwitchToLogin} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors">
                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
                 </button>
               </div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight pt-2">Recover Password</h1>
-              <p className="text-xs text-slate-400 font-medium">Verify your profile metrics to configuration reset</p>
-              <div className="w-12 h-[2.5px] bg-orange-500 rounded-full mt-1.5"></div>
+              <h1 className="text-lg font-bold text-slate-800 tracking-tight pt-2">Recover Password</h1>
+              <p className="text-xs text-slate-400 font-medium">Verify your profile metrics to reset passcode</p>
+              <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
             </div>
 
             {/* RECOVERY INPUT INTERFACE */}
@@ -476,10 +474,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               
               {/* RECOVERY EMAIL */}
               <div className="space-y-1">
-                <label htmlFor="recovery-email-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Registered Email</label>
+                <label htmlFor="recovery-email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Registered Email</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Mail className="h-[15px] w-[15px]" />
+                    <Mail className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="recovery-email-input"
@@ -487,8 +485,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={recoveryEmail}
                     onChange={(e) => { setRecoveryEmail(e.target.value); validateRecoveryEmail(e.target.value); }}
                     placeholder="name@ksrce.ac.in"
-                    className={`w-full pl-11 pr-4 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      recoveryEmailError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
+                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                      recoveryEmailError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-[#002D62]'
                     }`}
                   />
                 </div>
@@ -502,10 +500,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
               {/* RECOVERY PHONE LAST 5 DIGITS */}
               <div className="space-y-1">
-                <label htmlFor="phone-digits-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Last 5 Digits of Phone Number</label>
+                <label htmlFor="phone-digits-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Last 5 Digits of Phone Number</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Phone className="h-[15px] w-[15px]" />
+                    <Phone className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="phone-digits-input"
@@ -514,7 +512,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={lastFivePhone}
                     onChange={(e) => handlePhoneInput(e.target.value)}
                     placeholder="e.g., 54321"
-                    className={`w-full pl-11 pr-4 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
                       phoneError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
                     }`}
                   />
@@ -529,10 +527,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
               {/* NEW PASSWORD */}
               <div className="space-y-1">
-                <label htmlFor="new-password-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">New Password</label>
+                <label htmlFor="new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">New Password</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[15px] w-[15px]" />
+                    <Lock className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="new-password-input"
@@ -540,7 +538,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={newPassword}
                     onChange={(e) => handleNewPasswordValidation(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full pl-11 pr-11 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
                       newPasswordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
                     }`}
                   />
@@ -562,10 +560,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
               {/* CONFIRM NEW PASSWORD */}
               <div className="space-y-1">
-                <label htmlFor="confirm-new-password-input" className="text-[11px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Confirm New Password</label>
+                <label htmlFor="confirm-new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Confirm New Password</label>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[15px] w-[15px]" />
+                    <Lock className="h-[14px] w-[14px]" />
                   </span>
                   <input 
                     id="confirm-new-password-input"
@@ -573,8 +571,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     value={confirmNewPassword}
                     onChange={(e) => handleConfirmNewPasswordValidation(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full pl-11 pr-11 py-2.5 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      confirmNewPasswordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
+                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
+                      confirmNewPasswordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-[#002D62]'
                     }`}
                   />
                   <button 
@@ -604,7 +602,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3.5 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[14px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[13px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -612,7 +610,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Updating Security Matrix...</span>
+                    <span>Updating Security...</span>
                   </>
                 ) : (
                   <span>Reset Password</span>

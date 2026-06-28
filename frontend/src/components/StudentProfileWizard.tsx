@@ -1,152 +1,186 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import AuthBackground from './ui/AuthBackground';
+import type { StudentProfileData } from '../types/profile';
 
 interface StudentProfileWizardProps {
-  onComplete: (completedData: any) => void;
+  onComplete: (completedData: StudentProfileData) => void;
   initialEmail: string;
-  initialName?: string;     // Passed from registration/auth state
-  initialRegsNumber?: string; // Passed from registration/auth state
+  initialName?: string;
+  initialRegsNumber?: string;
 }
+
+const DEPARTMENTS = ['CSE','MECH','ECE','BIO MEDICAL','IT','AUTO MOBILE','SFE','EEE','AIDS','MBA','MCA'];
+const YEARS = ['I year', 'II year', 'III year', 'IV year'];
+const BOARDS = ['State Board', 'CBSE', 'ICSE'];
+const STANDINGS = ['UG', 'PG'] as const;
 
 export default function StudentProfileWizard({ 
   onComplete, 
   initialEmail,
-  initialName = 'Francis', // Default fallback for dev, will use passed prop
-  initialRegsNumber = '24CSE012' // Default fallback for dev, will use passed prop
+  initialName = 'Francis', 
+  initialRegsNumber = '24CSE012' 
 }: StudentProfileWizardProps) {
+  
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const [formData, setFormData] = useState({
-    // Pre-filled fields from registration are locked down
-    name: initialName, 
-    regsNumber: initialRegsNumber,
-    email: initialEmail, 
-    
-    // Step 1 Fields
-    department: '', 
-    year: '', 
-    currentSemester: '', // Automatically calculated now
-    yearOfStudy: '',     // Academic Year Entry (e.g., 2024)
-    passOutYear: '',     // Automatically calculated now
-    
-    // Step 2 Fields
-    phone: '', 
-    alternativePhone: '', 
-    address: '', 
-    isOtherState: false, 
-    stateName: 'Tamil Nadu', 
-    pinCode: '', 
-    district: '',
-    linkedinUrl: '', // New Field
-    
-    // Step 3 Fields
-    boardOfStudy: '', 
-    graduationStanding: '', 
-    tenthPercentage: '', 
-    tenthSchoolName: '', 
-    twelfthPercentage: '', 
-    twelfthDiplomaSchoolName: '', 
-    sgpaSemesterValues: Array(8).fill('')
+  const [formData, setFormData] = useState<StudentProfileData>(() => {
+    const savedState = sessionStorage.getItem('studentWizardState');
+    if (savedState) {
+      try { 
+        return { 
+          ...JSON.parse(savedState), 
+          name: initialName, 
+          regsNumber: initialRegsNumber, 
+          email: initialEmail 
+        }; 
+      } catch (e) { 
+        console.error('Failed to parse saved state', e); 
+      }
+    }
+    return {
+      name: initialName, 
+      dob: '',
+      regsNumber: initialRegsNumber,
+      email: initialEmail, 
+      department: '', 
+      year: '', 
+      semesterTerm: '',
+      currentSemester: '', 
+      yearOfStudy: '', 
+      passOutYear: '', 
+      phone: '', 
+      alternativePhone: '', 
+      address: '', 
+      isOtherState: false, 
+      stateName: 'Tamil Nadu', 
+      pinCode: '', 
+      district: '',
+      linkedinUrl: '',
+      boardOfStudy: '', 
+      graduationStanding: '', 
+      tenthPercentage: '', 
+      tenthSchool: '', 
+      twelfthPercentage: '', 
+      twelfthSchool: '', 
+      diplomaPercentage: '',
+      ugCgpa: '',
+      finalCgpa: '0.00',
+      sgpaSemesterValues: Array(8).fill(''),
+      profileCreatedDate: new Date().toISOString(),
+      profileUpdatedDate: new Date().toISOString()
+    };
   });
 
-  // --- AUTOMATIC ACADEMIC YEAR & SEMESTER CALCULATOR ---
+  // Single-pass updates for dynamic calculations (Academic Term to Semester mapping)
   useEffect(() => {
+    let changed = false;
+    const updates: Partial<StudentProfileData> = {};
+
     const entryYear = parseInt(formData.yearOfStudy);
     if (!isNaN(entryYear) && formData.yearOfStudy.length === 4) {
-      // Calculate Expected Graduation Pass Out Year automatically (Entry Year + 4)
       const calculatedPassOut = (entryYear + 4).toString();
-      
-      // Calculate Semester automatically based on selected Year of Study
-      let calculatedSem = '';
-      if (formData.year === 'I year') calculatedSem = '1';
-      if (formData.year === 'II year') calculatedSem = '3';
-      if (formData.year === 'III year') calculatedSem = '5';
-      if (formData.year === 'IV year') calculatedSem = '7';
-
-      setFormData(prev => ({
-        ...prev,
-        passOutYear: calculatedPassOut,
-        currentSemester: calculatedSem
-      }));
-      
-      // Clear auto-calculated validation errors if any existed
-      setErrors(prev => {
-        const next = { ...prev };
-        delete next.passOutYear;
-        delete next.currentSemester;
-        return next;
-      });
+      if (formData.passOutYear !== calculatedPassOut) {
+        updates.passOutYear = calculatedPassOut;
+        changed = true;
+      }
+    } else if (formData.passOutYear !== '') {
+      updates.passOutYear = '';
+      changed = true;
     }
-  }, [formData.year, formData.yearOfStudy]);
 
-  // Calculate how many previous semesters need inputs
+    let calculatedSem = '';
+    if (formData.year && formData.semesterTerm) {
+      let baseSem = formData.year === 'I year' ? 1 : formData.year === 'II year' ? 3 : formData.year === 'III year' ? 5 : formData.year === 'IV year' ? 7 : 0;
+      calculatedSem = formData.semesterTerm === 'Odd' ? baseSem.toString() : (baseSem + 1).toString();
+    }
+    
+    if (formData.currentSemester !== calculatedSem) {
+      updates.currentSemester = calculatedSem;
+      changed = true;
+    }
+
+    if (changed) {
+      setFormData(prev => ({ ...prev, ...updates }));
+    }
+    sessionStorage.setItem('studentWizardState', JSON.stringify(formData));
+  }, [formData.year, formData.semesterTerm, formData.yearOfStudy, formData.passOutYear, formData.currentSemester]);
+
   const completedSemsCount = useMemo(() => {
     const semNum = parseInt(formData.currentSemester);
-    if (isNaN(semNum) || semNum <= 1) return 0;
-    return semNum - 1; 
+    return isNaN(semNum) || semNum <= 1 ? 0 : semNum - 1; 
   }, [formData.currentSemester]);
 
-  // --- DYNAMIC PROGRESS TRACKER ---
   const dynamicPercentage = useMemo(() => {
+    // Mandated Fields Required for baseline progress calculations
     const baseFields = [
-      formData.name, formData.department, formData.year, formData.currentSemester, 
+      formData.name, formData.dob, formData.department, formData.year, formData.semesterTerm, formData.currentSemester, 
       formData.regsNumber, formData.yearOfStudy, formData.passOutYear,
-      formData.email, formData.phone, formData.alternativePhone, formData.address, 
-      formData.stateName, formData.district, formData.pinCode, formData.linkedinUrl,
-      formData.boardOfStudy, formData.graduationStanding, formData.tenthPercentage, formData.tenthSchoolName
+      formData.email, formData.phone, formData.boardOfStudy, formData.graduationStanding, formData.tenthPercentage
     ];
-
     let filledCount = baseFields.filter(val => typeof val === 'string' ? val.trim() !== '' : !!val).length;
     let totalFieldsCount = baseFields.length;
 
-    if (completedSemsCount > 0) {
-      totalFieldsCount += completedSemsCount;
-      const filledSems = formData.sgpaSemesterValues.slice(0, completedSemsCount).filter(v => v.trim() !== '').length;
-      filledCount += filledSems;
+    // Optional Fields contribute constructively to progress bar if provided
+    const optionalFields = [
+      formData.address, formData.district, formData.pinCode, formData.linkedinUrl, 
+      formData.alternativePhone, formData.tenthSchool, formData.twelfthPercentage, formData.twelfthSchool, formData.diplomaPercentage
+    ];
+    const filledOptionals = optionalFields.filter(v => typeof v === 'string' && v.trim() !== '').length;
+    filledCount += filledOptionals;
+    totalFieldsCount += optionalFields.length;
+
+    if (formData.graduationStanding === 'PG' && formData.ugCgpa) {
+      filledCount += 1;
+      totalFieldsCount += 1;
     }
 
-    return Math.round((filledCount / totalFieldsCount) * 100);
+    if (completedSemsCount > 0) {
+      totalFieldsCount += completedSemsCount;
+      filledCount += formData.sgpaSemesterValues.slice(0, completedSemsCount).filter(v => v.trim() !== '').length;
+    }
+    return Math.min(100, Math.round((filledCount / totalFieldsCount) * 100));
   }, [formData, completedSemsCount]);
 
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (dynamicPercentage / 100) * circumference;
 
-  // Compute CGPA securely ensuring values stay valid
   const computedCgpa = useMemo(() => {
-    const validScores = formData.sgpaSemesterValues
-      .slice(0, completedSemsCount)
-      .map(v => parseFloat(v))
-      .filter(num => !isNaN(num) && num <= 10);
-    
-    if (validScores.length === 0) return '0.00';
-    const sum = validScores.reduce((acc, curr) => acc + curr, 0);
-    return (sum / validScores.length).toFixed(2);
+    const validScores = formData.sgpaSemesterValues.slice(0, completedSemsCount).map(v => parseFloat(v)).filter(num => !isNaN(num) && num <= 10 && num > 0);
+    return validScores.length === 0 ? '0.00' : (validScores.reduce((acc, curr) => acc + curr, 0) / validScores.length).toFixed(2);
   }, [formData.sgpaSemesterValues, completedSemsCount]);
 
-  // --- Input Filtering & Handlers ---
-  const handleDigitFilterChange = (field: string, val: string, maxLength: number) => {
+  useEffect(() => {
+    if (formData.finalCgpa !== computedCgpa) {
+      setFormData(prev => ({ ...prev, finalCgpa: computedCgpa }));
+    }
+  }, [computedCgpa, formData.finalCgpa]);
+
+  const handleDigitFilterChange = (field: keyof StudentProfileData, val: string, maxLength: number) => {
     const digitsOnly = val.replace(/\D/g, '');
     if (digitsOnly.length <= maxLength) {
       setFormData(prev => ({ ...prev, [field]: digitsOnly }));
-      setErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
+      setErrors(prev => { const next = { ...prev }; delete next[field as string]; return next; });
     }
   };
 
-  const handlePercentageChange = (field: string, val: string) => {
-    if (val === '' || /^\d{0,2}(\.\d{0,1})?$/.test(val) || val === '100') {
+  const handleDobTextFilterChange = (val: string) => {
+    setFormData(prev => ({ ...prev, dob: val.replace(/[^0-9\-/]/g, '') }));
+    setErrors(prev => { const next = { ...prev }; delete next.dob; return next; });
+  };
+
+  const handlePercentageChange = (field: keyof StudentProfileData, val: string) => {
+    if (val === '' || /^\d{0,3}(\.\d{0,2})?$/.test(val)) {
+      if (!isNaN(parseFloat(val)) && parseFloat(val) > 100) return;
       setFormData(prev => ({ ...prev, [field]: val }));
-      setErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
+      setErrors(prev => { const next = { ...prev }; delete next[field as string]; return next; });
     }
   };
 
   const handleSemesterChange = (index: number, value: string) => {
-    // Validates that input is a decimal structure and strict upper bound check (< 10.01)
-    if (value === '' || /^\d{0,1}(\.\d{0,2})?$/.test(value) || value === '10') {
-      const parsed = parseFloat(value);
-      if (!isNaN(parsed) && parsed > 10) return; // Prevent entries higher than 10
-
+    if (value === '' || /^\d{0,2}(\.\d{0,2})?$/.test(value)) {
+      if (!isNaN(parseFloat(value)) && parseFloat(value) > 10) return;
       const updatedSems = [...formData.sgpaSemesterValues];
       updatedSems[index] = value;
       setFormData({ ...formData, sgpaSemesterValues: updatedSems });
@@ -159,34 +193,32 @@ export default function StudentProfileWizard({
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
+      if (!formData.dob) newErrors.dob = 'Date of birth is required';
       if (!formData.department) newErrors.department = 'Department selection is required';
       if (!formData.year) newErrors.year = 'Year level is required';
+      if (!formData.semesterTerm) newErrors.semesterTerm = 'Academic term selection is required';
       if (formData.yearOfStudy.length !== 4) newErrors.yearOfStudy = 'Academic Year Entry must be 4 digits';
     }
 
     if (step === 2) {
-      if (formData.phone.length !== 10) newErrors.phone = 'Phone must be exactly 10 digits';
-      if (formData.alternativePhone.length !== 10) newErrors.alternativePhone = 'Alternative phone must be 10 digits';
-      if (!formData.address.trim()) newErrors.address = 'Street address is required';
-      if (formData.isOtherState && !formData.stateName.trim()) newErrors.stateName = 'State designation is required';
-      if (!formData.district.trim()) newErrors.district = 'District name is required';
-      if (formData.pinCode.length !== 6) newErrors.pinCode = 'Pincode must be exactly 6 digits';
-      
-      // LinkedIn URL format validation
-      const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
-      if (!formData.linkedinUrl.trim()) {
-        newErrors.linkedinUrl = 'LinkedIn Profile link is required';
-      } else if (!linkedinRegex.test(formData.linkedinUrl)) {
-        newErrors.linkedinUrl = 'Please enter a valid LinkedIn URL (e.g., linkedin.com/in/username)';
+      if (!formData.phone || formData.phone.length !== 10) {
+        newErrors.phone = 'Active phone contact must be exactly 10 digits';
+      }
+      if (formData.alternativePhone && formData.alternativePhone.length !== 10) {
+        newErrors.alternativePhone = 'Alternative phone must be exactly 10 digits';
+      }
+      if (formData.pinCode && formData.pinCode.length !== 6) {
+        newErrors.pinCode = 'Pincode must be exactly 6 digits';
+      }
+      if (formData.linkedinUrl.trim()) {
+        const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
+        if (!linkedinRegex.test(formData.linkedinUrl)) {
+          newErrors.linkedinUrl = 'Please enter a valid LinkedIn URL';
+        }
       }
     }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-    } else {
-      setErrors({});
-      setStep(prev => prev + 1);
-    }
+    if (Object.keys(newErrors).length > 0) setErrors(newErrors); else { setErrors({}); setStep(prev => prev + 1); }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -195,35 +227,46 @@ export default function StudentProfileWizard({
 
     if (!formData.boardOfStudy) newErrors.boardOfStudy = 'Board selection is required';
     if (!formData.graduationStanding) newErrors.graduationStanding = 'Graduation track choice is required';
-    if (!formData.tenthPercentage) newErrors.tenthPercentage = '10th Percentage is required';
-    if (!formData.tenthSchoolName.trim()) newErrors.tenthSchoolName = '10th School Name is required';
+    
+    if (formData.graduationStanding === 'PG' && !formData.ugCgpa) {
+      newErrors.ugCgpa = 'UG CGPA is required for Postgraduate standing tracks';
+    }
+    
+    if (!formData.tenthPercentage) newErrors.tenthPercentage = '10th Percentage score is required';
 
-    const filledSemsCount = formData.sgpaSemesterValues.slice(0, completedSemsCount).filter(v => v !== '').length;
-    if (filledSemsCount < completedSemsCount) {
-      newErrors.sgpaMatrix = `Please enter valid grades (< 10) for all ${completedSemsCount} completed semester(s).`;
+    if (completedSemsCount > 0) {
+      const activeSemsFilled = formData.sgpaSemesterValues.slice(0, completedSemsCount).filter(v => v !== '').length;
+      if (activeSemsFilled < completedSemsCount) {
+        newErrors.sgpaMatrix = `Please enter scores for all ${completedSemsCount} completed semester(s).`;
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
     } else {
-      onComplete(formData);
+      sessionStorage.removeItem('studentWizardState');
+      onComplete({ ...formData, profileUpdatedDate: new Date().toISOString() });
     }
   };
 
   return (
-    <AuthBackground>
-      <div className="min-h-screen w-full flex items-center justify-center p-8 md:p-7">
-        <div className="w-full max-w-2xl md:min-w-[600px] flex-shrink-0 bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-6 md:p-8 my-auto">
+    <AuthBackground layout="centered">
+      <div className="w-full flex items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-6 md:p-8 z-10 relative my-auto">
           
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
             <div>
               <h2 className="text-xl font-bold text-slate-800 tracking-tight">Complete Your Profile</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Step {step} of 3 — Setup your student dashboard context</p>
+              <p className="text-xs text-slate-400 mt-0.5">Step {step} of 3 — Setup your student workstation context</p>
             </div>
 
-            {/* Progress Circle */}
-            <div className="relative flex items-center justify-center h-14 w-14 flex-shrink-0">
+            <div 
+              className="relative flex items-center justify-center h-14 w-14 flex-shrink-0"
+              role="progressbar" 
+              aria-valuenow={dynamicPercentage} 
+              aria-valuemin={0} 
+              aria-valuemax={100}
+            >
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="28" cy="28" r={radius} className="text-slate-100" strokeWidth="4px" stroke="currentColor" fill="transparent" />
                 <circle
@@ -233,7 +276,7 @@ export default function StudentProfileWizard({
                   strokeLinecap="round" stroke="currentColor" fill="transparent"
                 />
               </svg>
-              <div className="absolute flex flex-col items-center justify-center">
+              <div className="absolute flex flex-col items-center justify-center" aria-hidden="true">
                 <span className="text-[11px] font-extrabold text-slate-700 leading-none">{dynamicPercentage}%</span>
                 <span className="text-[7px] uppercase tracking-wider text-slate-400 mt-0.5 font-bold">Done</span>
               </div>
@@ -247,316 +290,204 @@ export default function StudentProfileWizard({
               <div className="space-y-4">
                 <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider mb-2">Basic Details</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
-                  {/* Name field - Read-Only */}
                   <div>
                     <label className="text-xs font-semibold text-slate-400">Name (Registered)</label>
-                    <input 
-                      type="text" value={formData.name} disabled
-                      className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:outline-none text-slate-500 cursor-not-allowed font-medium"
-                    />
+                    <input type="text" value={formData.name} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl text-slate-500 cursor-not-allowed font-medium" />
                   </div>
-
-                  {/* Register Number field - Read-Only */}
                   <div>
                     <label className="text-xs font-semibold text-slate-400">Register Number (Registered)</label>
-                    <input 
-                      type="text" value={formData.regsNumber} disabled
-                      className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:outline-none text-slate-500 cursor-not-allowed font-medium"
-                    />
+                    <input type="text" value={formData.regsNumber} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl text-slate-500 cursor-not-allowed font-medium" />
                   </div>
-
-                  {/* Department Select Dropdown - Solves manual typos */}
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-500">Date of Birth *</label>
+                    <input type="date" value={formData.dob} onChange={(e) => handleDobTextFilterChange(e.target.value)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none focus:border-[#002D62] ${errors.dob ? 'border-red-500' : 'border-slate-200'}`} />
+                    {errors.dob && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.dob}</p>}
+                  </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Department *</label>
-                    <select 
-                      value={formData.department} onChange={(e) => { setFormData({...formData, department: e.target.value}); setErrors(p => { const n={...p}; delete n.department; return n; }); }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.department ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
-                    >
+                    <select value={formData.department} onChange={(e) => { setFormData({...formData, department: e.target.value}); setErrors(p => { const n={...p}; delete n.department; return n; }); }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.department ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}>
                       <option value="">Select Department</option>
-                      {['CSE','MECH','ECE','BIO MEDICAL','IT','AUTO MOBILE','SFE','EEE','AIDS','MBA','MCA'].map(d => <option key={d} value={d}>{d}</option>)}
+                      {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                     {errors.department && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.department}</p>}
                   </div>
-
-                  {/* Year of study select */}
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Year of Study *</label>
-                    <select 
-                      value={formData.year} onChange={(e) => { setFormData({...formData, year: e.target.value}); setErrors(p => { const n={...p}; delete n.year; return n; }); }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.year ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
-                    >
+                    <select value={formData.year} onChange={(e) => { setFormData({...formData, year: e.target.value}); setErrors(p => { const n={...p}; delete n.year; return n; }); }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.year ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}>
                       <option value="">Select Year</option>
-                      {['I year', 'II year', 'III year', 'IV year'].map(y => <option key={y} value={y}>{y}</option>)}
+                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                     {errors.year && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.year}</p>}
                   </div>
-
-                  {/* Academic Year Entry (Triggers smart calculations) */}
+                  <div className="sm:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label className="text-xs font-semibold text-slate-500">Current Academic Term *</label>
+                    <div className="flex gap-6 mt-2">
+                      <label className="flex items-center text-sm gap-2 font-medium text-slate-700 cursor-pointer"><input type="radio" name="semesterTerm" value="Odd" checked={formData.semesterTerm === 'Odd'} onChange={() => { setFormData({...formData, semesterTerm: 'Odd'}); setErrors(p => { const n={...p}; delete n.semesterTerm; return n; }); }} className="w-4 h-4 text-[#002D62]" /> Odd Term (Jul-Dec)</label>
+                      <label className="flex items-center text-sm gap-2 font-medium text-slate-700 cursor-pointer"><input type="radio" name="semesterTerm" value="Even" checked={formData.semesterTerm === 'Even'} onChange={() => { setFormData({...formData, semesterTerm: 'Even'}); setErrors(p => { const n={...p}; delete n.semesterTerm; return n; }); }} className="w-4 h-4 text-[#002D62]" /> Even Term (Jan-Jun)</label>
+                    </div>
+                    {errors.semesterTerm && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.semesterTerm}</p>}
+                  </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Academic Entry Year (4 Digits) *</label>
-                    <input 
-                      type="text" placeholder="e.g. 2024" value={formData.yearOfStudy} onChange={(e) => handleDigitFilterChange('yearOfStudy', e.target.value, 4)}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.yearOfStudy ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
-                    />
+                    <input type="text" placeholder="e.g. 2024" value={formData.yearOfStudy} onChange={(e) => handleDigitFilterChange('yearOfStudy', e.target.value, 4)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.yearOfStudy ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`} />
                     {errors.yearOfStudy && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.yearOfStudy}</p>}
                   </div>
-
-                  {/* Current Semester - Auto-computed */}
                   <div>
-                    <label className="text-xs font-semibold text-slate-400">Current Semester (Auto-Calculated)</label>
-                    <input 
-                      type="text" value={formData.currentSemester ? `Semester ${formData.currentSemester}` : 'Awaiting Year Parameters'} disabled
-                      className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-600 rounded-xl focus:outline-none cursor-not-allowed"
-                    />
+                    <label className="text-xs font-semibold text-slate-400">Current Semester</label>
+                    <input type="text" value={formData.currentSemester ? `Semester ${formData.currentSemester}` : 'Awaiting Inputs'} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-600 rounded-xl cursor-not-allowed" />
                   </div>
-
-                  {/* Pass Out Year - Auto-computed */}
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-400">Expected Graduation Pass Out Year (Auto-Calculated)</label>
-                    <input 
-                      type="text" value={formData.passOutYear || 'Awaiting Entry Year'} disabled
-                      className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-600 rounded-xl focus:outline-none cursor-not-allowed"
-                    />
+                    <label className="text-xs font-semibold text-slate-400">Expected Graduation Pass Out Year</label>
+                    <input type="text" value={formData.passOutYear || 'Awaiting Entry Year'} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-600 rounded-xl cursor-not-allowed" />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* STEP 2: COMMUNICATIONS & SOCIAL LINKS */}
+            {/* STEP 2: COMMUNICATION DETAILS */}
             {step === 2 && (
               <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider mb-2">Communication & Contact Details</h3>
+                <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider mb-2">Communication Details</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
-                  {/* Email field - Read-Only */}
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-slate-400">Email Address (Registered)</label>
-                    <input 
-                      type="text" value={formData.email} disabled
-                      className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:outline-none text-slate-500 cursor-not-allowed font-medium"
-                    />
+                    <input type="text" value={formData.email} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl text-slate-500 cursor-not-allowed font-medium" />
                   </div>
-
-                  {/* LinkedIn URL Field */}
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-500">LinkedIn Profile Link *</label>
-                    <input 
-                      type="text" placeholder="https://www.linkedin.com/in/username" value={formData.linkedinUrl} 
-                      onChange={(e) => { setFormData({...formData, linkedinUrl: e.target.value}); setErrors(p => { const n={...p}; delete n.linkedinUrl; return n; }); }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.linkedinUrl ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
-                    />
+                    <label className="text-xs font-semibold text-slate-500">LinkedIn Profile Link</label>
+                    <input type="text" placeholder="https://www.linkedin.com/in/username" value={formData.linkedinUrl} onChange={(e) => { setFormData({...formData, linkedinUrl: e.target.value}); setErrors(p => { const n={...p}; delete n.linkedinUrl; return n; }); }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.linkedinUrl ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`} />
                     {errors.linkedinUrl && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.linkedinUrl}</p>}
                   </div>
-
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Phone Number *</label>
-                    <input 
-                      type="text" value={formData.phone} onChange={(e) => handleDigitFilterChange('phone', e.target.value, 10)}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.phone ? 'border-red-500' : 'border-slate-200'}`}
-                    />
+                    <input type="text" value={formData.phone} onChange={(e) => handleDigitFilterChange('phone', e.target.value, 10)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.phone ? 'border-red-500' : 'border-slate-200'}`} />
                     {errors.phone && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.phone}</p>}
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">Alternative Phone *</label>
-                    <input 
-                      type="text" value={formData.alternativePhone} onChange={(e) => handleDigitFilterChange('alternativePhone', e.target.value, 10)}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.alternativePhone ? 'border-red-500' : 'border-slate-200'}`}
-                    />
+                    <label className="text-xs font-semibold text-slate-500">Alternative Phone</label>
+                    <input type="text" value={formData.alternativePhone} onChange={(e) => handleDigitFilterChange('alternativePhone', e.target.value, 10)} className="w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none border-slate-200" />
                     {errors.alternativePhone && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.alternativePhone}</p>}
                   </div>
-
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-500">Address *</label>
-                    <textarea 
-                      value={formData.address} onChange={(e) => { setFormData({...formData, address: e.target.value}); setErrors(p => { const n={...p}; delete n.address; return n; }); }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl h-20 resize-none focus:outline-none ${errors.address ? 'border-red-500' : 'border-slate-200'}`}
-                    />
-                    {errors.address && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.address}</p>}
+                    <label className="text-xs font-semibold text-slate-500">Address</label>
+                    <textarea value={formData.address} onChange={(e) => { setFormData({...formData, address: e.target.value}); setErrors(p => { const n={...p}; delete n.address; return n; }); }} className="w-full mt-1 p-2.5 border text-sm rounded-xl h-20 resize-none focus:outline-none border-slate-200" />
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">State *</label>
+                    <label className="text-xs font-semibold text-slate-500">State</label>
                     <div className="flex gap-4 mt-2">
-                      <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600">
-                        <input type="radio" checked={!formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: false, stateName: 'Tamil Nadu'})} />
-                        Tamil Nadu
-                      </label>
-                      <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600">
-                        <input type="radio" checked={formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: true, stateName: ''})} />
-                        Other State
-                      </label>
+                      <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600"><input type="radio" checked={!formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: false, stateName: 'Tamil Nadu'})} /> Tamil Nadu</label>
+                      <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600"><input type="radio" checked={formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: true, stateName: ''})} /> Other State</label>
                     </div>
-                    {formData.isOtherState && (
-                      <input 
-                        type="text" placeholder="Enter state name" value={formData.stateName}
-                        onChange={(e) => setFormData({...formData, stateName: e.target.value})}
-                        className="w-full mt-2 p-2 border text-sm rounded-xl border-slate-200"
-                      />
-                    )}
+                    {formData.isOtherState && <input type="text" placeholder="Enter state name" value={formData.stateName} onChange={(e) => setFormData({...formData, stateName: e.target.value})} className="w-full mt-2 p-2 border text-sm rounded-xl border-slate-200" />}
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">District *</label>
-                    <input 
-                      type="text" value={formData.district} onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === '' || /^[A-Za-z\s]+$/.test(v)) {
-                          setFormData({...formData, district: v});
-                          setErrors(p => { const n={...p}; delete n.district; return n; });
-                        }
-                      }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.district ? 'border-red-500' : 'border-slate-200'}`}
-                    />
-                    {errors.district && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.district}</p>}
+                    <label className="text-xs font-semibold text-slate-500">District</label>
+                    <input type="text" value={formData.district} onChange={(e) => { const v = e.target.value; if (v === '' || /^[A-Za-z\s]+$/.test(v)) { setFormData({...formData, district: v}); } }} className="w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none border-slate-200" />
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">Pin Code *</label>
-                    <input 
-                      type="text" value={formData.pinCode} onChange={(e) => handleDigitFilterChange('pinCode', e.target.value, 6)}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.pinCode ? 'border-red-500' : 'border-slate-200'}`}
-                    />
+                    <label className="text-xs font-semibold text-slate-500">Pin Code</label>
+                    <input type="text" value={formData.pinCode} onChange={(e) => handleDigitFilterChange('pinCode', e.target.value, 6)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.pinCode ? 'border-red-500' : 'border-slate-200'}`} />
                     {errors.pinCode && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.pinCode}</p>}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* STEP 3: SCHOLASTIC RECORDS & PRIOR SEMESTER CALCULATOR */}
+            {/* STEP 3: SCHOLASTIC RECORDS & PRIOR SEMESTERS MATRIX */}
             {step === 3 && (
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider">Scholastic Records</h3>
-                  <div className="bg-orange-500 text-white font-bold text-xs px-3 py-1 rounded-lg">
-                    Auto CGPA: {computedCgpa}
-                  </div>
+                  <div className="bg-orange-500 text-white font-bold text-xs px-3 py-1 rounded-lg">Auto CGPA: {computedCgpa}</div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Board of Affiliation *</label>
-                    <select 
-                      value={formData.boardOfStudy} onChange={(e) => { setFormData({...formData, boardOfStudy: e.target.value}); setErrors(p => { const n={...p}; delete n.boardOfStudy; return n; })} }
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.boardOfStudy ? 'border-red-500' : 'border-slate-200'}`}
-                    >
+                    <select value={formData.boardOfStudy} onChange={(e) => { setFormData({...formData, boardOfStudy: e.target.value}); setErrors(p => { const n={...p}; delete n.boardOfStudy; return n; })} } className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.boardOfStudy ? 'border-red-500' : 'border-slate-200'}`}>
                       <option value="">Select Board</option>
-                      <option value="State Board">State Board</option>
-                      <option value="CBSE">CBSE</option>
-                      <option value="ICSE">ICSE</option>
+                      {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                     {errors.boardOfStudy && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.boardOfStudy}</p>}
                   </div>
-
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Graduation Standing *</label>
-                    <select 
-                      value={formData.graduationStanding} onChange={(e) => { setFormData({...formData, graduationStanding: e.target.value}); setErrors(p => { const n={...p}; delete n.graduationStanding; return n; })} }
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.graduationStanding ? 'border-red-500' : 'border-slate-200'}`}
-                    >
+                    <select value={formData.graduationStanding} onChange={(e) => { const val = e.target.value as 'UG' | 'PG' | ''; setFormData({...formData, graduationStanding: val}); setErrors(p => { const n={...p}; delete n.graduationStanding; return n; })} } className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none ${errors.graduationStanding ? 'border-red-500' : 'border-slate-200'}`}>
                       <option value="">Select Standing</option>
-                      <option value="UG">Undergraduate (UG)</option>
-                      <option value="PG">Postgraduate (PG)</option>
+                      {STANDINGS.map(s => <option key={s} value={s}>{s === 'UG' ? 'Undergraduate (UG)' : 'Postgraduate (PG)'}</option>)}
                     </select>
                     {errors.graduationStanding && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.graduationStanding}</p>}
                   </div>
 
+                  {/* CONDITIONAL UG CGPA INPUT FOR PG STUDENTS */}
+                  {formData.graduationStanding === 'PG' && (
+                    <div className="sm:col-span-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 mt-2">
+                      <label className="text-xs font-bold text-slate-700">Undergraduate (UG) CGPA *</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. 8.75 (Out of 10.00)" 
+                        value={formData.ugCgpa} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d{0,1}(\.\d{0,2})?$/.test(val) || val === '10') {
+                            if (!isNaN(parseFloat(val)) && parseFloat(val) > 10) return;
+                            setFormData({ ...formData, ugCgpa: val });
+                            setErrors(prev => { const next = { ...prev }; delete next.ugCgpa; return next; });
+                          }
+                        }}
+                        className={`w-full mt-1.5 p-2.5 border text-sm rounded-xl focus:outline-none focus:border-[#002D62] ${errors.ugCgpa ? 'border-red-500' : 'border-slate-200 bg-white'}`} 
+                      />
+                      {errors.ugCgpa && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCgpa}</p>}
+                    </div>
+                  )}
+
                   <div>
                     <label className="text-xs font-semibold text-slate-500">10th Score (%) *</label>
-                    <input 
-                      type="text" placeholder="e.g. 76.5" value={formData.tenthPercentage} 
-                      onChange={(e) => handlePercentageChange('tenthPercentage', e.target.value)}
-                      className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none"
-                    />
+                    <input type="text" placeholder="e.g. 76.5" value={formData.tenthPercentage} onChange={(e) => handlePercentageChange('tenthPercentage', e.target.value)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.tenthPercentage ? 'border-red-500' : 'border-slate-200'}`} />
                     {errors.tenthPercentage && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.tenthPercentage}</p>}
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">10th School Name *</label>
-                    <input 
-                      type="text" placeholder="School Location" value={formData.tenthSchoolName} 
-                      onChange={(e) => { setFormData({...formData, tenthSchoolName: e.target.value}); setErrors(p => { const n={...p}; delete n.tenthSchoolName; return n; }); }}
-                      className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none"
-                    />
-                    {errors.tenthSchoolName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.tenthSchoolName}</p>}
+                    <label className="text-xs font-semibold text-slate-500">10th School Name</label>
+                    <input type="text" placeholder="School Location" value={formData.tenthSchool} onChange={(e) => setFormData({...formData, tenthSchool: e.target.value})} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
                   </div>
-
                   <div>
                     <label className="text-xs font-semibold text-slate-500">12th Score (%)</label>
-                    <input 
-                      type="text" placeholder="e.g. 76.5" value={formData.twelfthPercentage} 
-                      onChange={(e) => handlePercentageChange('twelfthPercentage', e.target.value)}
-                      className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none"
-                    />
+                    <input type="text" placeholder="e.g. 76.5" value={formData.twelfthPercentage} onChange={(e) => handlePercentageChange('twelfthPercentage', e.target.value)} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
                   </div>
-
                   <div>
                     <label className="text-xs font-semibold text-slate-500">12th / Diploma School Name</label>
-                    <input 
-                      type="text" placeholder="School/Polytechnic name" value={formData.twelfthDiplomaSchoolName} 
-                      onChange={(e) => setFormData({...formData, twelfthDiplomaSchoolName: e.target.value})}
-                      className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none"
-                    />
+                    <input type="text" placeholder="School/Polytechnic name" value={formData.twelfthSchool} onChange={(e) => setFormData({...formData, twelfthSchool: e.target.value})} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
                   </div>
                 </div>
 
-                {/* Semester Tracker Matrix (Strictly locked to < 10.00 entries) */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <h4 className="text-xs font-bold uppercase text-slate-600 tracking-wide mb-1">Prior Semester SGPA Log</h4>
-                  
                   {completedSemsCount > 0 ? (
                     <>
-                      <p className="text-[11px] text-slate-400 mb-3">
-                        Based on your year selection, input your GPA scores for completed semesters 1 to {completedSemsCount} (Max scale value 10):
-                      </p>
+                      <p className="text-[11px] text-slate-400 mb-3">Input your GPA scores for completed semesters 1 to {completedSemsCount}:</p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {Array.from({ length: 8 }).map((_, idx) => {
                           const isNeeded = idx < completedSemsCount;
                           return (
                             <div key={idx} className="flex flex-col gap-1">
-                              <label className={`text-[10px] font-bold text-center ${isNeeded ? 'text-slate-500' : 'text-slate-300'}`}>
-                                Sem {idx + 1}
-                              </label>
-                              <input 
-                                type="text" 
-                                placeholder="0.00" 
-                                value={formData.sgpaSemesterValues[idx]} 
-                                disabled={!isNeeded}
-                                onChange={(e) => handleSemesterChange(idx, e.target.value)}
-                                className={`w-full p-2 text-center text-sm border rounded-xl focus:outline-none transition-all ${!isNeeded ? 'bg-slate-100 text-slate-300 cursor-not-allowed border-slate-100' : 'bg-white border-slate-200 focus:border-[#002D62] font-semibold text-slate-800 shadow-sm'}`}
-                              />
+                              <label className={`text-[10px] font-bold text-center ${isNeeded ? 'text-slate-500' : 'text-slate-300'}`}>Sem {idx + 1}</label>
+                              <input type="text" placeholder="0.00" value={formData.sgpaSemesterValues[idx]} disabled={!isNeeded} onChange={(e) => handleSemesterChange(idx, e.target.value)} className={`w-full p-2 text-center text-sm border rounded-xl focus:outline-none transition-all ${!isNeeded ? 'bg-slate-100 text-slate-300 cursor-not-allowed border-slate-100' : 'bg-white border-slate-200 focus:border-[#002D62] font-semibold text-slate-800 shadow-sm'}`} />
                             </div>
                           );
                         })}
                       </div>
+                      {errors.sgpaMatrix && <p className="text-red-500 text-xs mt-2 font-semibold">⚠️ {errors.sgpaMatrix}</p>}
                     </>
                   ) : (
-                    <p className="text-xs text-orange-500 font-medium">
-                      ℹ️ Setup detects you are in Semester 1. No previous semester inputs needed.
-                    </p>
+                    <p className="text-[11px] text-slate-400 text-center py-2">No prior semesters to log for Semester 1 students.</p>
                   )}
-                  {errors.sgpaMatrix && <p className="text-red-500 text-xs mt-3 font-semibold">⚠️ {errors.sgpaMatrix}</p>}
                 </div>
               </div>
             )}
 
-            {/* Navigation Tray */}
-            <div className="flex gap-4 pt-4 border-t border-slate-100">
-              {step > 1 && (
-                <button 
-                  type="button" onClick={() => setStep(step - 1)}
-                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all"
-                >
-                  &larr; Back
-                </button>
-              )}
-              <button 
-                type="submit"
-                className="flex-1 bg-[#002D62] text-white py-2.5 rounded-xl font-medium text-sm hover:bg-[#001c3d] transition-all"
-              >
-                {step === 3 ? 'Complete Profile Setup' : 'Continue'}
-              </button>
+            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+              <button type="button" onClick={() => setStep(p => Math.max(1, p - 1))} disabled={step === 1} className="px-5 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed">Back</button>
+              <button type="submit" className="px-6 py-2.5 text-xs font-bold text-white bg-[#002D62] hover:bg-[#001f42] rounded-xl shadow-lg transition-all">{step === 3 ? 'Save & Finish Setup' : 'Continue Step'}</button>
             </div>
           </form>
         </div>
