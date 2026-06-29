@@ -23,19 +23,11 @@ const allowedOrigins = [
   "http://localhost:5175"
 ];
 
-// Configure dynamic CORS filtering
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow server-to-server or tool requests (like Postman or native mobile) with no origin header
-    if (!origin) return callback(null, true);
-    
-    // Also include any specific production URL defined inside your process environment configs
-    if (allowedOrigins.indexOf(origin) !== -1 || origin === process.env.CLIENT_URL) {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin === process.env.CLIENT_URL)
       return callback(null, true);
-    } else {
-      const errorMsg = `CORS Error: The domain ${origin} is not authorized to access this backend service.`;
-      return callback(new Error(errorMsg), false);
-    }
+    callback(new Error(`CORS: ${origin} not allowed`), false);
   },
   credentials: true
 }));

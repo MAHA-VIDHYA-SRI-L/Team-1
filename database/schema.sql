@@ -113,3 +113,55 @@ create table placement_analysis (
 -- ============================================================
 alter table student_profiles add column if not exists is_blocked boolean default false;
 alter table staff_profiles add column if not exists is_blocked boolean default false;
+
+-- ============================================================
+-- Migration: Add missing student_profiles columns
+-- ============================================================
+alter table student_profiles add column if not exists alternative_phone text;
+alter table student_profiles add column if not exists district text;
+alter table student_profiles add column if not exists state_name text default 'Tamil Nadu';
+alter table student_profiles add column if not exists pin_code text;
+alter table student_profiles add column if not exists year_of_study text;
+alter table student_profiles add column if not exists pass_out_year text;
+alter table student_profiles add column if not exists current_semester text;
+alter table student_profiles add column if not exists semester_term text;
+alter table student_profiles add column if not exists linkedin_url text;
+
+-- ============================================================
+-- Migration: Add missing academic_details columns
+-- ============================================================
+alter table academic_details add column if not exists board_of_study text;
+alter table academic_details add column if not exists graduation_standing text;
+alter table academic_details add column if not exists diploma_percentage float8;
+alter table academic_details add column if not exists sgpa_values jsonb;
+alter table academic_details add column if not exists company_name text;
+
+-- ============================================================
+-- Migration: Add placement_verified and company_name to academic_details
+-- ============================================================
+alter table academic_details add column if not exists placement_verified boolean default false;
+alter table academic_details add column if not exists company_name text;
+
+-- ============================================================
+-- Migration: Add is_verified to student_profiles
+-- ============================================================
+alter table student_profiles add column if not exists is_verified boolean default false;
+
+-- ============================================================
+-- Migration: Add resume_text column for AI analysis
+-- ============================================================
+alter table resumes add column if not exists resume_text text;
+
+-- ============================================================
+-- Migration: Add rich fields to certifications
+-- ============================================================
+alter table certifications add column if not exists category text default 'General';
+alter table certifications add column if not exists start_date date;
+alter table certifications add column if not exists end_date date;
+alter table certifications add column if not exists description text;
+alter table certifications add column if not exists status text default 'Pending Review';
+
+-- ============================================================
+-- Migration: Add diploma_institution to academic_details
+-- ============================================================
+alter table academic_details add column if not exists diploma_institution text;

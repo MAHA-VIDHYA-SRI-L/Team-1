@@ -4,13 +4,8 @@ import Groq from "groq-sdk";
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const getStudentId = async (authUserId) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("auth_user_id", authUserId)
-    .single();
-  if (error || !data) return null;
-  return data.id;
+  const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
+  return data?.id || null;
 };
 
 export const analyzeStudent = async (req, res) => {
@@ -18,7 +13,6 @@ export const analyzeStudent = async (req, res) => {
     const studentId = await getStudentId(req.user.id);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
-    // Fetch all student data in parallel
     const [
       { data: academic },
       { data: skills },

@@ -70,10 +70,10 @@ interface Staff {
   id: string; full_name: string; faculty_id: string; email: string; phone: string; is_blocked: boolean;
 }
 
-const API = 'http://localhost:3000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const adminHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-admin-key': 'Admin@123',
+  'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'Admin@123',
 });
 
 const BLANK_STUDENT = { full_name: '', register_no: '', email: '', phone: '' };

@@ -1,17 +1,15 @@
 export interface StudentProfileData {
-  // Basic Details
   name: string;
-  dob: string;
+  email: string;
   regsNumber: string;
   department: string;
-  year: string; // e.g. 'I year', 'II year'
-  semesterTerm: 'Odd' | 'Even' | '';
+  year: string;
+  semesterTerm: string;
   currentSemester: string;
-  yearOfStudy: string; // Academic Entry Year
+  yearOfStudy: string;
   passOutYear: string;
+  dob: string;
 
-  // Communication & Contact Details
-  email: string;
   phone: string;
   alternativePhone: string;
   address: string;
@@ -21,25 +19,33 @@ export interface StudentProfileData {
   pinCode: string;
   linkedinUrl: string;
 
-  // Academic Records
   boardOfStudy: string;
   graduationStanding: 'UG' | 'PG' | '';
+  diplomaPercentage: string;
+  diplomaInstitution: string;
+
   tenthPercentage: string;
-  tenthSchool?: string;
-  twelfthPercentage?: string;
-  twelfthSchool?: string;
-  diplomaPercentage?: string;
-  ugCgpa?: string; // Conditional for PG track
-  finalCgpa?: string; // Calculated CGPA
+  tenthSchool: string;
+
+  twelfthPercentage: string;
+  twelfthSchool: string;
+
+  ugCollegeName: string;
+  ugCgpa: string;
+
+  pgCollegeName: string;
+  pgCgpa: string;
+
   sgpaSemesterValues: string[];
 
-  // Metadata, Media, & Admin Checks
-  profilePic?: string;
-  boardType?: string;
-  profileCreatedDate?: string;
-  profileUpdatedDate?: string;
-  isVerifiedByStaff?: boolean; // Controls Blue vs Yellow rings
-  placementStatus?: 'Placed' | 'Not Placed' | 'Pending'; // Controls Placement status card
+  finalCgpa: string;
+  profileCreatedDate: string;
+  profileUpdatedDate: string;
+
+  isVerifiedByStaff?: boolean;
+  placementStatus?: 'Placed' | 'Not Placed';
+  placementVerified?: boolean;
+  companyName?: string;
 }
 
 export interface FormErrors {

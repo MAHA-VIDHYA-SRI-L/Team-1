@@ -4,13 +4,8 @@ const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
 
 const getStudentId = async (authUserId) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("auth_user_id", authUserId)
-    .single();
-  if (error || !data) return null;
-  return data.id;
+  const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
+  return data?.id || null;
 };
 
 export const uploadResume = async (req, res) => {
@@ -33,15 +28,12 @@ export const uploadResume = async (req, res) => {
     const { data: urlData } = supabase.storage.from("resumes").getPublicUrl(fileName);
     const resumeUrl = urlData.publicUrl;
 
-    // Extract text for AI analysis
     const parsed = await pdfParse(req.file.buffer);
     const resumeText = parsed.text;
 
-    // Upsert so only latest resume is kept per student
     const { error: dbError } = await supabase
       .from("resumes")
-      .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText }, { onConflict: "student_id" });
-
+      .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText, uploaded_at: new Date().toISOString() }, { onConflict: "student_id" });
     if (dbError) return res.status(400).json({ error: dbError.message });
 
     return res.status(201).json({ message: "Resume uploaded successfully", resume_url: resumeUrl, resume_text: resumeText });
