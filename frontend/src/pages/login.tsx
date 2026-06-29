@@ -182,6 +182,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   // --- AUTH SUBMISSION HANDLER ---
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
   const handleAuthSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -198,7 +200,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -211,6 +213,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         return;
       }
 
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+      }
       setToastMessage('Session Logged in Successfully');
       setShowToast(true);
       setTimeout(() => onLoginSuccess(result.role, result.user), 1000);
@@ -239,7 +244,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/auth/reset-password', {
+      const response = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

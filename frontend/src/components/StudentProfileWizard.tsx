@@ -64,7 +64,10 @@ export default function StudentProfileWizard({
       twelfthPercentage: '', 
       twelfthSchool: '', 
       diplomaPercentage: '',
+      ugCollegeName: '',
       ugCgpa: '',
+      pgCollegeName: '',
+      pgCgpa: '0.00',
       finalCgpa: '0.00',
       sgpaSemesterValues: Array(8).fill(''),
       profileCreatedDate: new Date().toISOString(),
@@ -101,9 +104,14 @@ export default function StudentProfileWizard({
     }
 
     if (changed) {
-      setFormData(prev => ({ ...prev, ...updates }));
+      setFormData(prev => {
+        const next = { ...prev, ...updates };
+        sessionStorage.setItem('studentWizardState', JSON.stringify(next));
+        return next;
+      });
+    } else {
+      sessionStorage.setItem('studentWizardState', JSON.stringify(formData));
     }
-    sessionStorage.setItem('studentWizardState', JSON.stringify(formData));
   }, [formData.year, formData.semesterTerm, formData.yearOfStudy, formData.passOutYear, formData.currentSemester]);
 
   const completedSemsCount = useMemo(() => {
@@ -152,10 +160,12 @@ export default function StudentProfileWizard({
   }, [formData.sgpaSemesterValues, completedSemsCount]);
 
   useEffect(() => {
-    if (formData.finalCgpa !== computedCgpa) {
-      setFormData(prev => ({ ...prev, finalCgpa: computedCgpa }));
-    }
-  }, [computedCgpa, formData.finalCgpa]);
+    const isPG = formData.graduationStanding === 'PG';
+    const updates: Partial<StudentProfileData> = {};
+    if (isPG && formData.pgCgpa !== computedCgpa) updates.pgCgpa = computedCgpa;
+    if (!isPG && formData.finalCgpa !== computedCgpa) updates.finalCgpa = computedCgpa;
+    if (Object.keys(updates).length > 0) setFormData(prev => ({ ...prev, ...updates }));
+  }, [computedCgpa, formData.finalCgpa, formData.pgCgpa, formData.graduationStanding]);
 
   const handleDigitFilterChange = (field: keyof StudentProfileData, val: string, maxLength: number) => {
     const digitsOnly = val.replace(/\D/g, '');
@@ -227,11 +237,11 @@ export default function StudentProfileWizard({
 
     if (!formData.boardOfStudy) newErrors.boardOfStudy = 'Board selection is required';
     if (!formData.graduationStanding) newErrors.graduationStanding = 'Graduation track choice is required';
-    
-    if (formData.graduationStanding === 'PG' && !formData.ugCgpa) {
-      newErrors.ugCgpa = 'UG CGPA is required for Postgraduate standing tracks';
+    if (!formData.ugCollegeName.trim()) newErrors.ugCollegeName = 'UG college name is required';
+    if (!formData.ugCgpa) newErrors.ugCgpa = formData.graduationStanding === 'PG' ? 'Completed UG CGPA is required' : 'Current CGPA is required';
+    if (formData.graduationStanding === 'PG' && !formData.pgCollegeName.trim()) {
+      newErrors.pgCollegeName = 'PG college name is required';
     }
-    
     if (!formData.tenthPercentage) newErrors.tenthPercentage = '10th Percentage score is required';
 
     if (completedSemsCount > 0) {
@@ -245,7 +255,13 @@ export default function StudentProfileWizard({
       setErrors(newErrors);
     } else {
       sessionStorage.removeItem('studentWizardState');
-      onComplete({ ...formData, profileUpdatedDate: new Date().toISOString() });
+      const finalData = { ...formData, profileUpdatedDate: new Date().toISOString() };
+      // Clear PG fields if not PG student
+      if (finalData.graduationStanding !== 'PG') {
+        finalData.pgCollegeName = '';
+        finalData.pgCgpa = '0.00';
+      }
+      onComplete(finalData);
     }
   };
 
@@ -419,25 +435,58 @@ export default function StudentProfileWizard({
                     {errors.graduationStanding && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.graduationStanding}</p>}
                   </div>
 
-                  {/* CONDITIONAL UG CGPA INPUT FOR PG STUDENTS */}
+                  {/* UG COLLEGE + CGPA — always shown */}
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-500">UG College Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Anna University"
+                      value={formData.ugCollegeName}
+                      onChange={(e) => { setFormData({...formData, ugCollegeName: e.target.value}); setErrors(p => { const n={...p}; delete n.ugCollegeName; return n; }); }}
+                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.ugCollegeName ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
+                    />
+                    {errors.ugCollegeName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCollegeName}</p>}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-500">
+                      {formData.graduationStanding === 'PG' ? 'UG Degree CGPA (Completed) *' : 'Current CGPA *'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8.75 (Out of 10.00)"
+                      value={formData.ugCgpa}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d{0,2}(\.\d{0,2})?$/.test(val)) {
+                          if (!isNaN(parseFloat(val)) && parseFloat(val) > 10) return;
+                          setFormData({ ...formData, ugCgpa: val });
+                          setErrors(prev => { const next = { ...prev }; delete next.ugCgpa; return next; });
+                        }
+                      }}
+                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none focus:border-[#002D62] ${errors.ugCgpa ? 'border-red-500' : 'border-slate-200 bg-white'}`}
+                    />
+                    {errors.ugCgpa && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCgpa}</p>}
+                  </div>
+
+                  {/* PG FIELDS — only for PG students */}
                   {formData.graduationStanding === 'PG' && (
-                    <div className="sm:col-span-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 mt-2">
-                      <label className="text-xs font-bold text-slate-700">Undergraduate (UG) CGPA *</label>
-                      <input 
-                        type="text" 
-                        placeholder="e.g. 8.75 (Out of 10.00)" 
-                        value={formData.ugCgpa} 
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '' || /^\d{0,1}(\.\d{0,2})?$/.test(val) || val === '10') {
-                            if (!isNaN(parseFloat(val)) && parseFloat(val) > 10) return;
-                            setFormData({ ...formData, ugCgpa: val });
-                            setErrors(prev => { const next = { ...prev }; delete next.ugCgpa; return next; });
-                          }
-                        }}
-                        className={`w-full mt-1.5 p-2.5 border text-sm rounded-xl focus:outline-none focus:border-[#002D62] ${errors.ugCgpa ? 'border-red-500' : 'border-slate-200 bg-white'}`} 
-                      />
-                      {errors.ugCgpa && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCgpa}</p>}
+                    <div className="sm:col-span-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 space-y-3">
+                      <p className="text-xs font-bold text-[#002D62] uppercase tracking-wide">Postgraduate Details</p>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">PG College Name *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. IIT Madras"
+                          value={formData.pgCollegeName}
+                          onChange={(e) => { setFormData({...formData, pgCollegeName: e.target.value}); setErrors(p => { const n={...p}; delete n.pgCollegeName; return n; }); }}
+                          className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none focus:border-[#002D62] ${errors.pgCollegeName ? 'border-red-500' : 'border-slate-200'}`}
+                        />
+                        {errors.pgCollegeName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.pgCollegeName}</p>}
+                      </div>
+                      <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+                        <span className="text-xs font-semibold text-slate-500">PG CGPA (auto-computed from SGPA below)</span>
+                        <span className="text-sm font-black text-[#002D62]">{computedCgpa}</span>
+                      </div>
                     </div>
                   )}
 

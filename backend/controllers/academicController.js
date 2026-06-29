@@ -35,10 +35,13 @@ export const createAcademicDetails = async (req, res) => {
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const {
+      board_of_study, graduation_standing,
       tenth_school, tenth_percentage,
       twelfth_school, twelfth_percentage,
+      diploma_percentage,
       ug_college, ug_cgpa,
       pg_college, pg_cgpa,
+      sgpa_values,
       placement_status,
     } = req.body;
 
@@ -48,10 +51,13 @@ export const createAcademicDetails = async (req, res) => {
       .from("academic_details")
       .insert({
         student_id: studentId,
+        board_of_study, graduation_standing,
         tenth_school, tenth_percentage,
         twelfth_school, twelfth_percentage,
+        diploma_percentage,
         ug_college, ug_cgpa,
         pg_college, pg_cgpa,
+        sgpa_values,
         placement_status,
       });
 
@@ -69,10 +75,13 @@ export const updateAcademicDetails = async (req, res) => {
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const allowed = [
+      "board_of_study", "graduation_standing",
       "tenth_school", "tenth_percentage",
       "twelfth_school", "twelfth_percentage",
+      "diploma_percentage",
       "ug_college", "ug_cgpa",
       "pg_college", "pg_cgpa",
+      "sgpa_values",
       "placement_status",
     ];
 

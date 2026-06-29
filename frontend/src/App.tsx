@@ -28,6 +28,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
@@ -51,7 +52,7 @@ export default function App() {
               <span className="text-xs text-slate-400 font-medium">Logged in as {activeUser.fullName}</span>
             </div>
             <div className="flex-1">
-              <Badges />
+              <Badges user={{ fullName: activeUser.fullName }} />
             </div>
           </div>
         );

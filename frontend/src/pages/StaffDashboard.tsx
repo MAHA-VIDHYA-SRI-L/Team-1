@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Briefcase, 
@@ -9,8 +9,15 @@ import {
   Filter,
   GraduationCap,
   Sparkles,
-  MapPin
+  MapPin,
+  Loader2,
+  BarChart2
 } from 'lucide-react';
+import { fetchStaffStudents } from '../services/api';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 
 interface StaffDashboardProps {
   user: {
@@ -42,14 +49,27 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
   const [statusFilter, setStatusFilter] = useState<string>('All');
 
   // Master Student dataset
-  const [students] = useState<StudentRecord[]>([
-    { id: '1', regNo: '921322104001', name: 'Francis Edition', dept: 'CSE', readinessScore: 92, status: 'Placed', company: 'Google', email: 'francis@placement.edu' },
-    { id: '2', regNo: '921322104014', name: 'Abishek Kumar', dept: 'CSE', readinessScore: 85, status: 'Not Placed', email: 'abishek@placement.edu' },
-    { id: '3', regNo: '921322106022', name: 'Priya Dharshini', dept: 'ECE', readinessScore: 78, status: 'Placed', company: 'Cognizant', email: 'priya@placement.edu' },
-    { id: '4', regNo: '921322114005', name: 'Dinesh Karthik', dept: 'MECH', readinessScore: 64, status: 'Not Placed', email: 'dinesh@placement.edu' },
-    { id: '5', regNo: '921322103041', name: 'Shreya Iyer', dept: 'IT', readinessScore: 89, status: 'Placed', company: 'Microsoft', email: 'shreya@placement.edu' },
-    { id: '6', regNo: '921322104088', name: 'Rahul R', dept: 'CSE', readinessScore: 55, status: 'Not Placed', email: 'rahul@placement.edu' }
-  ]);
+  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStaffStudents()
+      .then(({ students: raw }) => {
+        setStudents(raw.map((s: any) => ({
+          id: s.id,
+          regNo: s.register_no,
+          name: s.full_name,
+          dept: s.branch,
+          readinessScore: s.readiness_score ?? 0,
+          status: s.placement_status === 'Placed' ? 'Placed' : 'Not Placed',
+          company: s.company_name ?? undefined,
+          email: s.email,
+        })));
+      })
+      .catch((err) => setFetchError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   // --- DYNAMIC CALCULATIONS ---
   const totalStudents = students.length;
@@ -89,6 +109,34 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
     });
   }, [students, searchQuery, selectedDept, minReadiness, statusFilter]);
 
+  // --- CHART DATA ---
+  const deptChartData = useMemo(() => {
+    const map: Record<string, { dept: string; Placed: number; 'Not Placed': number }> = {};
+    students.forEach(s => {
+      if (!map[s.dept]) map[s.dept] = { dept: s.dept, Placed: 0, 'Not Placed': 0 };
+      map[s.dept][s.status]++;
+    });
+    return Object.values(map);
+  }, [students]);
+
+  const placementPieData = useMemo(() => [
+    { name: 'Placed', value: placedStudents.length },
+    { name: 'Not Placed', value: unplacedStudents.length },
+  ], [placedStudents.length, unplacedStudents.length]);
+
+  const readinessDistData = useMemo(() => {
+    const buckets = [{ range: '0–40', count: 0 }, { range: '41–60', count: 0 }, { range: '61–80', count: 0 }, { range: '81–100', count: 0 }];
+    students.forEach(s => {
+      if (s.readinessScore <= 40) buckets[0].count++;
+      else if (s.readinessScore <= 60) buckets[1].count++;
+      else if (s.readinessScore <= 80) buckets[2].count++;
+      else buckets[3].count++;
+    });
+    return buckets;
+  }, [students]);
+
+  const PIE_COLORS = ['#059669', '#f97316'];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       
@@ -116,7 +164,21 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
 
       {/* WORKSPACE ELEMENT CANVAS CONTAINER */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        
+
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-[#002D62]" />
+            <span className="ml-2 text-sm font-bold text-slate-500">Loading student roster...</span>
+          </div>
+        )}
+
+        {fetchError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-bold px-4 py-3 rounded-xl">
+            Failed to load students: {fetchError}
+          </div>
+        )}
+
+        {!loading && !fetchError && <>
         {/* ==================== TOP CANVAS (30% Area Metric Boxes) ==================== */}
         <div>
           <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase px-1 block mb-3">Live Placement Analytics</span>
@@ -197,6 +259,69 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
                   </div>
                 ))}
               </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ==================== CHARTS SECTION ==================== */}
+        <div>
+          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase px-1 block mb-3">
+            <span className="inline-flex items-center gap-1.5"><BarChart2 className="h-3.5 w-3.5" />Placement Analytics Charts</span>
+          </span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+            {/* Chart 1: Dept Placement Bar Chart */}
+            <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm">
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-4">Placed vs Not Placed by Department</p>
+              {deptChartData.length === 0 ? (
+                <p className="text-xs text-slate-400 font-medium py-8 text-center">No department data available.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={deptChartData} barCategoryGap="30%">
+                    <XAxis dataKey="dept" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="Placed" fill="#059669" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="Not Placed" fill="#f97316" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Chart 2: Placement Pie */}
+            <div className="bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm flex flex-col">
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-4">Overall Placement Ratio</p>
+              {totalStudents === 0 ? (
+                <p className="text-xs text-slate-400 font-medium py-8 text-center">No data yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={placementPieData} cx="50%" cy="45%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${( percent * 100).toFixed(0)}%`} labelLine={false}
+                      style={{ fontSize: 10, fontWeight: 700 }}>
+                      {placementPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                    </Pie>
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Chart 3: Readiness Distribution */}
+            <div className="lg:col-span-3 bg-white border border-slate-100 rounded-[24px] p-5 shadow-sm">
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-4">Readiness Score Distribution</p>
+              {totalStudents === 0 ? (
+                <p className="text-xs text-slate-400 font-medium py-8 text-center">No data yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={readinessDistData} barCategoryGap="40%">
+                    <XAxis dataKey="range" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="count" name="Students" fill="#002D62" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
           </div>
@@ -366,6 +491,9 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
             )}
           </div>
         </div>
+
+        </>
+        }
 
       </div>
     </div>

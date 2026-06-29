@@ -17,8 +17,9 @@ export const getCertifications = async (req, res) => {
 
     const { data, error } = await supabase
       .from("certifications")
-      .select("id, certification_name, issuer, certificate_url")
-      .eq("student_id", studentId);
+      .select("id, certification_name, issuer, category, start_date, end_date, description, certificate_url, status")
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false });
 
     if (error) return res.status(400).json({ error: error.message });
 
@@ -33,16 +34,52 @@ export const addCertification = async (req, res) => {
     const studentId = await getStudentId(req.user.id);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
-    const { certification_name, issuer, certificate_url } = req.body;
+    const { certification_name, issuer, certificate_url, category, start_date, end_date, description } = req.body;
     if (!certification_name) return res.status(400).json({ error: "certification_name is required" });
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("certifications")
-      .insert({ student_id: studentId, certification_name, issuer, certificate_url });
+      .insert({
+        student_id: studentId,
+        certification_name, issuer, certificate_url,
+        category: category || "General",
+        start_date: start_date || null,
+        end_date: end_date || null,
+        description: description || null,
+        status: "Pending Review",
+      })
+      .select("id")
+      .single();
 
     if (error) return res.status(400).json({ error: error.message });
 
-    return res.status(201).json({ message: "Certification added successfully" });
+    return res.status(201).json({ message: "Certification added successfully", id: data.id });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateCertification = async (req, res) => {
+  try {
+    const studentId = await getStudentId(req.user.id);
+    if (!studentId) return res.status(404).json({ error: "Student profile not found" });
+
+    const { id } = req.params;
+    const { certification_name, issuer, certificate_url, category, start_date, end_date, description } = req.body;
+
+    const { error } = await supabase
+      .from("certifications")
+      .update({
+        certification_name, issuer, certificate_url,
+        category, start_date, end_date, description,
+        status: "Pending Review", // reset to pending on edit
+      })
+      .eq("id", id)
+      .eq("student_id", studentId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    return res.status(200).json({ message: "Certification updated successfully" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
