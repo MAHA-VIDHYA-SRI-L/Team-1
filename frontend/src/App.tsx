@@ -10,6 +10,7 @@ interface UserSessionData {
   email: string;
   idNumber?: string;
   contactNo?: string;
+  department?: string;
 }
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
@@ -36,24 +38,17 @@ export default function App() {
   if (isAuthenticated && activeUser) {
     // --- 1. STUDENT DOMAIN ---
     if (userRole === 'student') {
-      // If the student has chosen the badges page from the sidebar layout, intercept and mount it
+      // Swapped out the old top header bar completely.
+      // We now mount the Badges component directly and pass down the back-navigation callback straight to its sidebar footer!
       if (studentSubPage === 'badges') {
         return (
-          <div className="flex flex-col min-h-screen">
-            {/* Topbar/back-action layout navigation tray */}
-            <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
-              <button 
-                onClick={() => setStudentSubPage('home')}
-                className="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1"
-              >
-                ← Back to main dashboard workspace
-              </button>
-              <span className="text-xs text-slate-400 font-medium">Logged in as {activeUser.fullName}</span>
-            </div>
-            <div className="flex-1">
-              <Badges />
-            </div>
-          </div>
+          <Badges 
+            user={{ 
+              fullName: activeUser.fullName,
+              department: activeUser.department || 'CSE'
+            }} 
+            onBackToDashboard={() => setStudentSubPage('home')}
+          />
         );
       }
 
