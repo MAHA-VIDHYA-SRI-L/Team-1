@@ -19,7 +19,6 @@ import {
   X,
   Phone,
   Mail,
-  CalendarDays,
   BadgeCheck,
   Clock
 } from 'lucide-react';
@@ -365,7 +364,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie data={placementPieData} cx="50%" cy="45%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
+                    <Pie data={placementPieData} cx="50%" cy="45%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}
                       style={{ fontSize: 10, fontWeight: 700 }}>
                       {placementPieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
                     </Pie>

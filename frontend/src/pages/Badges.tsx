@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -13,7 +13,6 @@ import {
   Trash2,
   FolderPlus,
   ArrowLeft,
-  UploadCloud,
   Edit2,
   FileCheck,
   Lock,
@@ -89,9 +88,7 @@ export default function Badges({
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
 
   // Resume State (Compulsory)
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeUploaded, setResumeUploaded] = useState<boolean>(false);
-  const resumeInputRef = useRef<HTMLInputElement>(null);
+  
 
   // Preview Drawer Modal state
   const [previewDocument, setPreviewDocument] = useState<{
@@ -167,22 +164,7 @@ export default function Badges({
     setIsCustomCategoryModalOpen(false);
   };
 
-  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setResumeFile(file);
-      setResumeUploaded(true);
-    }
-  };
-
-  const triggerResumeDeleteConfirm = () => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Delete Master Resume?',
-      message: 'Are you sure you want to delete your resume? This is a mandatory placement office requirement. You will be restricted from placement opportunities until you upload a replacement.',
-      actionType: 'delete_resume'
-    });
-  };
+  
 
   const triggerCertificateDeleteConfirm = (id: string) => {
     setConfirmModal({
@@ -195,16 +177,10 @@ export default function Badges({
   };
 
   const executeConfirmAction = () => {
-    if (confirmModal.actionType === 'delete_resume') {
-      setResumeFile(null);
-      setResumeUploaded(false);
-      if (resumeInputRef.current) {
-        resumeInputRef.current.value = '';
-      }
-    } else if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
+    if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
       setCertificates(certificates.filter(c => c.id !== confirmModal.targetId));
     }
-    setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_resume' });
+    setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_cert' });
   };
 
   const handleOpenPreview = (cert: Certificate) => {
@@ -220,16 +196,7 @@ export default function Badges({
     });
   };
 
-  const handleOpenResumePreview = () => {
-    if (!resumeFile && !resumeUploaded) return;
-    setPreviewDocument({
-      title: 'Francis Fernando Master Resume',
-      fileName: resumeFile ? resumeFile.name : 'francis_resume_verified.pdf',
-      type: 'resume',
-      description: 'Primary master resume containing academic profiles, core technical stacks, and verified academic index metrics.',
-      status: 'Approved'
-    });
-  };
+  
 
   const closeFormModal = () => {
     setEditingCertId(null);
@@ -383,7 +350,7 @@ export default function Badges({
           {onBackToDashboard && (
             <button 
               onClick={onBackToDashboard}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-white text-[#002D62] hover:bg-blue-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-br from-[#0b63ff] to-[#06b6d4] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
             >
               <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
               <span>Back to Dashboard</span>
@@ -414,80 +381,7 @@ export default function Badges({
         {}
         <main className="p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
           
-          {/* COMPULSORY RESUME UPLOAD SECTION (Fully interactive: Upload, View, Replace, Delete) */}
-          <div className={`p-6 rounded-[24px] border transition-all ${
-            resumeUploaded 
-              ? 'bg-emerald-50/50 border-emerald-500/20 shadow-sm' 
-              : 'bg-gradient-to-r from-red-50/60 to-orange-50/60 border-orange-200 shadow-md'
-          }`}>
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <div className={`p-4 rounded-2xl shrink-0 ${resumeUploaded ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                  <FileCheck className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-black text-slate-800 tracking-tight">Compulsory Placement Resume</h2>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${
-                      resumeUploaded ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
-                    }`}>
-                      {resumeUploaded ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 max-w-2xl font-medium leading-relaxed">
-                    To participate in campus recruitment drives, it is mandatory to upload your master resume. The placement officer will review this document to compute your overall Readiness Index score.
-                  </p>
-                </div>
-              </div>
-
-              {/* Dynamic Interactive Action Suite based on upload status */}
-              <div className="w-full lg:w-auto shrink-0 flex flex-col sm:flex-row items-center gap-2">
-                <input type="file" ref={resumeInputRef} onChange={handleResumeChange} accept=".pdf" className="hidden" />
-                
-                {resumeUploaded ? (
-                  <>
-                    <button
-                      onClick={handleOpenResumePreview}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
-                    >
-                      View Resume
-                    </button>
-                    <button
-                      onClick={() => resumeInputRef.current?.click()}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
-                    >
-                      Replace (PDF)
-                    </button>
-                    <button
-                      onClick={triggerResumeDeleteConfirm}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all shadow-sm border border-red-100"
-                      title="Delete Resume"
-                    >
-                      <Trash2 className="h-4.5 w-4.5" />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => resumeInputRef.current?.click()}
-                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
-                  >
-                    <UploadCloud className="h-4.5 w-4.5" />
-                    Upload Mandatory Resume
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {resumeUploaded && (
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
-                  <span>Attached: <span className="font-mono font-medium text-[#002D62]">{resumeFile ? resumeFile.name : 'francis_resume_verified.pdf'}</span></span>
-                </div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wide">Last Updated: Just Now</span>
-              </div>
-            )}
-          </div>
+          {/* Resume upload removed: handled from Dashboard/Resume area to keep Badges focused on certificates */}
 
           {}
           <div>
