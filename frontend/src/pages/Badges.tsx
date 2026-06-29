@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -84,8 +84,6 @@ export default function Badges({
   // Custom category input state
   const [newCategoryName, setNewCategoryName] = useState<string>('');
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
-  const [resumeUploading, setResumeUploading] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const [previewDocument, setPreviewDocument] = useState<{
@@ -100,35 +98,8 @@ export default function Badges({
   } | null>(null);
 
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [certsLoading, setCertsLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const loadCerts = () =>
-    fetchCertifications()
-      .then(d => {
-        const mapped = (d.certifications || []).map((c: any): Certificate => ({
-          id: c.id,
-          title: c.certification_name,
-          issuingOrganization: c.issuer || '',
-          category: c.category || 'General',
-          startDate: c.start_date || '',
-          endDate: c.end_date || '',
-          fileName: c.certificate_url || '',
-          status: c.status === 'Approved' ? 'Approved' : 'Pending Review',
-          description: c.description || '',
-        }));
-        setCertificates(mapped);
-        const extraCats = [...new Set(mapped.map((c: Certificate) => c.category))]
-          .filter((cat: string) => !['Hackathon','Workshop','Paper Presentation','Internship'].includes(cat));
-        if (extraCats.length) setCategories(prev => [...new Set([...prev, ...extraCats])]);
-      })
-      .catch(() => {})
-      .finally(() => setCertsLoading(false));
-
-  useEffect(() => {
-    loadCerts();
-    fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
-  }, []);
+  const [resumeUploaded, setResumeUploaded] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const [formTitle, setFormTitle] = useState('');
   const [formOrg, setFormOrg] = useState('');
@@ -166,18 +137,33 @@ export default function Badges({
     setIsCustomCategoryModalOpen(false);
   };
 
-  const handleResumeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setResumeFile(file);
-      setResumeUploaded(true);
-    }
+    if (file) { setResumeFile(file); setResumeUploaded(true); }
   };
 
-  const handleDeleteResume = () => {
-    if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement.")) {
-      setResumeUrl(null);
+  const handleOpenResumePreview = () => {
+    setPreviewDocument({
+      title: 'Placement Resume',
+      fileName: resumeFile ? resumeFile.name : 'resume.pdf',
+      type: 'resume',
+    });
+  };
+
+  const triggerResumeDeleteConfirm = () => {
+    setConfirmModal({ isOpen: true, title: 'Delete Resume', message: 'Are you sure you want to delete your resume?', actionType: 'delete_resume' });
+  };
+
+  const triggerCertificateDeleteConfirm = (id: string) => {
+    setConfirmModal({ isOpen: true, title: 'Delete Certificate', message: 'Are you sure you want to delete this certificate?', actionType: 'delete_cert', targetId: id });
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmModal.actionType === 'delete_resume') {
+      setResumeUploaded(false); setResumeFile(null);
       if (resumeInputRef.current) resumeInputRef.current.value = '';
+    } else if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
+      setCertificates(prev => prev.filter(c => c.id !== confirmModal.targetId));
     }
     setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_resume' });
   };
@@ -259,12 +245,8 @@ export default function Badges({
     closeFormModal();
   };
 
-  const handleDeleteCertificate = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this certificate record?')) return;
-    try {
-      await removeCertification(id);
-      setCertificates(prev => prev.filter(c => c.id !== id));
-    } catch {}
+  const handleDeleteCertificate = (id: string) => {
+    setCertificates(prev => prev.filter(c => c.id !== id));
   };
 
   const handleEditOpen = (cert: Certificate) => {
@@ -760,19 +742,21 @@ export default function Badges({
 
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/50 flex flex-col items-center">
               
-              <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
-                <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
-                <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
+              {previewDocument.type === 'resume' ? (
+                /* RESUME LAYOUT CANVAS */
+                <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
+                  <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
+                  <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
 
-                <div className="text-center space-y-2 mt-4 relative z-10">
-                  <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
-                    K.S.R. College of Engineering
-                  </h2>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-                    Verification Ledger & Student Credentials Portal
-                  </p>
-                  <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
-                </div>
+                  <div className="text-center space-y-2 mt-4 relative z-10">
+                    <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
+                      K.S.R. College of Engineering
+                    </h2>
+                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                      Verification Ledger & Student Credentials Portal
+                    </p>
+                    <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
+                  </div>
 
                   <div className="space-y-1.5">
                     <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Professional Summary</h3>
@@ -819,9 +803,7 @@ export default function Badges({
               ) : (
                 /* CERTIFICATE LAYOUT CANVAS */
                 <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
-                  {/* Background grid watermark */}
                   <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
-                  {/* Decorative vintage border frame line */}
                   <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
 
                   <div className="text-center space-y-2 mt-4 relative z-10">
@@ -834,19 +816,12 @@ export default function Badges({
                     <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
                   </div>
 
-                <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
-                  <div className="text-left space-y-1">
-                    <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
-                    <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
-                  </div>
-
-                  {/* Footer Signatures */}
                   <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
                     <div className="text-left space-y-1">
                       <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
                       <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
                     </div>
-                    
+
                     {previewDocument.startDate && (
                       <div className="text-center space-y-1">
                         <span className="block text-slate-600">{previewDocument.startDate}</span>
@@ -891,6 +866,19 @@ export default function Badges({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] w-full max-w-sm shadow-2xl border border-slate-100 p-6 space-y-4">
+            <h2 className="text-sm font-black text-slate-800">{confirmModal.title}</h2>
+            <p className="text-xs text-slate-500">{confirmModal.message}</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">Cancel</button>
+              <button onClick={handleConfirmAction} className="px-4 py-2 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600">Confirm</button>
+            </div>
           </div>
         </div>
       )}
