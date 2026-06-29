@@ -137,6 +137,12 @@ alter table academic_details add column if not exists sgpa_values jsonb;
 alter table academic_details add column if not exists company_name text;
 
 -- ============================================================
+-- Migration: Add placement_verified and company_name to academic_details
+-- ============================================================
+alter table academic_details add column if not exists placement_verified boolean default false;
+alter table academic_details add column if not exists company_name text;
+
+-- ============================================================
 -- Migration: Add is_verified to student_profiles
 -- ============================================================
 alter table student_profiles add column if not exists is_verified boolean default false;
@@ -154,3 +160,8 @@ alter table certifications add column if not exists start_date date;
 alter table certifications add column if not exists end_date date;
 alter table certifications add column if not exists description text;
 alter table certifications add column if not exists status text default 'Pending Review';
+
+-- ============================================================
+-- Migration: Add diploma_institution to academic_details
+-- ============================================================
+alter table academic_details add column if not exists diploma_institution text;

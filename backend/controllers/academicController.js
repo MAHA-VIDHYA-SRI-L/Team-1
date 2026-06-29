@@ -1,13 +1,8 @@
 import supabase from "../config/supabase.js";
 
 const getStudentId = async (authUserId) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("auth_user_id", authUserId)
-    .single();
-  if (error || !data) return null;
-  return data.id;
+  const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
+  return data?.id || null;
 };
 
 export const getAcademicDetails = async (req, res) => {
@@ -38,7 +33,7 @@ export const createAcademicDetails = async (req, res) => {
       board_of_study, graduation_standing,
       tenth_school, tenth_percentage,
       twelfth_school, twelfth_percentage,
-      diploma_percentage,
+      diploma_percentage, diploma_institution,
       ug_college, ug_cgpa,
       pg_college, pg_cgpa,
       sgpa_values,
@@ -54,7 +49,7 @@ export const createAcademicDetails = async (req, res) => {
         board_of_study, graduation_standing,
         tenth_school, tenth_percentage,
         twelfth_school, twelfth_percentage,
-        diploma_percentage,
+        diploma_percentage, diploma_institution,
         ug_college, ug_cgpa,
         pg_college, pg_cgpa,
         sgpa_values,
@@ -78,7 +73,7 @@ export const updateAcademicDetails = async (req, res) => {
       "board_of_study", "graduation_standing",
       "tenth_school", "tenth_percentage",
       "twelfth_school", "twelfth_percentage",
-      "diploma_percentage",
+      "diploma_percentage", "diploma_institution",
       "ug_college", "ug_cgpa",
       "pg_college", "pg_cgpa",
       "sgpa_values",

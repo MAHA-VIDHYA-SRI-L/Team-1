@@ -7,6 +7,7 @@ interface StudentProfileWizardProps {
   initialEmail: string;
   initialName?: string;
   initialRegsNumber?: string;
+  initialPhone?: string;
 }
 
 const DEPARTMENTS = ['CSE','MECH','ECE','BIO MEDICAL','IT','AUTO MOBILE','SFE','EEE','AIDS','MBA','MCA'];
@@ -17,12 +18,14 @@ const STANDINGS = ['UG', 'PG'] as const;
 export default function StudentProfileWizard({ 
   onComplete, 
   initialEmail,
-  initialName = 'Francis', 
-  initialRegsNumber = '24CSE012' 
+  initialName = '',
+  initialRegsNumber = '',
+  initialPhone = '',
 }: StudentProfileWizardProps) {
   
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [secondaryEducation, setSecondaryEducation] = useState<'twelfth' | 'diploma'>('twelfth');
   
   const [formData, setFormData] = useState<StudentProfileData>(() => {
     const savedState = sessionStorage.getItem('studentWizardState');
@@ -32,7 +35,8 @@ export default function StudentProfileWizard({
           ...JSON.parse(savedState), 
           name: initialName, 
           regsNumber: initialRegsNumber, 
-          email: initialEmail 
+          email: initialEmail,
+          phone: JSON.parse(savedState).phone || initialPhone,
         }; 
       } catch (e) { 
         console.error('Failed to parse saved state', e); 
@@ -49,7 +53,7 @@ export default function StudentProfileWizard({
       currentSemester: '', 
       yearOfStudy: '', 
       passOutYear: '', 
-      phone: '', 
+      phone: initialPhone, 
       alternativePhone: '', 
       address: '', 
       isOtherState: false, 
@@ -64,6 +68,7 @@ export default function StudentProfileWizard({
       twelfthPercentage: '', 
       twelfthSchool: '', 
       diplomaPercentage: '',
+      diplomaInstitution: '',
       ugCollegeName: '',
       ugCgpa: '',
       pgCollegeName: '',
@@ -75,7 +80,6 @@ export default function StudentProfileWizard({
     };
   });
 
-  // Single-pass updates for dynamic calculations (Academic Term to Semester mapping)
   useEffect(() => {
     let changed = false;
     const updates: Partial<StudentProfileData> = {};
@@ -120,18 +124,17 @@ export default function StudentProfileWizard({
   }, [formData.currentSemester]);
 
   const dynamicPercentage = useMemo(() => {
-    // Mandated Fields Required for baseline progress calculations
     const baseFields = [
       formData.name, formData.dob, formData.department, formData.year, formData.semesterTerm, formData.currentSemester, 
       formData.regsNumber, formData.yearOfStudy, formData.passOutYear,
-      formData.email, formData.phone, formData.boardOfStudy, formData.graduationStanding, formData.tenthPercentage
+      formData.email, formData.phone, formData.linkedinUrl,
+      formData.address, formData.stateName, formData.district, formData.pinCode,
+      formData.boardOfStudy, formData.graduationStanding, formData.tenthPercentage
     ];
     let filledCount = baseFields.filter(val => typeof val === 'string' ? val.trim() !== '' : !!val).length;
     let totalFieldsCount = baseFields.length;
 
-    // Optional Fields contribute constructively to progress bar if provided
     const optionalFields = [
-      formData.address, formData.district, formData.pinCode, formData.linkedinUrl, 
       formData.alternativePhone, formData.tenthSchool, formData.twelfthPercentage, formData.twelfthSchool, formData.diplomaPercentage
     ];
     const filledOptionals = optionalFields.filter(v => typeof v === 'string' && v.trim() !== '').length;
@@ -212,19 +215,24 @@ export default function StudentProfileWizard({
 
     if (step === 2) {
       if (!formData.phone || formData.phone.length !== 10) {
-        newErrors.phone = 'Active phone contact must be exactly 10 digits';
+        if (!initialPhone) newErrors.phone = 'Active phone contact must be exactly 10 digits';
       }
       if (formData.alternativePhone && formData.alternativePhone.length !== 10) {
         newErrors.alternativePhone = 'Alternative phone must be exactly 10 digits';
       }
-      if (formData.pinCode && formData.pinCode.length !== 6) {
-        newErrors.pinCode = 'Pincode must be exactly 6 digits';
-      }
-      if (formData.linkedinUrl.trim()) {
+      if (!formData.linkedinUrl.trim()) {
+        newErrors.linkedinUrl = 'LinkedIn profile URL is required';
+      } else {
         const linkedinRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
         if (!linkedinRegex.test(formData.linkedinUrl)) {
           newErrors.linkedinUrl = 'Please enter a valid LinkedIn URL';
         }
+      }
+      if (!formData.address.trim()) newErrors.address = 'Address is required';
+      if (formData.isOtherState && !formData.stateName.trim()) newErrors.stateName = 'State name is required';
+      if (!formData.district.trim()) newErrors.district = 'District is required';
+      if (!formData.pinCode || formData.pinCode.length !== 6) {
+        newErrors.pinCode = 'Pincode must be exactly 6 digits';
       }
     }
 
@@ -238,11 +246,18 @@ export default function StudentProfileWizard({
     if (!formData.boardOfStudy) newErrors.boardOfStudy = 'Board selection is required';
     if (!formData.graduationStanding) newErrors.graduationStanding = 'Graduation track choice is required';
     if (!formData.ugCollegeName.trim()) newErrors.ugCollegeName = 'UG college name is required';
-    if (!formData.ugCgpa) newErrors.ugCgpa = formData.graduationStanding === 'PG' ? 'Completed UG CGPA is required' : 'Current CGPA is required';
+    if (!formData.tenthPercentage) newErrors.tenthPercentage = '10th Percentage score is required';
+    if (!formData.tenthSchool.trim()) newErrors.tenthSchool = '10th school name is required';
+    if (secondaryEducation === 'twelfth') {
+      if (!formData.twelfthPercentage) newErrors.twelfthPercentage = '12th percentage is required';
+      if (!formData.twelfthSchool.trim()) newErrors.twelfthSchool = '12th school name is required';
+    } else {
+      if (!formData.diplomaPercentage) newErrors.diplomaPercentage = 'Diploma percentage is required';
+      if (!formData.diplomaInstitution.trim()) newErrors.diplomaInstitution = 'Diploma institution is required';
+    }
     if (formData.graduationStanding === 'PG' && !formData.pgCollegeName.trim()) {
       newErrors.pgCollegeName = 'PG college name is required';
     }
-    if (!formData.tenthPercentage) newErrors.tenthPercentage = '10th Percentage score is required';
 
     if (completedSemsCount > 0) {
       const activeSemsFilled = formData.sgpaSemesterValues.slice(0, completedSemsCount).filter(v => v !== '').length;
@@ -255,8 +270,17 @@ export default function StudentProfileWizard({
       setErrors(newErrors);
     } else {
       sessionStorage.removeItem('studentWizardState');
-      const finalData = { ...formData, profileUpdatedDate: new Date().toISOString() };
-      // Clear PG fields if not PG student
+      const finalData = { 
+        ...formData, 
+        profileUpdatedDate: new Date().toISOString(),
+        ugCgpa: computedCgpa,
+        finalCgpa: formData.graduationStanding !== 'PG' ? computedCgpa : formData.finalCgpa,
+        // Clear fields not applicable to chosen secondary education type
+        twelfthPercentage: secondaryEducation === 'twelfth' ? formData.twelfthPercentage : '',
+        twelfthSchool: secondaryEducation === 'twelfth' ? formData.twelfthSchool : '',
+        diplomaPercentage: secondaryEducation === 'diploma' ? formData.diplomaPercentage : '',
+        diplomaInstitution: secondaryEducation === 'diploma' ? formData.diplomaInstitution : '',
+      };
       if (finalData.graduationStanding !== 'PG') {
         finalData.pgCollegeName = '';
         finalData.pgCgpa = '0.00';
@@ -301,7 +325,6 @@ export default function StudentProfileWizard({
 
           <form onSubmit={step === 3 ? handleSubmit : handleNext} className="space-y-6">
             
-            {/* STEP 1: BASIC STUDENT DETAILS */}
             {step === 1 && (
               <div className="space-y-4">
                 <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider mb-2">Basic Details</h3>
@@ -360,7 +383,6 @@ export default function StudentProfileWizard({
               </div>
             )}
 
-            {/* STEP 2: COMMUNICATION DETAILS */}
             {step === 2 && (
               <div className="space-y-4">
                 <h3 className="text-xs font-bold uppercase text-[#002D62] tracking-wider mb-2">Communication Details</h3>
@@ -370,14 +392,20 @@ export default function StudentProfileWizard({
                     <input type="text" value={formData.email} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl text-slate-500 cursor-not-allowed font-medium" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-500">LinkedIn Profile Link</label>
+                    <label className="text-xs font-semibold text-slate-500">LinkedIn Profile Link *</label>
                     <input type="text" placeholder="https://www.linkedin.com/in/username" value={formData.linkedinUrl} onChange={(e) => { setFormData({...formData, linkedinUrl: e.target.value}); setErrors(p => { const n={...p}; delete n.linkedinUrl; return n; }); }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.linkedinUrl ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`} />
                     {errors.linkedinUrl && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.linkedinUrl}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">Phone Number *</label>
-                    <input type="text" value={formData.phone} onChange={(e) => handleDigitFilterChange('phone', e.target.value, 10)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.phone ? 'border-red-500' : 'border-slate-200'}`} />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.phone}</p>}
+                    <label className="text-xs font-semibold text-slate-400">Phone Number {initialPhone ? '(Registered)' : '*'}</label>
+                    {initialPhone ? (
+                      <input type="text" value={formData.phone} disabled className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 text-sm rounded-xl text-slate-500 cursor-not-allowed font-medium" />
+                    ) : (
+                      <>
+                        <input type="text" value={formData.phone} onChange={(e) => handleDigitFilterChange('phone', e.target.value, 10)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.phone ? 'border-red-500' : 'border-slate-200'}`} />
+                        {errors.phone && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.phone}</p>}
+                      </>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-500">Alternative Phone</label>
@@ -385,23 +413,26 @@ export default function StudentProfileWizard({
                     {errors.alternativePhone && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.alternativePhone}</p>}
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-500">Address</label>
-                    <textarea value={formData.address} onChange={(e) => { setFormData({...formData, address: e.target.value}); setErrors(p => { const n={...p}; delete n.address; return n; }); }} className="w-full mt-1 p-2.5 border text-sm rounded-xl h-20 resize-none focus:outline-none border-slate-200" />
+                    <label className="text-xs font-semibold text-slate-500">Address *</label>
+                    <textarea value={formData.address} onChange={(e) => { setFormData({...formData, address: e.target.value}); setErrors(p => { const n={...p}; delete n.address; return n; }); }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl h-20 resize-none focus:outline-none ${errors.address ? 'border-red-500' : 'border-slate-200'}`} />
+                    {errors.address && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.address}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">State</label>
+                    <label className="text-xs font-semibold text-slate-500">State *</label>
                     <div className="flex gap-4 mt-2">
                       <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600"><input type="radio" checked={!formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: false, stateName: 'Tamil Nadu'})} /> Tamil Nadu</label>
                       <label className="flex items-center text-sm gap-1.5 font-medium text-slate-600"><input type="radio" checked={formData.isOtherState} onChange={() => setFormData({...formData, isOtherState: true, stateName: ''})} /> Other State</label>
                     </div>
-                    {formData.isOtherState && <input type="text" placeholder="Enter state name" value={formData.stateName} onChange={(e) => setFormData({...formData, stateName: e.target.value})} className="w-full mt-2 p-2 border text-sm rounded-xl border-slate-200" />}
+                    {formData.isOtherState && <input type="text" placeholder="Enter state name" value={formData.stateName} onChange={(e) => { setFormData({...formData, stateName: e.target.value}); setErrors(p => { const n={...p}; delete n.stateName; return n; }); }} className={`w-full mt-2 p-2 border text-sm rounded-xl ${errors.stateName ? 'border-red-500' : 'border-slate-200'}`} />}
+                    {errors.stateName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.stateName}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">District</label>
-                    <input type="text" value={formData.district} onChange={(e) => { const v = e.target.value; if (v === '' || /^[A-Za-z\s]+$/.test(v)) { setFormData({...formData, district: v}); } }} className="w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none border-slate-200" />
+                    <label className="text-xs font-semibold text-slate-500">District *</label>
+                    <input type="text" value={formData.district} onChange={(e) => { const v = e.target.value; if (v === '' || /^[A-Za-z\s]+$/.test(v)) { setFormData({...formData, district: v}); setErrors(p => { const n={...p}; delete n.district; return n; }); } }} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.district ? 'border-red-500' : 'border-slate-200'}`} />
+                    {errors.district && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.district}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">Pin Code</label>
+                    <label className="text-xs font-semibold text-slate-500">Pin Code *</label>
                     <input type="text" value={formData.pinCode} onChange={(e) => handleDigitFilterChange('pinCode', e.target.value, 6)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.pinCode ? 'border-red-500' : 'border-slate-200'}`} />
                     {errors.pinCode && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.pinCode}</p>}
                   </div>
@@ -409,7 +440,6 @@ export default function StudentProfileWizard({
               </div>
             )}
 
-            {/* STEP 3: SCHOLASTIC RECORDS & PRIOR SEMESTERS MATRIX */}
             {step === 3 && (
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
@@ -435,56 +465,28 @@ export default function StudentProfileWizard({
                     {errors.graduationStanding && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.graduationStanding}</p>}
                   </div>
 
-                  {/* UG COLLEGE + CGPA — always shown */}
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-slate-500">UG College Name *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Anna University"
-                      value={formData.ugCollegeName}
+                    <input type="text" placeholder="e.g. Anna University" value={formData.ugCollegeName}
                       onChange={(e) => { setFormData({...formData, ugCollegeName: e.target.value}); setErrors(p => { const n={...p}; delete n.ugCollegeName; return n; }); }}
                       className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.ugCollegeName ? 'border-red-500' : 'border-slate-200 focus:border-[#002D62]'}`}
                     />
                     {errors.ugCollegeName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCollegeName}</p>}
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-slate-500">
-                      {formData.graduationStanding === 'PG' ? 'UG Degree CGPA (Completed) *' : 'Current CGPA *'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 8.75 (Out of 10.00)"
-                      value={formData.ugCgpa}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d{0,2}(\.\d{0,2})?$/.test(val)) {
-                          if (!isNaN(parseFloat(val)) && parseFloat(val) > 10) return;
-                          setFormData({ ...formData, ugCgpa: val });
-                          setErrors(prev => { const next = { ...prev }; delete next.ugCgpa; return next; });
-                        }
-                      }}
-                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none focus:border-[#002D62] ${errors.ugCgpa ? 'border-red-500' : 'border-slate-200 bg-white'}`}
-                    />
-                    {errors.ugCgpa && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.ugCgpa}</p>}
-                  </div>
 
-                  {/* PG FIELDS — only for PG students */}
                   {formData.graduationStanding === 'PG' && (
                     <div className="sm:col-span-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 space-y-3">
                       <p className="text-xs font-bold text-[#002D62] uppercase tracking-wide">Postgraduate Details</p>
                       <div>
                         <label className="text-xs font-semibold text-slate-500">PG College Name *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. IIT Madras"
-                          value={formData.pgCollegeName}
+                        <input type="text" placeholder="e.g. IIT Madras" value={formData.pgCollegeName}
                           onChange={(e) => { setFormData({...formData, pgCollegeName: e.target.value}); setErrors(p => { const n={...p}; delete n.pgCollegeName; return n; }); }}
                           className={`w-full mt-1 p-2.5 border text-sm rounded-xl bg-white focus:outline-none focus:border-[#002D62] ${errors.pgCollegeName ? 'border-red-500' : 'border-slate-200'}`}
                         />
                         {errors.pgCollegeName && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.pgCollegeName}</p>}
                       </div>
                       <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-                        <span className="text-xs font-semibold text-slate-500">PG CGPA (auto-computed from SGPA below)</span>
+                        <span className="text-xs font-semibold text-slate-500">PG CGPA (auto-computed from SGPA)</span>
                         <span className="text-sm font-black text-[#002D62]">{computedCgpa}</span>
                       </div>
                     </div>
@@ -496,17 +498,58 @@ export default function StudentProfileWizard({
                     {errors.tenthPercentage && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.tenthPercentage}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500">10th School Name</label>
-                    <input type="text" placeholder="School Location" value={formData.tenthSchool} onChange={(e) => setFormData({...formData, tenthSchool: e.target.value})} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
+                    <label className="text-xs font-semibold text-slate-500">10th School Name *</label>
+                    <input type="text" placeholder="School name" value={formData.tenthSchool}
+                      onChange={(e) => { const v = e.target.value; if (v === '' || /^[A-Za-z\s.,'()-]+$/.test(v)) { setFormData({...formData, tenthSchool: v}); setErrors(p => { const n={...p}; delete n.tenthSchool; return n; }); } }}
+                      className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.tenthSchool ? 'border-red-500' : 'border-slate-200'}`} />
+                    {errors.tenthSchool && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.tenthSchool}</p>}
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500">12th Score (%)</label>
-                    <input type="text" placeholder="e.g. 76.5" value={formData.twelfthPercentage} onChange={(e) => handlePercentageChange('twelfthPercentage', e.target.value)} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
+
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-slate-500">Secondary Education Type *</label>
+                    <div className="flex gap-3 mt-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
+                        <input type="radio" checked={secondaryEducation === 'twelfth'} onChange={() => setSecondaryEducation('twelfth')} className="w-4 h-4 text-[#002D62]" /> 12th (HSC)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
+                        <input type="radio" checked={secondaryEducation === 'diploma'} onChange={() => setSecondaryEducation('diploma')} className="w-4 h-4 text-[#002D62]" /> Diploma
+                      </label>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500">12th / Diploma School Name</label>
-                    <input type="text" placeholder="School/Polytechnic name" value={formData.twelfthSchool} onChange={(e) => setFormData({...formData, twelfthSchool: e.target.value})} className="w-full mt-1 p-2.5 border text-sm rounded-xl border-slate-200 focus:outline-none" />
-                  </div>
+
+                  {secondaryEducation === 'twelfth' && (
+                    <>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">12th Score (%) *</label>
+                        <input type="text" placeholder="e.g. 76.5" value={formData.twelfthPercentage} onChange={(e) => handlePercentageChange('twelfthPercentage', e.target.value)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.twelfthPercentage ? 'border-red-500' : 'border-slate-200'}`} />
+                        {errors.twelfthPercentage && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.twelfthPercentage}</p>}
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">12th School Name *</label>
+                        <input type="text" placeholder="School name" value={formData.twelfthSchool}
+                          onChange={(e) => { const v = e.target.value; if (v === '' || /^[A-Za-z\s.,'()-]+$/.test(v)) { setFormData({...formData, twelfthSchool: v}); setErrors(p => { const n={...p}; delete n.twelfthSchool; return n; }); } }}
+                          className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.twelfthSchool ? 'border-red-500' : 'border-slate-200'}`} />
+                        {errors.twelfthSchool && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.twelfthSchool}</p>}
+                      </div>
+                    </>
+                  )}
+
+                  {secondaryEducation === 'diploma' && (
+                    <>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">Diploma Score (%) *</label>
+                        <input type="text" placeholder="e.g. 76.5" value={formData.diplomaPercentage} onChange={(e) => handlePercentageChange('diplomaPercentage', e.target.value)} className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.diplomaPercentage ? 'border-red-500' : 'border-slate-200'}`} />
+                        {errors.diplomaPercentage && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.diplomaPercentage}</p>}
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">Diploma Institution *</label>
+                        <input type="text" placeholder="Institution name" value={formData.diplomaInstitution}
+                          onChange={(e) => { setFormData({...formData, diplomaInstitution: e.target.value}); setErrors(p => { const n={...p}; delete n.diplomaInstitution; return n; }); }}
+                          className={`w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none ${errors.diplomaInstitution ? 'border-red-500' : 'border-slate-200'}`} />
+                        {errors.diplomaInstitution && <p className="text-red-500 text-xs mt-1 font-semibold">⚠️ {errors.diplomaInstitution}</p>}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">

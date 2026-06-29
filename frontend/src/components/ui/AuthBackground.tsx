@@ -32,7 +32,6 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-100 via-slate-50 to-[#002D62]/5 flex items-center justify-center font-sans antialiased selection:bg-[#002D62]/10 selection:text-[#002D62] overflow-x-hidden relative">
       
-      {/* Dynamic Keyframe Injection for the gentle drifting movement */}
       <style>{`
         @keyframes subtleWave {
           0%, 100% { transform: translateY(0px) scaleY(1); }
@@ -44,10 +43,8 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
         }
       `}</style>
 
-      {/* Decorative Ambient Radial Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#002D62]/5 to-transparent rounded-full blur-[140px] pointer-events-none z-0"></div>
       
-      {/* Full-Screen Vector Topographic Wave Layer */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 bg-transparent">
         <svg 
           className="w-full h-full text-[#002D62]" 
@@ -73,11 +70,9 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
         </svg>
       </div>
 
-      {/* DYNAMIC LAYOUT SWITCHER */}
       {layout === 'split' ? (
         <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-[55fr_50fr] relative z-10 p-3 md:p-5 gap-6 box-border bg-transparent">
           
-          {/* LEFT PANEL: Campus Card (Takes up 55% of the screen width for a snug look) */}
           <div className="hidden md:block w-full h-[calc(100vh-40px)] relative sticky top-5 rounded-[24px] overflow-hidden bg-white/40 backdrop-blur-[6px] p-2 border border-white/80 shadow-[0_12px_40px_rgba(0,45,98,0.04)]">
             <div className="w-full h-full rounded-[18px] overflow-hidden relative shadow-inner group">
               <img 
@@ -89,16 +84,13 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
             </div>
           </div>
 
-          {/* RIGHT PANEL: Form card pane with optimized margins and padding */}
           <div className="w-full flex flex-col justify-between items-center px-4 sm:px-6 py-6 min-h-[calc(100vh-40px)] relative bg-transparent">
             <div className="hidden md:block h-2"></div>
 
-            {/* Central Interactive Content Display (Forms Injected Here) */}
             <div className="w-full max-w-[420px] my-auto relative z-10">
               {children}
             </div>
 
-            {/* Footer Copyright Text Frame */}
             <div className="text-[11px] font-bold text-slate-400 tracking-wider z-10 hidden sm:block relative pt-6 select-none uppercase font-mono">
               © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
             </div>

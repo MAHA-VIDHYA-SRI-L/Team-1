@@ -1,7 +1,5 @@
 import { supabaseAdmin } from "../config/supabase.js";
 
-// ── STUDENTS ──────────────────────────────────────────────
-
 export const getAllStudents = async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .from("student_profiles")
@@ -25,10 +23,21 @@ export const getStudentById = async (req, res) => {
 
 export const updateStudent = async (req, res) => {
   const { full_name, register_no, phone, email } = req.body;
+  const id = req.params.id;
+
+  if (email) {
+    const { data: dup } = await supabaseAdmin.from("student_profiles").select("id").eq("email", email).neq("id", id).single();
+    if (dup) return res.status(400).json({ error: "This email is already used by another student" });
+  }
+  if (phone) {
+    const { data: dup } = await supabaseAdmin.from("student_profiles").select("id").eq("phone", phone).neq("id", id).single();
+    if (dup) return res.status(400).json({ error: "This phone number is already used by another student" });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("student_profiles")
     .update({ full_name, register_no, phone, email })
-    .eq("id", req.params.id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -64,8 +73,6 @@ export const deleteStudent = async (req, res) => {
   return res.json({ message: "Student deleted successfully" });
 };
 
-// ── STAFF ─────────────────────────────────────────────────
-
 export const getAllStaff = async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .from("staff_profiles")
@@ -89,10 +96,21 @@ export const getStaffById = async (req, res) => {
 
 export const updateStaff = async (req, res) => {
   const { full_name, faculty_id, phone, email } = req.body;
+  const id = req.params.id;
+
+  if (email) {
+    const { data: dup } = await supabaseAdmin.from("staff_profiles").select("id").eq("email", email).neq("id", id).single();
+    if (dup) return res.status(400).json({ error: "This email is already used by another staff member" });
+  }
+  if (phone) {
+    const { data: dup } = await supabaseAdmin.from("staff_profiles").select("id").eq("phone", phone).neq("id", id).single();
+    if (dup) return res.status(400).json({ error: "This phone number is already used by another staff member" });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("staff_profiles")
     .update({ full_name, faculty_id, phone, email })
-    .eq("id", req.params.id)
+    .eq("id", id)
     .select()
     .single();
 
