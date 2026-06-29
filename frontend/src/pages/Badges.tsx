@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -20,27 +20,17 @@ import {
   Unlock,
   X,
   Download,
-  AlertTriangle,
-  Loader2
+  AlertTriangle
 } from 'lucide-react';
-import {
-  fetchCertifications,
-  addCertification,
-  editCertification,
-  removeCertification,
-  fetchResume,
-  uploadResume,
-} from '../services/api';
 
-// --- Interfaces & Types ---
 interface Certificate {
   id: string;
-  title: string;           // certification_name
-  issuingOrganization: string; // issuer
+  title: string;
+  issuingOrganization: string;
   category: string;
-  startDate: string;       // start_date
-  endDate: string;         // end_date
-  fileName: string;        // certificate_url (used as display name)
+  startDate: string;
+  endDate: string;
+  fileName: string;
   status: 'Approved' | 'Pending Review';
   description?: string;
 }
@@ -50,14 +40,23 @@ interface BadgesProps {
   user?: {
     fullName: string;
     department?: string;
+    email?: string;
+    phone?: string;
+    cgpa?: string;
   };
 }
 
 export default function Badges({ 
   onBackToDashboard, 
-  user = { fullName: 'Francis Fernando', department: 'CSE' } 
+  user = { 
+    fullName: 'Francis Fernando', 
+    department: 'CSE',
+    email: 'francis.fernando@ksrce.ac.in',
+    phone: '+91 98765 43210',
+    cgpa: '8.75'
+  } 
 }: BadgesProps) {
-  // --- Core State ---
+  
   const [categories, setCategories] = useState<string[]>([
     'Hackathon',
     'Workshop',
@@ -69,15 +68,29 @@ export default function Badges({
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isCustomCategoryModalOpen, setIsCustomCategoryModalOpen] = useState<boolean>(false);
   
+  // Confirmation Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    actionType: 'delete_resume' | 'delete_cert';
+    targetId?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    actionType: 'delete_resume'
+  });
+
   // Custom category input state
   const [newCategoryName, setNewCategoryName] = useState<string>('');
 
   // Editing state
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
 
-  // Resume State
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
-  const [resumeUploading, setResumeUploading] = useState(false);
+  // Resume State (Compulsory)
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploaded, setResumeUploaded] = useState<boolean>(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   // Preview Drawer Modal state
@@ -92,40 +105,30 @@ export default function Badges({
     status?: 'Approved' | 'Pending Review';
   } | null>(null);
 
-  // Certificates from backend
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [certsLoading, setCertsLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const mapRaw = (c: any): Certificate => ({
-    id: c.id,
-    title: c.certification_name,
-    issuingOrganization: c.issuer || '',
-    category: c.category || 'General',
-    startDate: c.start_date || '',
-    endDate: c.end_date || '',
-    fileName: c.certificate_url || '',
-    status: c.status === 'Approved' ? 'Approved' : 'Pending Review',
-    description: c.description || '',
-  });
-
-  const loadCerts = () =>
-    fetchCertifications()
-      .then(d => {
-        const mapped = (d.certifications || []).map(mapRaw);
-        setCertificates(mapped);
-        // Sync any new categories from DB
-        const extraCats = [...new Set(mapped.map((c: Certificate) => c.category))]
-          .filter((cat: string) => !['Hackathon','Workshop','Paper Presentation','Internship'].includes(cat));
-        if (extraCats.length) setCategories(prev => [...new Set([...prev, ...extraCats])]);
-      })
-      .catch(() => {})
-      .finally(() => setCertsLoading(false));
-
-  useEffect(() => {
-    loadCerts();
-    fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
-  }, []);
+  const [certificates, setCertificates] = useState<Certificate[]>([
+    {
+      id: 'cert-1',
+      title: 'Smart India Hackathon Internal Tier',
+      issuingOrganization: 'K.S.R. College of Engineering',
+      category: 'Hackathon',
+      startDate: '2026-02-12',
+      endDate: '2026-02-13',
+      fileName: 'sih_internal_2026.pdf',
+      status: 'Approved',
+      description: 'Developed an automated water conservation platform tracking consumption matrices.'
+    },
+    {
+      id: 'cert-2',
+      title: 'LLM Workshop in Generative AI',
+      issuingOrganization: 'VIT Vellore',
+      category: 'Workshop',
+      startDate: '2026-03-05',
+      endDate: '2026-03-06',
+      fileName: 'vit_llm_workshop.png',
+      status: 'Pending Review',
+      description: 'Hands-on training building RAG models and context pipelines using Python framework tools.'
+    }
+  ]);
 
   // --- Form Input States for Upload / Edit Modal ---
   const [formTitle, setFormTitle] = useState('');
@@ -138,7 +141,6 @@ export default function Badges({
   const [formDesc, setFormDesc] = useState('');
   const [formError, setFormError] = useState('');
 
-  // --- Helper to Map Category Icons Dynamically ---
   const getCategoryIcon = (cat: string, className = "h-4 w-4") => {
     switch (cat) {
       case 'Hackathon': return <Award className={className} />;
@@ -149,7 +151,6 @@ export default function Badges({
     }
   };
 
-  // --- Custom Bucket Generation Handler ---
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = newCategoryName.trim();
@@ -166,27 +167,46 @@ export default function Badges({
     setIsCustomCategoryModalOpen(false);
   };
 
-  // --- Handle Resume Upload ---
-  const handleResumeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setResumeUploading(true);
-    try {
-      const data = await uploadResume(file);
-      setResumeUrl(data.resume_url);
-    } catch {}
-    finally { setResumeUploading(false); }
-  };
-
-  // --- Delete Resume Action ---
-  const handleDeleteResume = () => {
-    if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement.")) {
-      setResumeUrl(null);
-      if (resumeInputRef.current) resumeInputRef.current.value = '';
+    if (file) {
+      setResumeFile(file);
+      setResumeUploaded(true);
     }
   };
 
-  // --- Open Visual Document Preview ---
+  const triggerResumeDeleteConfirm = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Master Resume?',
+      message: 'Are you sure you want to delete your resume? This is a mandatory placement office requirement. You will be restricted from placement opportunities until you upload a replacement.',
+      actionType: 'delete_resume'
+    });
+  };
+
+  const triggerCertificateDeleteConfirm = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Certificate?',
+      message: 'Are you sure you want to delete this certificate record submission permanently? This action cannot be undone.',
+      actionType: 'delete_cert',
+      targetId: id
+    });
+  };
+
+  const executeConfirmAction = () => {
+    if (confirmModal.actionType === 'delete_resume') {
+      setResumeFile(null);
+      setResumeUploaded(false);
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = '';
+      }
+    } else if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
+      setCertificates(certificates.filter(c => c.id !== confirmModal.targetId));
+    }
+    setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_resume' });
+  };
+
   const handleOpenPreview = (cert: Certificate) => {
     setPreviewDocument({
       title: cert.title,
@@ -201,17 +221,16 @@ export default function Badges({
   };
 
   const handleOpenResumePreview = () => {
-    if (!resumeUrl) return;
+    if (!resumeFile && !resumeUploaded) return;
     setPreviewDocument({
-      title: `${user.fullName} Resume`,
-      fileName: resumeUrl.split('/').pop() || 'resume.pdf',
+      title: 'Francis Fernando Master Resume',
+      fileName: resumeFile ? resumeFile.name : 'francis_resume_verified.pdf',
       type: 'resume',
       description: 'Primary master resume containing academic profiles, core technical stacks, and verified academic index metrics.',
       status: 'Approved'
     });
   };
 
-  // --- Close Form Modal ---
   const closeFormModal = () => {
     setEditingCertId(null);
     setFormTitle('');
@@ -225,8 +244,7 @@ export default function Badges({
     setIsModalOpen(false);
   };
 
-  // --- Core Certificate Upload & Edit Processor ---
-  const handleCertificateUpload = async (e: React.FormEvent) => {
+  const handleCertificateUpload = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -234,57 +252,54 @@ export default function Badges({
       setFormError('Please fulfill all mandatory text fields.');
       return;
     }
-    if (!editingCertId && !formFile) {
+
+    if (!editingCertId && !formFile && !formFileName) {
       setFormError('Please upload the certificate soft copy file.');
       return;
     }
 
+    const finalFileName = formFile ? formFile.name : (formFileName || 'uploaded_doc.pdf');
+
     if (editingCertId) {
-      const targetCert = certificates.find(c => c.id === editingCertId);
-      if (targetCert?.status === 'Approved') {
-        if (!window.confirm("This certificate is already APPROVED. Editing will reset it to 'Pending Review'. Continue?")) return;
-      }
-    }
-
-    setActionLoading(true);
-    try {
-      const body: Record<string, string> = {
-        certification_name: formTitle,
-        issuer: formOrg,
+      setCertificates(prev => prev.map(c => {
+        if (c.id === editingCertId) {
+          return {
+            ...c,
+            title: formTitle,
+            issuingOrganization: formOrg,
+            category: formCategory,
+            startDate: formStart,
+            endDate: formEnd,
+            fileName: finalFileName,
+            status: 'Pending Review',
+            description: formDesc
+          };
+        }
+        return c;
+      }));
+    } else {
+      const newCert: Certificate = {
+        id: `cert-${Date.now()}`,
+        title: formTitle,
+        issuingOrganization: formOrg,
         category: formCategory,
-        start_date: formStart,
-        end_date: formEnd,
-        description: formDesc,
-        certificate_url: formFile ? formFile.name : formFileName,
+        startDate: formStart,
+        endDate: formEnd,
+        fileName: finalFileName,
         status: 'Pending Review',
+        description: formDesc
       };
-
-      if (editingCertId) {
-        await editCertification(editingCertId, body);
-      } else {
-        await addCertification(body);
-      }
-      await loadCerts();
-      setActiveTab(formCategory);
-      closeFormModal();
-    } catch (err: any) {
-      setFormError(err.message);
-    } finally {
-      setActionLoading(false);
+      setCertificates([newCert, ...certificates]);
+      setActiveTab(formCategory); 
     }
+    closeFormModal();
   };
 
-  // --- Document Record Deletion ---
-  const handleDeleteCertificate = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this certificate record?')) return;
-    try {
-      await removeCertification(id);
-      setCertificates(prev => prev.filter(c => c.id !== id));
-    } catch {}
-  };
-
-  // --- Document Record Edit Initializer ---
   const handleEditOpen = (cert: Certificate) => {
+    if (cert.status === 'Approved') {
+      const confirmEdit = window.confirm("This certificate is already APPROVED by staff. Editing its parameters will reset its status to 'Pending Review'. Proceed?");
+      if (!confirmEdit) return;
+    }
     setEditingCertId(cert.id);
     setFormTitle(cert.title);
     setFormOrg(cert.issuingOrganization);
@@ -296,7 +311,6 @@ export default function Badges({
     setIsModalOpen(true);
   };
 
-  // Filtered logs list
   const filteredCertificates = useMemo(() => {
     return certificates.filter(c => c.category === activeTab);
   }, [certificates, activeTab]);
@@ -304,27 +318,24 @@ export default function Badges({
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
-      {/* 1. LEFT SIDE NAVIGATION BAR (Filled with Category Buckets & Profile Header) */}
+      {}
       <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-2xl">
         <div className="p-5 space-y-6 overflow-y-auto flex-1">
-          {/* Dashboard Identity Header */}
           <div className="border-b border-white/10 pb-4">
             <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
             <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Credentials Hub</p>
           </div>
 
-          {/* Integrated Profile Card Circle inside Sidebar */}
           <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/10 shadow-sm">
-            <div className="h-10 w-10 rounded-full bg-orange-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-white/10">
+            <div className="h-10 w-10 rounded-full bg-orange-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-white/10 shrink-0">
               {user.fullName.charAt(0).toUpperCase()}
             </div>
             <div className="text-left truncate">
               <p className="text-xs font-black leading-none truncate">{user.fullName}</p>
-              <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-wider">{user.department || 'CSE'} Department</p>
+              <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-wider">{user.department} Department</p>
             </div>
           </div>
 
-          {/* Bucket Category List Items inside Sidebar Navigation */}
           <div className="space-y-1.5 pt-2">
             <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase px-2 block mb-1">Category Buckets</span>
             {categories.map((cat) => {
@@ -356,7 +367,6 @@ export default function Badges({
             })}
           </div>
 
-          {/* Add Category Trigger inside Sidebar Bottom Menu Area */}
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => setIsCustomCategoryModalOpen(true)}
@@ -368,7 +378,7 @@ export default function Badges({
           </div>
         </div>
 
-        {/* SIDEBAR FOOTER ACTION: Navigates back to main dashboard workspace securely pinned at the bottom */}
+        {/* SIDEBAR FOOTER ACTION: Back to Dashboard workspace securely pinned at the very bottom of the sidebar */}
         <div className="p-4 border-t border-white/10 bg-[#00224D]">
           {onBackToDashboard && (
             <button 
@@ -382,17 +392,16 @@ export default function Badges({
         </div>
       </aside>
 
-      {/* 2. MAIN ACTIVE WINDOW AREA (Occupies right side cleanly) */}
+      {/* 2. MAIN ACTIVE WINDOW AREA */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         
-        {/* Dynamic header containing dashboard title and uploader triggers */}
+        {/* Top Header */}
         <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
           <div>
             <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Badges & Scholastic Certificates</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Upload and secure your credentials</p>
           </div>
 
-          {/* Primary floating action uploader trigger */}
           <button
             onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#001c3d] shadow-md transition-all active:scale-[0.98]"
@@ -402,81 +411,87 @@ export default function Badges({
           </button>
         </header>
 
-        {/* Main interactive content workspace viewport */}
+        {}
         <main className="p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
           
-          {/* COMPULSORY RESUME UPLOAD SECTION */}
+          {/* COMPULSORY RESUME UPLOAD SECTION (Fully interactive: Upload, View, Replace, Delete) */}
           <div className={`p-6 rounded-[24px] border transition-all ${
-            resumeUrl 
-              ? 'bg-emerald-50/50 border-emerald-500/20' 
+            resumeUploaded 
+              ? 'bg-emerald-50/50 border-emerald-500/20 shadow-sm' 
               : 'bg-gradient-to-r from-red-50/60 to-orange-50/60 border-orange-200 shadow-md'
           }`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4">
-                <div className={`p-4 rounded-2xl shrink-0 ${resumeUrl ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                <div className={`p-4 rounded-2xl shrink-0 ${resumeUploaded ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
                   <FileCheck className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base font-black text-slate-800 tracking-tight">Compulsory Placement Resume</h2>
                     <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${
-                      resumeUrl ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
+                      resumeUploaded ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
                     }`}>
-                      {resumeUrl ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
+                      {resumeUploaded ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 max-w-2xl font-medium leading-relaxed">
-                    To participate in campus recruitment drives, it is mandatory to upload your master resume.
+                    To participate in campus recruitment drives, it is mandatory to upload your master resume. The placement officer will review this document to compute your overall Readiness Index score.
                   </p>
                 </div>
               </div>
 
+              {/* Dynamic Interactive Action Suite based on upload status */}
               <div className="w-full lg:w-auto shrink-0 flex flex-col sm:flex-row items-center gap-2">
                 <input type="file" ref={resumeInputRef} onChange={handleResumeChange} accept=".pdf" className="hidden" />
                 
-                {resumeUrl ? (
+                {resumeUploaded ? (
                   <>
-                    <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm">
-                      View Resume
-                    </a>
                     <button
-                      onClick={() => resumeInputRef.current?.click()}
-                      disabled={resumeUploading}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm disabled:opacity-60"
+                      onClick={handleOpenResumePreview}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
                     >
-                      {resumeUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                      {resumeUploading ? 'Uploading...' : 'Replace (PDF)'}
+                      View Resume
                     </button>
                     <button
-                      onClick={handleDeleteResume}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 p-3.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all shadow-sm border border-red-100"
+                      onClick={() => resumeInputRef.current?.click()}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      Replace (PDF)
+                    </button>
+                    <button
+                      onClick={triggerResumeDeleteConfirm}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all shadow-sm border border-red-100"
+                      title="Delete Resume"
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
                     </button>
                   </>
                 ) : (
                   <button
                     onClick={() => resumeInputRef.current?.click()}
-                    disabled={resumeUploading}
-                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98] disabled:opacity-60"
+                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
                   >
-                    {resumeUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                    {resumeUploading ? 'Uploading...' : 'Upload Mandatory Resume'}
+                    <UploadCloud className="h-4.5 w-4.5" />
+                    Upload Mandatory Resume
                   </button>
                 )}
               </div>
             </div>
+
+            {resumeUploaded && (
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
+                  <span>Attached: <span className="font-mono font-medium text-[#002D62]">{resumeFile ? resumeFile.name : 'francis_resume_verified.pdf'}</span></span>
+                </div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wide">Last Updated: Just Now</span>
+              </div>
+            )}
           </div>
 
-          {/* VISUAL GALLERY VIEWPORT GRID */}
+          {}
           <div>
-            {certsLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-5 w-5 animate-spin text-[#002D62]" />
-                <span className="ml-2 text-sm font-bold text-slate-400">Loading certificates...</span>
-              </div>
-            ) : filteredCertificates.length === 0 ? (
+            {filteredCertificates.length === 0 ? (
               <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
                 <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 mb-4">
                   {getCategoryIcon(activeTab, "h-8 w-8 stroke-[1.5]")}
@@ -547,21 +562,19 @@ export default function Badges({
                         <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEditOpen(cert)}
-                            className="p-1.5 bg-white hover:bg-slate-50 text-[#002D62] rounded-lg shadow border border-slate-100 transition-all"
+                            className="p-1.5 bg-white hover:bg-slate-50 text-[#002D62] rounded-lg shadow border border-slate-200 transition-all"
                             title="Edit Submission"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
                           
-                          {!isApproved && (
-                            <button 
-                              onClick={() => handleDeleteCertificate(cert.id)}
-                              className="p-1.5 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg shadow border border-slate-100 transition-all"
-                              title="Delete Submission"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                          <button 
+                            onClick={() => triggerCertificateDeleteConfirm(cert.id)}
+                            className="p-1.5 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg shadow border border-slate-200 transition-all"
+                            title="Delete Submission"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
 
@@ -598,6 +611,7 @@ export default function Badges({
                           </div>
 
                           <div className="flex items-center gap-3">
+                            {/* Verification lock stamp indicator */}
                             <span className="flex items-center" title={isApproved ? "Verified & Locked by Staff" : "Editable until staff checklist verification"}>
                               {isApproved ? (
                                 <Lock className="h-3.5 w-3.5 text-emerald-600" />
@@ -625,6 +639,7 @@ export default function Badges({
         </main>
       </div>
 
+      {}
       {/* --- MODAL 1: UPLOAD / EDIT CERTIFICATE FORM MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -702,7 +717,7 @@ export default function Badges({
                 </label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all">
                   <input 
-                    type="file" accept=".pdf,.png,.jpg,.jpeg" required={!editingCertId} className="hidden" 
+                    type="file" accept=".pdf,.png,.jpg,.jpeg" required={!editingCertId && !formFileName} className="hidden" 
                     onChange={(e) => { if (e.target.files?.[0]) setFormFile(e.target.files[0]); }}
                   />
                   <FileUp className="h-5 w-5 text-slate-400 mb-1" />
@@ -722,10 +737,8 @@ export default function Badges({
                 </button>
                 <button 
                   type="submit"
-                  disabled={actionLoading}
-                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all"
                 >
-                  {actionLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {editingCertId ? 'Update Record' : 'Save Certificate'}
                 </button>
               </div>
@@ -772,13 +785,44 @@ export default function Badges({
         </div>
       )}
 
-      {/* --- MODAL 3: DOCUMENT PREVIEW MODAL --- */}
+      {}
+      {/* --- CUSTOM OVERLAY CONFIRMATION DIALOG MODAL (no window.confirm used) --- */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl p-6 border border-slate-100 text-left space-y-4 animate-scaleUp">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-black text-slate-800 tracking-tight">{confirmModal.title}</h3>
+            </div>
+            <p className="text-xs font-semibold leading-relaxed text-slate-500">{confirmModal.message}</p>
+            <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              <button 
+                onClick={() => setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_resume' })}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeConfirmAction}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-md"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {}
+      {/* --- MODAL 3: DOCUMENT PREVIEW MODAL (Certificate Layout & Professional Resume Layouts) --- */}
       {previewDocument && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] w-full max-w-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Header of Preview Panel */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-2">
                 <FileCheck className="h-5 w-5 text-[#002D62]" />
                 <div>
@@ -797,58 +841,116 @@ export default function Badges({
             {/* Document Content View Area */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/50 flex flex-col items-center">
               
-              {/* Certificate/Document Styled Canvas */}
-              <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
-                {/* Background grid watermark */}
-                <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
-                {/* Decorative gold/navy vintage border frame line */}
-                <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
-
-                <div className="text-center space-y-2 mt-4 relative z-10">
-                  <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
-                    K.S.R. College of Engineering
-                  </h2>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-                    Verification Ledger & Student Credentials Portal
-                  </p>
-                  <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
-                </div>
-
-                <div className="text-center space-y-3 my-6 relative z-10">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">This is to certify that</span>
-                  <h1 className="text-lg font-black text-slate-800 leading-none font-serif tracking-tight">
-                    {user.fullName}
-                  </h1>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">has successfully submitted valid scholastic records for</span>
-                  <p className="text-sm font-black text-[#002D62] px-6 leading-tight line-clamp-2">
-                    {previewDocument.title}
-                  </p>
-                </div>
-
-                {/* Footer Signatures */}
-                <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
-                  <div className="text-left space-y-1">
-                    <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
-                    <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
-                  </div>
-                  
-                  {previewDocument.startDate && (
-                    <div className="text-center space-y-1">
-                      <span className="block text-slate-600">{previewDocument.startDate}</span>
-                      <span className="block text-[8px] font-semibold text-slate-400 font-mono">SUBMISSION DATE</span>
+              {previewDocument.type === 'resume' ? (
+                /* HIGHLY ELEGANT RESUME LAYOUT FRAME (to avoid dummy certificate layout) */
+                <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-left space-y-6 select-none relative my-auto">
+                  <div className="border-b-4 border-[#002D62] pb-4 flex justify-between items-end">
+                    <div>
+                      <h1 className="text-2xl font-black text-slate-800 tracking-tight">{user.fullName.toUpperCase()}</h1>
+                      <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">{user.department} Student Workstation Profile</p>
                     </div>
-                  )}
+                    <div className="text-right text-[10px] font-bold text-slate-400 space-y-1">
+                      <p>{user.email}</p>
+                      <p>{user.phone}</p>
+                    </div>
+                  </div>
 
-                  <div className="text-right space-y-1">
-                    <span className={`block px-2 py-0.5 rounded text-[8px] ${
-                      previewDocument.status === 'Approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {previewDocument.status || 'Verified'}
-                    </span>
-                    <span className="block text-[8px] font-semibold text-slate-400">VERIFICATION MATRIX</span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Professional Summary</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                      Motivated undergraduate engineer from K.S.R. College of Engineering pursuing academic aggregates in technology tracks. Strong foundations in analytical modeling, system workflows, and programmatic solutions.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Education</h3>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-slate-800">K.S.R. College of Engineering</p>
+                        <p className="text-[11px] font-medium text-slate-500">B.E. Computer Science — CGPA: {user.cgpa || '8.75'} / 10</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Verified Credentials</h3>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-slate-800">Scholastic Records Aggregate</p>
+                        <p className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" /> Fully Verified by College Portal
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Academic Projects</h3>
+                    {certificates.length > 0 ? (
+                      <div className="space-y-2">
+                        {certificates.map((c, i) => (
+                          <div key={i} className="text-xs p-2 bg-slate-50 rounded-lg border border-slate-100">
+                            <p className="font-bold text-slate-800">{c.title}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{c.issuingOrganization} | {c.startDate}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No certificates linked as projects yet.</p>
+                    )}
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* CERTIFICATE LAYOUT CANVAS */
+                <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
+                  {/* Background grid watermark */}
+                  <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
+                  {/* Decorative vintage border frame line */}
+                  <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
+
+                  <div className="text-center space-y-2 mt-4 relative z-10">
+                    <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
+                      K.S.R. College of Engineering
+                    </h2>
+                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                      Verification Ledger & Student Credentials Portal
+                    </p>
+                    <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
+                  </div>
+
+                  <div className="text-center space-y-3 my-6 relative z-10">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">This is to certify that</span>
+                    <h1 className="text-lg font-black text-slate-800 leading-none font-serif tracking-tight">
+                      {user.fullName}
+                    </h1>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">has successfully submitted valid scholastic records for</span>
+                    <p className="text-sm font-black text-[#002D62] px-6 leading-tight line-clamp-2">
+                      {previewDocument.title}
+                    </p>
+                  </div>
+
+                  {/* Footer Signatures */}
+                  <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
+                    <div className="text-left space-y-1">
+                      <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
+                      <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
+                    </div>
+                    
+                    {previewDocument.startDate && (
+                      <div className="text-center space-y-1">
+                        <span className="block text-slate-600">{previewDocument.startDate}</span>
+                        <span className="block text-[8px] font-semibold text-slate-400 font-mono">SUBMISSION DATE</span>
+                      </div>
+                    )}
+
+                    <div className="text-right space-y-1">
+                      <span className={`block px-2 py-0.5 rounded text-[8px] ${
+                        previewDocument.status === 'Approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                      }`}>
+                        {previewDocument.status || 'Verified'}
+                      </span>
+                      <span className="block text-[8px] font-semibold text-slate-400">VERIFICATION MATRIX</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Extra File Info */}
               <div className="w-full max-w-xl bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm text-xs font-semibold text-slate-600 space-y-2">
@@ -861,7 +963,7 @@ export default function Badges({
             </div>
 
             {/* Actions Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
               <button 
                 onClick={() => setPreviewDocument(null)}
                 className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all bg-white"
@@ -869,13 +971,7 @@ export default function Badges({
                 Close Viewer
               </button>
               <button 
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = previewDocument.fileName;
-                  link.download = previewDocument.fileName.split('/').pop() || 'document';
-                  link.target = '_blank';
-                  link.click();
-                }}
+                onClick={() => alert(`Simulated Download Completed: ${previewDocument.fileName}`)}
                 className="px-4 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <Download className="h-3.5 w-3.5" />
