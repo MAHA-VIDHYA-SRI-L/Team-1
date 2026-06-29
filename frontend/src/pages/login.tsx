@@ -15,17 +15,14 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
-  // --- VIEW SWITCHER ---
   const [view, setView] = useState<'login' | 'forgot'>('login');
 
-  // --- STATE MANAGEMENT ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // --- RECOVERY FLOW STATE ---
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [lastFivePhone, setLastFivePhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -33,7 +30,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [showRecoveryPass, setShowRecoveryPass] = useState(false);
   const [showRecoveryConfirmPass, setShowRecoveryConfirmPass] = useState(false);
 
-  // --- ERROR & PERFORMANCE TRACKING STATES ---
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -47,7 +43,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // --- HARDWARE LIFECYCLE MONITOR ---
   useEffect(() => {
     const goOnline = () => setIsOffline(false);
     const goOffline = () => setIsOffline(true);
@@ -67,7 +62,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   }, [showToast]);
 
-  // --- VALIDATION MATRIX (LOGIN) ---
   const validateEmailText = (text: string): boolean => {
     const trimmed = text.trim();
     if (!trimmed) {
@@ -97,7 +91,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     return true;
   };
 
-  // --- VALIDATION MATRIX (PASSWORD RECOVERY) ---
   const validateRecoveryEmail = (text: string): boolean => {
     const trimmed = text.trim();
     if (!trimmed) {
@@ -181,7 +174,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     validateEmailText(computedString);
   };
 
-  // --- AUTH SUBMISSION HANDLER ---
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
   const handleAuthSubmission = async (e: React.FormEvent) => {
@@ -216,6 +208,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       if (result.token) {
         localStorage.setItem('token', result.token);
       }
+      if (result.refreshToken) {
+        localStorage.setItem('refreshToken', result.refreshToken);
+      }
       setToastMessage('Session Logged in Successfully');
       setShowToast(true);
       setTimeout(() => onLoginSuccess(result.role, result.user), 1000);
@@ -230,7 +225,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   };
 
-  // --- PASSWORD RECOVERY SUBMISSION HANDLER ---
   const handleRecoverySubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecoveryGeneralError('');
@@ -294,7 +288,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   return (
     <AuthBackground>
-      {/* TRANSACTION SUCCESS NOTIFIER */}
       <div 
         className={`fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500 text-white font-bold text-xs px-4 py-3 rounded-full shadow-lg border border-emerald-400/20 transition-all duration-300 transform ${
           showToast ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
@@ -304,7 +297,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <span>{toastMessage}</span>
       </div>
 
-      {/* HARDWARE FAULT BAR */}
       {isOffline && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white font-black text-[11px] uppercase tracking-wider px-4 py-2 rounded-full shadow-md animate-pulse">
           <WifiOff className="h-3.5 w-3.5" />
@@ -312,10 +304,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
       )}
 
-      {/* Interactive Auth Card (Resized to maximum width 420px, refined padding and spacing) */}
       <div className="w-full max-w-[420px] mx-auto my-4 flex flex-col items-center text-center p-6 sm:p-7 rounded-[24px] bg-white border border-slate-100 shadow-xl relative max-h-[92vh] overflow-y-auto scrollbar-thin">
         
-        {/* Institutional Identity Frame */}
         <div className="flex flex-col items-center space-y-2">
           <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm ring-4 ring-slate-100 overflow-hidden">
             <img 
@@ -338,10 +328,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
             </div>
 
-            {/* LOGIN INPUT INTERFACE */}
             <form onSubmit={handleAuthSubmission} className="w-full text-left space-y-3.5 pt-3">
               
-              {/* Email Processing Input Block */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-0.5">
                   <label htmlFor="email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
@@ -390,7 +378,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </div>
 
-              {/* Passcode Security Input Block */}
               <div className="space-y-1">
                 <label htmlFor="password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
                   Secure Password
@@ -419,7 +406,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </button>
                 </div>
                 
-                {/* RECOVERY LINK SUBTLE ALIGNMENT */}
                 <div className="flex justify-end px-0.5 pt-0.5">
                   <button type="button" onClick={handleSwitchToRecovery} className="text-[11px] font-bold text-[#002D62] hover:text-orange-500 transition-colors">
                     Recover Password?
@@ -441,7 +427,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
               )}
 
-              {/* Auth Dispatch Button */}
               <button 
                 type="submit"
                 disabled={isLoading}
@@ -474,10 +459,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
             </div>
 
-            {/* RECOVERY INPUT INTERFACE */}
             <form onSubmit={handleRecoverySubmission} className="w-full text-left space-y-3 pt-3">
               
-              {/* RECOVERY EMAIL */}
               <div className="space-y-1">
                 <label htmlFor="recovery-email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Registered Email</label>
                 <div className="relative group">
@@ -503,7 +486,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </div>
 
-              {/* RECOVERY PHONE LAST 5 DIGITS */}
               <div className="space-y-1">
                 <label htmlFor="phone-digits-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Last 5 Digits of Phone Number</label>
                 <div className="relative group">
@@ -530,7 +512,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </div>
 
-              {/* NEW PASSWORD */}
               <div className="space-y-1">
                 <label htmlFor="new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">New Password</label>
                 <div className="relative group">
@@ -563,7 +544,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </div>
 
-              {/* CONFIRM NEW PASSWORD */}
               <div className="space-y-1">
                 <label htmlFor="confirm-new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Confirm New Password</label>
                 <div className="relative group">
@@ -603,7 +583,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
               )}
 
-              {/* Recovery Form Submission Action Dispatcher */}
               <button 
                 type="submit"
                 disabled={isLoading}

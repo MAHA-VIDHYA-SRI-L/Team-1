@@ -57,30 +57,21 @@ export default function Badges({
   onBackToDashboard, 
   user = { fullName: 'Francis Fernando', department: 'CSE' } 
 }: BadgesProps) {
-  // --- Core State ---
   const [categories, setCategories] = useState<string[]>([
     'Hackathon',
     'Workshop',
     'Paper Presentation',
     'Internship'
   ]);
-  
   const [activeTab, setActiveTab] = useState<string>('Hackathon');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isCustomCategoryModalOpen, setIsCustomCategoryModalOpen] = useState<boolean>(false);
-  
-  // Custom category input state
   const [newCategoryName, setNewCategoryName] = useState<string>('');
-
-  // Editing state
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
-
-  // Resume State
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [resumeUploading, setResumeUploading] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
-  // Preview Drawer Modal state
   const [previewDocument, setPreviewDocument] = useState<{
     title: string;
     fileName: string;
@@ -92,29 +83,25 @@ export default function Badges({
     status?: 'Approved' | 'Pending Review';
   } | null>(null);
 
-  // Certificates from backend
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [certsLoading, setCertsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const mapRaw = (c: any): Certificate => ({
-    id: c.id,
-    title: c.certification_name,
-    issuingOrganization: c.issuer || '',
-    category: c.category || 'General',
-    startDate: c.start_date || '',
-    endDate: c.end_date || '',
-    fileName: c.certificate_url || '',
-    status: c.status === 'Approved' ? 'Approved' : 'Pending Review',
-    description: c.description || '',
-  });
-
   const loadCerts = () =>
     fetchCertifications()
       .then(d => {
-        const mapped = (d.certifications || []).map(mapRaw);
+        const mapped = (d.certifications || []).map((c: any): Certificate => ({
+          id: c.id,
+          title: c.certification_name,
+          issuingOrganization: c.issuer || '',
+          category: c.category || 'General',
+          startDate: c.start_date || '',
+          endDate: c.end_date || '',
+          fileName: c.certificate_url || '',
+          status: c.status === 'Approved' ? 'Approved' : 'Pending Review',
+          description: c.description || '',
+        }));
         setCertificates(mapped);
-        // Sync any new categories from DB
         const extraCats = [...new Set(mapped.map((c: Certificate) => c.category))]
           .filter((cat: string) => !['Hackathon','Workshop','Paper Presentation','Internship'].includes(cat));
         if (extraCats.length) setCategories(prev => [...new Set([...prev, ...extraCats])]);
@@ -127,7 +114,6 @@ export default function Badges({
     fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
   }, []);
 
-  // --- Form Input States for Upload / Edit Modal ---
   const [formTitle, setFormTitle] = useState('');
   const [formOrg, setFormOrg] = useState('');
   const [formCategory, setFormCategory] = useState('Hackathon');
@@ -138,7 +124,6 @@ export default function Badges({
   const [formDesc, setFormDesc] = useState('');
   const [formError, setFormError] = useState('');
 
-  // --- Helper to Map Category Icons Dynamically ---
   const getCategoryIcon = (cat: string, className = "h-4 w-4") => {
     switch (cat) {
       case 'Hackathon': return <Award className={className} />;
@@ -149,7 +134,6 @@ export default function Badges({
     }
   };
 
-  // --- Custom Bucket Generation Handler ---
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = newCategoryName.trim();
@@ -166,7 +150,6 @@ export default function Badges({
     setIsCustomCategoryModalOpen(false);
   };
 
-  // --- Handle Resume Upload ---
   const handleResumeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -178,7 +161,6 @@ export default function Badges({
     finally { setResumeUploading(false); }
   };
 
-  // --- Delete Resume Action ---
   const handleDeleteResume = () => {
     if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement.")) {
       setResumeUrl(null);
@@ -186,7 +168,6 @@ export default function Badges({
     }
   };
 
-  // --- Open Visual Document Preview ---
   const handleOpenPreview = (cert: Certificate) => {
     setPreviewDocument({
       title: cert.title,
@@ -200,18 +181,6 @@ export default function Badges({
     });
   };
 
-  const handleOpenResumePreview = () => {
-    if (!resumeUrl) return;
-    setPreviewDocument({
-      title: `${user.fullName} Resume`,
-      fileName: resumeUrl.split('/').pop() || 'resume.pdf',
-      type: 'resume',
-      description: 'Primary master resume containing academic profiles, core technical stacks, and verified academic index metrics.',
-      status: 'Approved'
-    });
-  };
-
-  // --- Close Form Modal ---
   const closeFormModal = () => {
     setEditingCertId(null);
     setFormTitle('');
@@ -225,7 +194,6 @@ export default function Badges({
     setIsModalOpen(false);
   };
 
-  // --- Core Certificate Upload & Edit Processor ---
   const handleCertificateUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -274,7 +242,6 @@ export default function Badges({
     }
   };
 
-  // --- Document Record Deletion ---
   const handleDeleteCertificate = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this certificate record?')) return;
     try {
@@ -283,7 +250,6 @@ export default function Badges({
     } catch {}
   };
 
-  // --- Document Record Edit Initializer ---
   const handleEditOpen = (cert: Certificate) => {
     setEditingCertId(cert.id);
     setFormTitle(cert.title);
@@ -296,24 +262,18 @@ export default function Badges({
     setIsModalOpen(true);
   };
 
-  // Filtered logs list
-  const filteredCertificates = useMemo(() => {
-    return certificates.filter(c => c.category === activeTab);
-  }, [certificates, activeTab]);
+  const filteredCertificates = useMemo(() => certificates.filter(c => c.category === activeTab), [certificates, activeTab]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
-      {/* 1. LEFT SIDE NAVIGATION BAR (Filled with Category Buckets & Profile Header) */}
       <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-2xl">
         <div className="p-5 space-y-6 overflow-y-auto flex-1">
-          {/* Dashboard Identity Header */}
           <div className="border-b border-white/10 pb-4">
             <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
             <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Credentials Hub</p>
           </div>
 
-          {/* Integrated Profile Card Circle inside Sidebar */}
           <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/10 shadow-sm">
             <div className="h-10 w-10 rounded-full bg-orange-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-white/10">
               {user.fullName.charAt(0).toUpperCase()}
@@ -324,7 +284,6 @@ export default function Badges({
             </div>
           </div>
 
-          {/* Bucket Category List Items inside Sidebar Navigation */}
           <div className="space-y-1.5 pt-2">
             <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase px-2 block mb-1">Category Buckets</span>
             {categories.map((cat) => {
@@ -356,7 +315,6 @@ export default function Badges({
             })}
           </div>
 
-          {/* Add Category Trigger inside Sidebar Bottom Menu Area */}
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => setIsCustomCategoryModalOpen(true)}
@@ -368,7 +326,6 @@ export default function Badges({
           </div>
         </div>
 
-        {/* SIDEBAR FOOTER ACTION: Navigates back to main dashboard workspace securely pinned at the bottom */}
         <div className="p-4 border-t border-white/10 bg-[#00224D]">
           {onBackToDashboard && (
             <button 
@@ -382,17 +339,14 @@ export default function Badges({
         </div>
       </aside>
 
-      {/* 2. MAIN ACTIVE WINDOW AREA (Occupies right side cleanly) */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         
-        {/* Dynamic header containing dashboard title and uploader triggers */}
         <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
           <div>
             <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Badges & Scholastic Certificates</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Upload and secure your credentials</p>
           </div>
 
-          {/* Primary floating action uploader trigger */}
           <button
             onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#001c3d] shadow-md transition-all active:scale-[0.98]"
@@ -402,10 +356,8 @@ export default function Badges({
           </button>
         </header>
 
-        {/* Main interactive content workspace viewport */}
         <main className="p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
           
-          {/* COMPULSORY RESUME UPLOAD SECTION */}
           <div className={`p-6 rounded-[24px] border transition-all ${
             resumeUrl 
               ? 'bg-emerald-50/50 border-emerald-500/20' 
@@ -469,7 +421,6 @@ export default function Badges({
             </div>
           </div>
 
-          {/* VISUAL GALLERY VIEWPORT GRID */}
           <div>
             {certsLoading ? (
               <div className="flex items-center justify-center py-16">
@@ -493,7 +444,6 @@ export default function Badges({
                 </button>
               </div>
             ) : (
-              // Visual Gallery Display
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredCertificates.map((cert) => {
                   const isApproved = cert.status === 'Approved';
@@ -504,7 +454,6 @@ export default function Badges({
                         isApproved ? 'border-emerald-100' : 'border-slate-200'
                       }`}
                     >
-                      {/* Visual paper-miniature preview thumbnail wrapper */}
                       <div className="h-40 bg-slate-100 relative flex items-center justify-center border-b border-slate-100 overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#002d62_1px,transparent_1px)] [background-size:12px_12px]"></div>
                         
@@ -524,8 +473,7 @@ export default function Badges({
                               <div className="h-1 w-12 bg-slate-200 rounded"></div>
                               <div className="h-0.5 w-16 bg-slate-100 rounded"></div>
                             </div>
-                            {/* Verification stamp watermark overlay */}
-                            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[6px] font-black uppercase rotate-[-12deg] border border-dashed ${
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[6px] font-black uppercase rotate-[-12deg] border border-dashed ${
                               isApproved ? 'border-emerald-500/40 text-emerald-600 bg-emerald-50/50' : 'border-amber-500/40 text-amber-600 bg-amber-50/50'
                             }`}>
                               {isApproved ? 'VERIFIED' : 'PENDING'}
@@ -533,7 +481,6 @@ export default function Badges({
                           </div>
                         </div>
 
-                        {/* Top corner status capsule overlay */}
                         <div className="absolute top-3 left-3">
                           <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${
                             isApproved ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
@@ -543,7 +490,6 @@ export default function Badges({
                           </span>
                         </div>
 
-                        {/* Actions overlay panel shown upon hovering certificate thumbnail */}
                         <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEditOpen(cert)}
@@ -565,7 +511,6 @@ export default function Badges({
                         </div>
                       </div>
 
-                      {/* Details block positioned neatly below preview layer */}
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
                           <h3 className="font-bold text-slate-800 text-sm leading-snug line-clamp-1" title={cert.title}>
@@ -590,7 +535,6 @@ export default function Badges({
                           )}
                         </div>
 
-                        {/* File Details footer row inside gallery card with edit actions & verification lock states */}
                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
                           <div className="flex items-center gap-1.5 text-slate-400 max-w-[130px] truncate">
                             <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -625,7 +569,6 @@ export default function Badges({
         </main>
       </div>
 
-      {/* --- MODAL 1: UPLOAD / EDIT CERTIFICATE FORM MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
@@ -734,7 +677,6 @@ export default function Badges({
         </div>
       )}
 
-      {/* --- MODAL 2: ADD NEW CUSTOM CATEGORY BUCKET --- */}
       {isCustomCategoryModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[24px] w-full max-w-sm shadow-2xl border border-slate-100 p-5">
@@ -772,12 +714,10 @@ export default function Badges({
         </div>
       )}
 
-      {/* --- MODAL 3: DOCUMENT PREVIEW MODAL --- */}
       {previewDocument && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] w-full max-w-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
             
-            {/* Header of Preview Panel */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
                 <FileCheck className="h-5 w-5 text-[#002D62]" />
@@ -794,14 +734,10 @@ export default function Badges({
               </button>
             </div>
 
-            {/* Document Content View Area */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/50 flex flex-col items-center">
               
-              {/* Certificate/Document Styled Canvas */}
               <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
-                {/* Background grid watermark */}
                 <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
-                {/* Decorative gold/navy vintage border frame line */}
                 <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
 
                 <div className="text-center space-y-2 mt-4 relative z-10">
@@ -825,7 +761,6 @@ export default function Badges({
                   </p>
                 </div>
 
-                {/* Footer Signatures */}
                 <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
                   <div className="text-left space-y-1">
                     <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
@@ -850,7 +785,6 @@ export default function Badges({
                 </div>
               </div>
 
-              {/* Extra File Info */}
               <div className="w-full max-w-xl bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm text-xs font-semibold text-slate-600 space-y-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Summary Description</p>
                 <p className="text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
@@ -860,7 +794,6 @@ export default function Badges({
 
             </div>
 
-            {/* Actions Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
               <button 
                 onClick={() => setPreviewDocument(null)}

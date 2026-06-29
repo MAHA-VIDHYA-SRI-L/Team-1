@@ -1,17 +1,15 @@
 export interface StudentProfileData {
-  // Basic Details
   name: string;
   email: string;
   regsNumber: string;
   department: string;
-  year: string;            // 'I year' | 'II year' | 'III year' | 'IV year'
-  semesterTerm: string;    // 'Odd' | 'Even'
+  year: string;
+  semesterTerm: string;
   currentSemester: string;
-  yearOfStudy: string;     // 4-digit entry year e.g. '2022'
+  yearOfStudy: string;
   passOutYear: string;
   dob: string;
 
-  // Communication
   phone: string;
   alternativePhone: string;
   address: string;
@@ -21,36 +19,33 @@ export interface StudentProfileData {
   pinCode: string;
   linkedinUrl: string;
 
-  // Academic Records
   boardOfStudy: string;
   graduationStanding: 'UG' | 'PG' | '';
   diplomaPercentage: string;
+  diplomaInstitution: string;
 
   tenthPercentage: string;
-  tenthSchool: string;       // maps to tenth_school in DB
+  tenthSchool: string;
 
   twelfthPercentage: string;
-  twelfthSchool: string;     // maps to twelfth_school in DB
+  twelfthSchool: string;
 
-  // UG details — always required
   ugCollegeName: string;
-  ugCgpa: string;   // UG: running CGPA | PG: completed UG degree CGPA
+  ugCgpa: string;
 
-  // PG details — only when graduationStanding === 'PG'
   pgCollegeName: string;
-  pgCgpa: string;   // auto-computed from PG SGPA
+  pgCgpa: string;
 
-  // SGPA per semester
   sgpaSemesterValues: string[];
 
-  // Computed
   finalCgpa: string;
   profileCreatedDate: string;
   profileUpdatedDate: string;
 
-  // Staff-managed (read-only in student UI)
   isVerifiedByStaff?: boolean;
   placementStatus?: 'Placed' | 'Not Placed';
+  placementVerified?: boolean;
+  companyName?: string;
 }
 
 export interface FormErrors {

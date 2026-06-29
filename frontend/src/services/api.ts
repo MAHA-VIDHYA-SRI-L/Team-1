@@ -9,12 +9,20 @@ const authHeaders = () => ({
   Authorization: `Bearer ${getToken()}`,
 });
 
-// ─── Staff ────────────────────────────────────────────────────────
+export const updateSelfPlacement = async (placement_status: string, company_name?: string) => {
+  const res = await fetch(`${BASE_URL}/student/placement`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ placement_status, company_name }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  return res.json();
+};
 
 export const fetchStaffStudents = async () => {
   const res = await fetch(`${BASE_URL}/staff/students`, { headers: authHeaders() });
   if (!res.ok) throw new Error((await res.json()).error);
-  return res.json(); // { students: [...] }
+  return res.json();
 };
 
 export const fetchStaffStudentById = async (id: string) => {
@@ -53,12 +61,10 @@ export const updateCertStatus = async (certId: string, status: string) => {
   return res.json();
 };
 
-// ─── Certifications ───────────────────────────────────────────────
-
 export const fetchCertifications = async () => {
   const res = await fetch(`${BASE_URL}/student/certifications`, { headers: authHeaders() });
   if (!res.ok) throw new Error((await res.json()).error);
-  return res.json(); // { certifications: [...] }
+  return res.json();
 };
 
 export const addCertification = async (body: Record<string, string>) => {
@@ -90,12 +96,10 @@ export const removeCertification = async (id: string) => {
   return res.json();
 };
 
-// ─── Resume ───────────────────────────────────────────────────────
-
 export const fetchResume = async () => {
   const res = await fetch(`${BASE_URL}/student/resume`, { headers: authHeaders() });
   if (!res.ok) return null;
-  return res.json(); // { resume: { resume_url, uploaded_at } }
+  return res.json();
 };
 
 export const uploadResume = async (file: File) => {
@@ -110,12 +114,10 @@ export const uploadResume = async (file: File) => {
   return res.json();
 };
 
-// ─── AI Analysis ──────────────────────────────────────────────────
-
 export const fetchAnalysis = async () => {
   const res = await fetch(`${BASE_URL}/student/analyze`, { headers: authHeaders() });
   if (!res.ok) return null;
-  return res.json(); // { analysis: {...} }
+  return res.json();
 };
 
 export const runAnalysis = async () => {
@@ -127,11 +129,32 @@ export const runAnalysis = async () => {
   return res.json();
 };
 
-// ─── Student Profile ───────────────────────────────────────────────
+const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+  const r = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+  if (!r.ok) return null;
+  const d = await r.json();
+  localStorage.setItem('token', d.token);
+  localStorage.setItem('refreshToken', d.refreshToken);
+  return d.token;
+};
 
 export const fetchStudentProfile = async (): Promise<{ profile: Partial<import('../types/profile').StudentProfileData> }> => {
-  const res = await fetch(`${BASE_URL}/student/profile`, { headers: authHeaders() });
-  if (!res.ok) throw new Error((await res.json()).error);
+  let res = await fetch(`${BASE_URL}/student/profile`, { headers: authHeaders() });
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (!newToken) throw new Error('unauthorized');
+    res = await fetch(`${BASE_URL}/student/profile`, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${newToken}` },
+    });
+  }
+  if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
+  if (!res.ok) return { profile: {} };
   const { profile: p } = await res.json();
   return {
     profile: {
@@ -185,8 +208,6 @@ export const saveStudentProfile = async (data: StudentProfileData) => {
   return res.json();
 };
 
-// ─── Academic Details ──────────────────────────────────────────────
-
 export const fetchAcademicDetails = async (): Promise<{ academic: Partial<import('../types/profile').StudentProfileData> }> => {
   const res = await fetch(`${BASE_URL}/student/academic`, { headers: authHeaders() });
   if (!res.ok) throw new Error((await res.json()).error);
@@ -200,6 +221,7 @@ export const fetchAcademicDetails = async (): Promise<{ academic: Partial<import
       twelfthPercentage: a.twelfth_percentage?.toString() ?? '',
       twelfthSchool: a.twelfth_school,
       diplomaPercentage: a.diploma_percentage?.toString() ?? '',
+      diplomaInstitution: a.diploma_institution ?? '',
       ugCollegeName: a.ug_college,
       ugCgpa: a.ug_cgpa?.toString() ?? '',
       pgCollegeName: a.pg_college,
@@ -207,6 +229,8 @@ export const fetchAcademicDetails = async (): Promise<{ academic: Partial<import
       finalCgpa: a.ug_cgpa?.toString() ?? '',
       sgpaSemesterValues: Array.isArray(a.sgpa_values) ? a.sgpa_values : Array(8).fill(''),
       placementStatus: a.placement_status,
+      placementVerified: a.placement_verified,
+      companyName: a.company_name,
     },
   };
 };
@@ -220,6 +244,7 @@ export const saveAcademicDetails = async (data: StudentProfileData, isUpdate: bo
     twelfth_school: data.twelfthSchool,
     twelfth_percentage: parseFloat(data.twelfthPercentage) || null,
     diploma_percentage: parseFloat(data.diplomaPercentage) || null,
+    diploma_institution: data.diplomaInstitution || null,
     ug_college: data.ugCollegeName,
     ug_cgpa: parseFloat(data.ugCgpa) || null,
     pg_college: data.graduationStanding === 'PG' ? data.pgCollegeName : null,
