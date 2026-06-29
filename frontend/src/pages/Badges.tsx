@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -7,13 +7,20 @@ import {
   Plus, 
   Calendar, 
   MapPin, 
-  Lock, 
-  Unlock, 
   FileUp, 
   CheckCircle, 
   Clock, 
   Trash2,
-  FolderPlus
+  FolderPlus,
+  ArrowLeft,
+  UploadCloud,
+  Edit2,
+  FileCheck,
+  Lock,
+  Unlock,
+  X,
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 
 // --- Interfaces & Types ---
@@ -29,7 +36,18 @@ interface Certificate {
   description?: string;
 }
 
-export default function Badges() {
+interface BadgesProps {
+  onBackToDashboard?: () => void;
+  user?: {
+    fullName: string;
+    department?: string;
+  };
+}
+
+export default function Badges({ 
+  onBackToDashboard, 
+  user = { fullName: 'Francis Fernando', department: 'CSE' } 
+}: BadgesProps) {
   // --- Core State ---
   const [categories, setCategories] = useState<string[]>([
     'Hackathon',
@@ -44,6 +62,26 @@ export default function Badges() {
   
   // Custom category input state
   const [newCategoryName, setNewCategoryName] = useState<string>('');
+
+  // Editing state
+  const [editingCertId, setEditingCertId] = useState<string | null>(null);
+
+  // Resume State (Compulsory)
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploaded, setResumeUploaded] = useState<boolean>(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+
+  // Preview Drawer Modal state
+  const [previewDocument, setPreviewDocument] = useState<{
+    title: string;
+    fileName: string;
+    type: 'certificate' | 'resume';
+    issuingOrganization?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+    status?: 'Approved' | 'Pending Review';
+  } | null>(null);
 
   // Initial mockup state for certificates data tracking
   const [certificates, setCertificates] = useState<Certificate[]>([
@@ -71,13 +109,14 @@ export default function Badges() {
     }
   ]);
 
-  // --- Form Input States for Upload Modal ---
+  // --- Form Input States for Upload / Edit Modal ---
   const [formTitle, setFormTitle] = useState('');
   const [formOrg, setFormOrg] = useState('');
   const [formCategory, setFormCategory] = useState('Hackathon');
   const [formStart, setFormStart] = useState('');
   const [formEnd, setFormEnd] = useState('');
   const [formFile, setFormFile] = useState<File | null>(null);
+  const [formFileName, setFormFileName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -109,34 +148,125 @@ export default function Badges() {
     setIsCustomCategoryModalOpen(false);
   };
 
-  // --- Core Certificate Upload Processor ---
+  // --- Handle Resume Upload ---
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setResumeFile(file);
+      setResumeUploaded(true);
+    }
+  };
+
+  // --- Delete Resume Action with Safety Warnings ---
+  const handleDeleteResume = () => {
+    if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement to apply for drives. You will be restricted from placement opportunities until you upload a replacement.")) {
+      setResumeFile(null);
+      setResumeUploaded(false);
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = '';
+      }
+    }
+  };
+
+  // --- Open Visual Document Preview ---
+  const handleOpenPreview = (cert: Certificate) => {
+    setPreviewDocument({
+      title: cert.title,
+      fileName: cert.fileName,
+      type: 'certificate',
+      issuingOrganization: cert.issuingOrganization,
+      startDate: cert.startDate,
+      endDate: cert.endDate,
+      description: cert.description,
+      status: cert.status
+    });
+  };
+
+  const handleOpenResumePreview = () => {
+    if (!resumeFile && !resumeUploaded) return;
+    setPreviewDocument({
+      title: 'Francis Fernando Master Resume',
+      fileName: resumeFile ? resumeFile.name : 'francis_resume_verified.pdf',
+      type: 'resume',
+      description: 'Primary master resume containing academic profiles, core technical stacks, and verified academic index metrics.',
+      status: 'Approved'
+    });
+  };
+
+  // --- Close Form Modal ---
+  const closeFormModal = () => {
+    setEditingCertId(null);
+    setFormTitle('');
+    setFormOrg('');
+    setFormStart('');
+    setFormEnd('');
+    setFormFile(null);
+    setFormFileName('');
+    setFormDesc('');
+    setFormError('');
+    setIsModalOpen(false);
+  };
+
+  // --- Core Certificate Upload & Edit Processor ---
   const handleCertificateUpload = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    if (!formTitle.trim() || !formOrg.trim() || !formStart || !formEnd || !formFile) {
-      setFormError('Please fulfill all mandatory fields, including the certificate soft copy file.');
+    if (!formTitle.trim() || !formOrg.trim() || !formStart || !formEnd) {
+      setFormError('Please fulfill all mandatory text fields.');
       return;
     }
 
-    const newCert: Certificate = {
-      id: `cert-${Date.now()}`,
-      title: formTitle,
-      issuingOrganization: formOrg,
-      category: formCategory,
-      startDate: formStart,
-      endDate: formEnd,
-      fileName: formFile.name,
-      status: 'Pending Review',
-      description: formDesc
-    };
+    if (!editingCertId && !formFile) {
+      setFormError('Please upload the certificate soft copy file.');
+      return;
+    }
 
-    setCertificates([newCert, ...certificates]);
-    setActiveTab(formCategory); 
+    const finalFileName = formFile ? formFile.name : (formFileName || 'uploaded_doc.pdf');
+
+    if (editingCertId) {
+      // Editing Mode
+      const targetCert = certificates.find(c => c.id === editingCertId);
+      if (targetCert?.status === 'Approved') {
+        const confirmEdit = window.confirm("This certificate is already APPROVED by staff. Editing its parameters will reset its verification status to 'Pending Review'. Do you want to proceed?");
+        if (!confirmEdit) return;
+      }
+
+      setCertificates(prev => prev.map(c => {
+        if (c.id === editingCertId) {
+          return {
+            ...c,
+            title: formTitle,
+            issuingOrganization: formOrg,
+            category: formCategory,
+            startDate: formStart,
+            endDate: formEnd,
+            fileName: finalFileName,
+            status: 'Pending Review', // Resets back to Pending safely
+            description: formDesc
+          };
+        }
+        return c;
+      }));
+    } else {
+      // Create Mode
+      const newCert: Certificate = {
+        id: `cert-${Date.now()}`,
+        title: formTitle,
+        issuingOrganization: formOrg,
+        category: formCategory,
+        startDate: formStart,
+        endDate: formEnd,
+        fileName: finalFileName,
+        status: 'Pending Review',
+        description: formDesc
+      };
+
+      setCertificates([newCert, ...certificates]);
+      setActiveTab(formCategory); 
+    }
     
-    // Reset Form Fields
-    setFormTitle(''); setFormOrg(''); setFormStart(''); setFormEnd(''); setFormFile(null); setFormDesc('');
-    setIsModalOpen(false);
+    closeFormModal();
   };
 
   // --- Document Record Deletion ---
@@ -146,47 +276,50 @@ export default function Badges() {
     }
   };
 
+  // --- Document Record Edit Initializer ---
+  const handleEditOpen = (cert: Certificate) => {
+    setEditingCertId(cert.id);
+    setFormTitle(cert.title);
+    setFormOrg(cert.issuingOrganization);
+    setFormCategory(cert.category);
+    setFormStart(cert.startDate);
+    setFormEnd(cert.endDate);
+    setFormDesc(cert.description || '');
+    setFormFileName(cert.fileName);
+    setIsModalOpen(true);
+  };
+
   // Filtered logs list
   const filteredCertificates = useMemo(() => {
     return certificates.filter(c => c.category === activeTab);
   }, [certificates, activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-8">
+    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
-      {/* Top Welcome Title Grid Block */}
-      <div className="max-w-6xl mx-auto bg-white border border-slate-100 p-6 rounded-[24px] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">Badges & Scholastic Certificates</h1>
-          <p className="text-[13px] text-slate-500 font-medium mt-0.5">Upload, store, and secure your verified achievements for profile validation.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsCustomCategoryModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-[13px] font-bold tracking-wide hover:bg-slate-50 transition-all"
-          >
-            <FolderPlus className="h-4 w-4 text-slate-500" />
-            Add Custom Bucket
-          </button>
-          
-          <button
-            onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] text-white rounded-xl text-[13px] font-bold tracking-wide hover:bg-[#001c3d] shadow-sm transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            Upload Certificate
-          </button>
-        </div>
-      </div>
+      {/* 1. LEFT SIDE NAVIGATION BAR (Filled with Category Buckets & Profile Header) */}
+      <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-2xl">
+        <div className="p-5 space-y-6 overflow-y-auto flex-1">
+          {/* Dashboard Identity Header */}
+          <div className="border-b border-white/10 pb-4">
+            <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
+            <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Credentials Hub</p>
+          </div>
 
-      {/* Main Grid Content Matrix */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        {/* LEFT COLUMN: AVAILABLE BUCKET LIST */}
-        <div className="lg:col-span-1 space-y-2">
-          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase px-3 block">Available Groups</span>
-          <div className="space-y-1 bg-white border border-slate-100 p-2 rounded-[20px] shadow-sm">
+          {/* Integrated Profile Card Circle inside Sidebar */}
+          <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/10 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-orange-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-white/10">
+              {user.fullName.charAt(0).toUpperCase()}
+            </div>
+            <div className="text-left truncate">
+              <p className="text-xs font-black leading-none truncate">{user.fullName}</p>
+              <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-wider">{user.department || 'CSE'} Department</p>
+            </div>
+          </div>
+
+          {/* Bucket Category List Items inside Sidebar Navigation */}
+          <div className="space-y-1.5 pt-2">
+            <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase px-2 block mb-1">Category Buckets</span>
             {categories.map((cat) => {
               const count = certificates.filter(c => c.category === cat).length;
               const isActive = activeTab === cat;
@@ -194,78 +327,235 @@ export default function Badges() {
                 <button
                   key={cat}
                   onClick={() => setActiveTab(cat)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-bold tracking-wide transition-all ${
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-[12px] font-bold tracking-wide transition-all ${
                     isActive 
-                      ? 'bg-[#002D62]/10 text-[#002D62]' 
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-white/10 text-white border border-white/10 shadow-inner' 
+                      : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center gap-3 truncate">
-                    <span className={isActive ? 'text-[#002D62]' : 'text-slate-400'}>
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className={isActive ? 'text-white' : 'text-slate-400'}>
                       {getCategoryIcon(cat, "h-4 w-4 shrink-0 stroke-[2.5]")}
                     </span>
                     <span className="truncate">{cat}</span>
                   </div>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${isActive ? 'bg-[#002D62] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                    isActive ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300'
+                  }`}>
                     {count}
                   </span>
                 </button>
               );
             })}
           </div>
+
+          {/* Add Category Trigger inside Sidebar Bottom Menu Area */}
+          <div className="pt-4 border-t border-white/10">
+            <button
+              onClick={() => setIsCustomCategoryModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-xs font-bold transition-all text-slate-300 hover:text-white"
+            >
+              <FolderPlus className="h-4 w-4 text-slate-300" />
+              <span>Add Custom Category</span>
+            </button>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: CERTIFICATE GRID VIEW */}
-        <div className="lg:col-span-3">
-          {filteredCertificates.length === 0 ? (
-            <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
-              <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 mb-4">
-                {getCategoryIcon(activeTab, "h-6 w-6 stroke-[2]")}
-              </div>
-              <h3 className="text-sm font-bold text-slate-700">No logs for "{activeTab}" yet</h3>
-              <p className="text-xs text-slate-400 max-w-xs mt-1 mb-6">
-                You haven't committed soft copies or data summaries to this profile segment container yet.
-              </p>
-              <button
-                onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
-                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all"
-              >
-                Add First Record
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredCertificates.map((cert) => {
-                const isApproved = cert.status === 'Approved';
-                return (
-                  <div 
-                    key={cert.id} 
-                    className={`bg-white rounded-[24px] border transition-all p-5 shadow-sm flex flex-col justify-between ${
-                      isApproved ? 'border-emerald-100 bg-gradient-to-br from-white to-emerald-50/10' : 'border-slate-100'
-                    }`}
-                  >
-                    <div>
-                      {/* Badge Header Row */}
-                      <div className="flex items-center justify-between gap-2 mb-4">
-                        <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${
-                          isApproved ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                        }`}>
-                          {isApproved ? <CheckCircle className="h-3 w-3 stroke-[2.5]" /> : <Clock className="h-3 w-3 stroke-[2.5]" />}
-                          {cert.status}
-                        </span>
+        {/* SIDEBAR FOOTER ACTION: Navigates back to main dashboard workspace securely pinned at the bottom */}
+        <div className="p-4 border-t border-white/10 bg-[#00224D]">
+          {onBackToDashboard && (
+            <button 
+              onClick={onBackToDashboard}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-white text-[#002D62] hover:bg-blue-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
+              <span>Back to Dashboard</span>
+            </button>
+          )}
+        </div>
+      </aside>
 
-                        <div className="flex items-center gap-1.5">
-                          <span title={isApproved ? "Verified & Locked by Administration" : "Editable until review checklist pass"}>
-                            {isApproved ? (
-                              <Lock className="h-3.5 w-3.5 text-emerald-600" />
-                            ) : (
-                              <Unlock className="h-3.5 w-3.5 text-slate-400" />
-                            )}
+      {/* 2. MAIN ACTIVE WINDOW AREA (Occupies right side cleanly) */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        
+        {/* Dynamic header containing dashboard title and uploader triggers */}
+        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
+          <div>
+            <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Badges & Scholastic Certificates</h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Upload and secure your credentials</p>
+          </div>
+
+          {/* Primary floating action uploader trigger */}
+          <button
+            onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#001c3d] shadow-md transition-all active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            Upload Certificate
+          </button>
+        </header>
+
+        {/* Main interactive content workspace viewport */}
+        <main className="p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
+          
+          {/* COMPULSORY RESUME UPLOAD SECTION (Highlighted separately & highly visible) */}
+          <div className={`p-6 rounded-[24px] border transition-all ${
+            resumeUploaded 
+              ? 'bg-emerald-50/50 border-emerald-500/20' 
+              : 'bg-gradient-to-r from-red-50/60 to-orange-50/60 border-orange-200 shadow-md'
+          }`}>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className={`p-4 rounded-2xl shrink-0 ${resumeUploaded ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                  <FileCheck className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-slate-800 tracking-tight">Compulsory Placement Resume</h2>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${
+                      resumeUploaded ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
+                    }`}>
+                      {resumeUploaded ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 max-w-2xl font-medium leading-relaxed">
+                    To participate in campus recruitment drives, it is mandatory to upload your master resume. The placement officer will review this document to compute your overall Readiness Index score.
+                  </p>
+                </div>
+              </div>
+
+              {/* Dynamic Interactive Action Suite based on upload status */}
+              <div className="w-full lg:w-auto shrink-0 flex flex-col sm:flex-row items-center gap-2">
+                <input type="file" ref={resumeInputRef} onChange={handleResumeChange} accept=".pdf" className="hidden" />
+                
+                {resumeUploaded ? (
+                  <>
+                    <button
+                      onClick={handleOpenResumePreview}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+                    >
+                      View Resume
+                    </button>
+                    <button
+                      onClick={() => resumeInputRef.current?.click()}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+                    >
+                      Replace (PDF)
+                    </button>
+                    <button
+                      onClick={handleDeleteResume}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 p-3.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all shadow-sm border border-red-100"
+                      title="Delete Resume"
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => resumeInputRef.current?.click()}
+                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+                  >
+                    <UploadCloud className="h-4.5 w-4.5" />
+                    Upload Mandatory Resume
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {resumeFile && (
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  <span>Attached Resume: <span className="font-mono font-medium">{resumeFile.name}</span></span>
+                </div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wide">Last Updated: Just Now</span>
+              </div>
+            )}
+          </div>
+
+          {/* VISUAL GALLERY VIEWPORT GRID */}
+          <div>
+            {filteredCertificates.length === 0 ? (
+              <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
+                <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 mb-4">
+                  {getCategoryIcon(activeTab, "h-8 w-8 stroke-[1.5]")}
+                </div>
+                <h3 className="text-sm font-bold text-slate-700">No records for "{activeTab}" yet</h3>
+                <p className="text-xs text-slate-400 max-w-xs mt-1 mb-6">
+                  You haven't uploaded soft copies or data logs to this category block yet.
+                </p>
+                <button
+                  onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
+                >
+                  Upload First Attachment
+                </button>
+              </div>
+            ) : (
+              // Visual Gallery Display
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredCertificates.map((cert) => {
+                  const isApproved = cert.status === 'Approved';
+                  return (
+                    <div 
+                      key={cert.id} 
+                      className={`bg-white rounded-[24px] border transition-all overflow-hidden flex flex-col shadow-sm group hover:shadow-md ${
+                        isApproved ? 'border-emerald-100' : 'border-slate-200'
+                      }`}
+                    >
+                      {/* Visual paper-miniature preview thumbnail wrapper */}
+                      <div className="h-40 bg-slate-100 relative flex items-center justify-center border-b border-slate-100 overflow-hidden">
+                        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#002d62_1px,transparent_1px)] [background-size:12px_12px]"></div>
+                        
+                        <div className="w-[85%] h-[80%] bg-white rounded-lg border border-slate-200 shadow-sm p-4 relative flex flex-col justify-between select-none">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <div className="h-1.5 w-16 bg-slate-300 rounded"></div>
+                              <div className="h-1 w-24 bg-slate-200 rounded"></div>
+                            </div>
+                            <div className="h-6 w-6 rounded-full border-2 border-[#002D62]/10 flex items-center justify-center">
+                              {getCategoryIcon(cert.category, "h-3.5 w-3.5 text-[#002D62]")}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-end justify-between">
+                            <div className="space-y-1">
+                              <div className="h-1 w-12 bg-slate-200 rounded"></div>
+                              <div className="h-0.5 w-16 bg-slate-100 rounded"></div>
+                            </div>
+                            {/* Verification stamp watermark overlay */}
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[6px] font-black uppercase rotate-[-12deg] border border-dashed ${
+                              isApproved ? 'border-emerald-500/40 text-emerald-600 bg-emerald-50/50' : 'border-amber-500/40 text-amber-600 bg-amber-50/50'
+                            }`}>
+                              {isApproved ? 'VERIFIED' : 'PENDING'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Top corner status capsule overlay */}
+                        <div className="absolute top-3 left-3">
+                          <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${
+                            isApproved ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                          }`}>
+                            {isApproved ? <CheckCircle className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
+                            {cert.status}
                           </span>
+                        </div>
+
+                        {/* Actions overlay panel shown upon hovering certificate thumbnail */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEditOpen(cert)}
+                            className="p-1.5 bg-white hover:bg-slate-50 text-[#002D62] rounded-lg shadow border border-slate-100 transition-all"
+                            title="Edit Submission"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          
                           {!isApproved && (
                             <button 
                               onClick={() => handleDeleteCertificate(cert.id)}
-                              className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-50 transition-all"
+                              className="p-1.5 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg shadow border border-slate-100 transition-all"
                               title="Delete Submission"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -274,62 +564,83 @@ export default function Badges() {
                         </div>
                       </div>
 
-                      {/* Metadata Area */}
-                      <h3 className="font-bold text-slate-800 text-sm leading-snug line-clamp-2">{cert.title}</h3>
-                      
-                      <div className="mt-4 space-y-2 text-[12px] font-semibold text-slate-500">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate text-slate-600">{cert.issuingOrganization}</span>
+                      {/* Details block positioned neatly below preview layer */}
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <h3 className="font-bold text-slate-800 text-sm leading-snug line-clamp-1" title={cert.title}>
+                            {cert.title}
+                          </h3>
+                          
+                          <div className="space-y-1 text-[11px] font-bold text-slate-500">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate text-slate-600">{cert.issuingOrganization}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span>{cert.startDate} — {cert.endDate}</span>
+                            </div>
+                          </div>
+
+                          {cert.description && (
+                            <p className="text-[11px] font-medium text-slate-400 leading-relaxed line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                              {cert.description}
+                            </p>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span>{cert.startDate} — {cert.endDate}</span>
+
+                        {/* File Details footer row inside gallery card with edit actions & verification lock states */}
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+                          <div className="flex items-center gap-1.5 text-slate-400 max-w-[130px] truncate">
+                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="font-mono text-[10px] font-normal truncate">{cert.fileName}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center" title={isApproved ? "Verified & Locked by Staff" : "Editable until staff checklist verification"}>
+                              {isApproved ? (
+                                <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                              ) : (
+                                <Unlock className="h-3.5 w-3.5 text-slate-400" />
+                              )}
+                            </span>
+                            <button 
+                              onClick={() => handleOpenPreview(cert)} 
+                              className="text-[#002D62] hover:underline shrink-0"
+                            >
+                              View Document →
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      {cert.description && (
-                        <p className="text-[11px] font-medium text-slate-400 mt-4 line-clamp-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                          {cert.description}
-                        </p>
-                      )}
                     </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-                    {/* Footer Row */}
-                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
-                      <span className="text-slate-400 truncate max-w-[130px] font-mono text-[10px] font-normal">{cert.fileName}</span>
-                      <a 
-                        href="#view-file" 
-                        onClick={(e) => e.preventDefault()} 
-                        className="text-[#002D62] hover:underline shrink-0"
-                      >
-                        View Attachment →
-                      </a>
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
+        </main>
       </div>
 
-      {/* --- MODAL 1: UPLOAD CERTIFICATE FORM MODAL --- */}
+      {/* --- MODAL 1: UPLOAD / EDIT CERTIFICATE FORM MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-[14px] font-black text-slate-800 uppercase tracking-wide">Upload Certificate</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-sm font-medium">✕</button>
+              <h2 className="text-[14px] font-black text-slate-800 uppercase tracking-wide">
+                {editingCertId ? 'Edit Scholastic Record' : 'Upload Certificate'}
+              </h2>
+              <button onClick={closeFormModal} className="text-slate-400 hover:text-slate-600 text-sm font-medium">✕</button>
             </div>
 
             <form onSubmit={handleCertificateUpload} className="p-5 space-y-4">
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-semibold">
-                  ⚠️ {formError}
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-semibold flex items-start gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-red-500" />
+                  <span>{formError}</span>
                 </div>
               )}
 
@@ -385,15 +696,17 @@ export default function Badges() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Upload Soft Copy Attachment *</label>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block mb-1">
+                  {editingCertId ? 'Replace Attachment File (Optional)' : 'Upload Soft Copy Attachment *'}
+                </label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all">
                   <input 
-                    type="file" accept=".pdf,.png,.jpg,.jpeg" required className="hidden" 
+                    type="file" accept=".pdf,.png,.jpg,.jpeg" required={!editingCertId} className="hidden" 
                     onChange={(e) => { if (e.target.files?.[0]) setFormFile(e.target.files[0]); }}
                   />
                   <FileUp className="h-5 w-5 text-slate-400 mb-1" />
                   <span className="text-xs font-bold text-slate-600 text-center truncate max-w-full px-2">
-                    {formFile ? formFile.name : "Click to select local file"}
+                    {formFile ? formFile.name : (formFileName ? `Retained: ${formFileName}` : "Click to select local file")}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Supports PDF, PNG, JPEG up to 5MB</span>
                 </label>
@@ -401,16 +714,16 @@ export default function Badges() {
 
               <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
                 <button 
-                  type="button" onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50"
+                  type="button" onClick={closeFormModal}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all bg-white"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d]"
+                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all"
                 >
-                  Save Certificate
+                  {editingCertId ? 'Update Record' : 'Save Certificate'}
                 </button>
               </div>
             </form>
@@ -456,6 +769,122 @@ export default function Badges() {
         </div>
       )}
 
+      {/* --- MODAL 3: DOCUMENT PREVIEW MODAL --- */}
+      {previewDocument && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] w-full max-w-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Header of Preview Panel */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-[#002D62]" />
+                <div>
+                  <h3 className="text-sm font-black text-[#002D62] uppercase tracking-wide">Document Viewer Workspace</h3>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate max-w-xs sm:max-w-md">{previewDocument.fileName}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setPreviewDocument(null)} 
+                className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Document Content View Area */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/50 flex flex-col items-center">
+              
+              {/* Certificate/Document Styled Canvas */}
+              <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
+                {/* Background grid watermark */}
+                <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
+                {/* Decorative gold/navy vintage border frame line */}
+                <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
+
+                <div className="text-center space-y-2 mt-4 relative z-10">
+                  <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
+                    K.S.R. College of Engineering
+                  </h2>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                    Verification Ledger & Student Credentials Portal
+                  </p>
+                  <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
+                </div>
+
+                <div className="text-center space-y-3 my-6 relative z-10">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">This is to certify that</span>
+                  <h1 className="text-lg font-black text-slate-800 leading-none font-serif tracking-tight">
+                    {user.fullName}
+                  </h1>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">has successfully submitted valid scholastic records for</span>
+                  <p className="text-sm font-black text-[#002D62] px-6 leading-tight line-clamp-2">
+                    {previewDocumentTitle(previewDocumentTruncateText(previewDocumentSafeString(previewDocumentDefaultValue(previewDocumentTextFallback(previewDocument.title)))))}
+                  </p>
+                </div>
+
+                {/* Footer Signatures */}
+                <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
+                  <div className="text-left space-y-1">
+                    <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
+                    <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
+                  </div>
+                  
+                  {previewDocument.startDate && (
+                    <div className="text-center space-y-1">
+                      <span className="block text-slate-600">{previewDocument.startDate}</span>
+                      <span className="block text-[8px] font-semibold text-slate-400 font-mono">SUBMISSION DATE</span>
+                    </div>
+                  )}
+
+                  <div className="text-right space-y-1">
+                    <span className={`block px-2 py-0.5 rounded text-[8px] ${
+                      previewDocument.status === 'Approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {previewDocument.status || 'Verified'}
+                    </span>
+                    <span className="block text-[8px] font-semibold text-slate-400">VERIFICATION MATRIX</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra File Info */}
+              <div className="w-full max-w-xl bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm text-xs font-semibold text-slate-600 space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Summary Description</p>
+                <p className="text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  {previewDocument.description || 'No descriptive summary was logged for this scholastic record submission. File name stored in verified storage matrix.'}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Actions Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button 
+                onClick={() => setPreviewDocument(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all bg-white"
+              >
+                Close Viewer
+              </button>
+              <button 
+                onClick={() => alert(`Simulated Download Completed: ${previewDocument.fileName}`)}
+                className="px-4 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download Attachment
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
+// Simulated viewing text safety wrappers
+function previewDocumentTitle(text: string) { return text; }
+function previewDocumentTruncateText(text: string) { return text; }
+function previewDocumentSafeString(text: string) { return text; }
+function previewDocumentDefaultValue(text: string) { return text; }
+function previewDocumentTextFallback(text: string) { return text; }

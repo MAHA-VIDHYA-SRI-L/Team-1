@@ -2,13 +2,13 @@ import { useState, type ReactNode } from 'react';
 
 interface AuthBackgroundProps {
   children: ReactNode;
+  layout?: 'split' | 'centered';
 }
 
-export default function AuthBackground({ children }: AuthBackgroundProps) {
+export default function AuthBackground({ children, layout = 'split' }: AuthBackgroundProps) {
   const [imageSrc, setImageSrc] = useState('/campus.jpg');
   const [imgFallbackFailed, setImgFallbackFailed] = useState(false);
 
-  // Generate 40 lines evenly distributed down the viewport height (900px canvas)
   const totalLines = 40;
   const lines = Array.from({ length: totalLines }, (_, i) => {
     const baseHeight = (900 / (totalLines + 1)) * (i + 1);
@@ -53,7 +53,7 @@ export default function AuthBackground({ children }: AuthBackgroundProps) {
         }
       `}</style>
 
-      {/* Decorative Ambient Radial Glow behind the central content zone */}
+      {/* Decorative Ambient Radial Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#002D62]/5 to-transparent rounded-full blur-[140px] pointer-events-none z-0"></div>
       
       {/* Full-Screen Vector Topographic Wave Layer */}
@@ -82,12 +82,12 @@ export default function AuthBackground({ children }: AuthBackgroundProps) {
         </svg>
       </div>
 
-      {/* Main Layout Grid Container */}
-      <div className="w-full min-h-screen flex flex-col md:flex-row relative z-10 p-3 md:p-5 gap-5 box-border bg-transparent">
-        
-        {/* LEFT PANEL: Campus Card with richer framing lines and defined glass effects */}
-        <div className="hidden md:block w-[45%] lg:w-[40%] relative shrink-0">
-          <div className="sticky top-5 h-[calc(100vh-40px)] rounded-[24px] overflow-hidden bg-white/40 backdrop-blur-[6px] p-2 border border-white/80 shadow-[0_12px_40px_rgba(0,45,98,0.04)]">
+      {/* DYNAMIC LAYOUT SWITCHER */}
+      {layout === 'split' ? (
+        <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-[55fr_50fr] relative z-10 p-3 md:p-5 gap-6 box-border bg-transparent">
+          
+          {/* LEFT PANEL: Campus Card (Takes up 55% of the screen width for a snug look) */}
+          <div className="hidden md:block w-full h-[calc(100vh-40px)] relative sticky top-5 rounded-[24px] overflow-hidden bg-white/40 backdrop-blur-[6px] p-2 border border-white/80 shadow-[0_12px_40px_rgba(0,45,98,0.04)]">
             <div className="w-full h-full rounded-[18px] overflow-hidden relative shadow-inner group">
               <img 
                 src={imageSrc} 
@@ -95,35 +95,37 @@ export default function AuthBackground({ children }: AuthBackgroundProps) {
                 className="w-full h-full object-cover select-none transition-transform duration-700 group-hover:scale-105"
                 onError={handleImageError}
               />
-              {/* Complex overlay tint for adding visual weight to the image border frame */}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-black/5"></div>
-              
-              {/* Floating Identity Watermark for added corporate authority */}
-              <div className="absolute top-6 left-6 flex items-center gap-2.5 bg-slate-950/30 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 text-white">
-                <div className="h-5 w-5 rounded-md bg-orange-500 flex items-center justify-center font-black text-white text-[10px]">P</div>
-                <span className="text-[11px] font-black tracking-widest uppercase">PLACEMATE PLATFORM</span>
-              </div>
+            </div>
+          </div>
+
+          {/* RIGHT PANEL: Form card pane with optimized margins and padding */}
+          <div className="w-full flex flex-col justify-between items-center px-4 sm:px-6 py-6 min-h-[calc(100vh-40px)] relative bg-transparent">
+            <div className="hidden md:block h-2"></div>
+
+            {/* Central Interactive Content Display (Forms Injected Here) */}
+            <div className="w-full max-w-[420px] my-auto relative z-10">
+              {children}
+            </div>
+
+            {/* Footer Copyright Text Frame */}
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider z-10 hidden sm:block relative pt-6 select-none uppercase font-mono">
+              © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
             </div>
           </div>
         </div>
-
-        {/* RIGHT PANEL: Pure translucent lane passing lines cleanly across viewport */}
-        <div className="w-full md:flex-1 flex flex-col justify-between items-center px-4 sm:px-12 lg:px-16 py-6 min-h-[calc(100vh-40px)] relative bg-transparent">
-          
-          <div className="hidden md:block h-2"></div>
-
-          {/* Central Interactive Content Display (Forms Injected Here) */}
-          <div className="w-full max-w-md my-auto relative z-10">
+      ) : (
+        <div className="w-full relative z-10 p-4 flex flex-col items-center justify-center min-h-screen">
+          <div className="w-full flex justify-center">
             {children}
           </div>
-
-          {/* Footer Copyright Text Frame */}
-          <div className="text-[11px] font-bold text-slate-400 tracking-wider z-10 hidden sm:block relative pt-6 select-none uppercase font-mono">
+          
+          <div className="text-[11px] font-bold text-slate-400 tracking-wider mt-8 z-10 select-none uppercase font-mono">
             © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
           </div>
-
         </div>
-      </div>
+      )}
+
     </div>
   );
 }

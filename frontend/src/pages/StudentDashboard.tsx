@@ -1,163 +1,36 @@
-<<<<<<< Updated upstream
-import { useState, useRef, useEffect } from 'react';
-import StudentProfileWizard from '../components/StudentProfileWizard';
+import { useState, useRef } from 'react';
 import { 
-  Phone, 
-  GraduationCap, 
-  MapPin, 
-  Mail, 
-  Calendar, 
-  BookOpen, 
-  Clock, 
-  Award, 
-  Edit3, 
-  Check, 
-  X,
-  Upload,
-  LayoutDashboard,
-  ArrowUpRight,
-  ShieldCheck,
-  AlertCircle
+  LogOut, LayoutDashboard, User, Briefcase, CheckCircle2, 
+  RotateCcw, Award, CalendarDays, Settings, Camera, 
+  X, BadgeCheck, Clock, CheckCircle
 } from 'lucide-react';
-=======
-import { useState } from 'react';
-import { LogOut, LayoutDashboard, User, Briefcase, CheckCircle2, RotateCcw, Award } from 'lucide-react';
 import StudentProfileWizard from '../components/StudentProfileWizard';
 import type { StudentProfileData } from '../types/profile';
->>>>>>> Stashed changes
 
-export default function StudentDashboard() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Core state datasets
-  const [profileData, setProfileData] = useState<any>(() => {
-    const saved = localStorage.getItem('placemate_profile');
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [isProfileComplete, setIsProfileComplete] = useState<boolean>(() => {
-    return localStorage.getItem('placemate_profile') !== null;
-  });
-
-  // UIUX Visual Flash States (Zero-latency saving indicator loops)
-  const [saveFlash, setSaveFlash] = useState<'header' | 'contact' | 'academics' | null>(null);
-
-  // Section Editing Management States
-  const [editingSection, setEditingSection] = useState<'header' | 'contact' | 'academics' | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
-  const [completenessScore, setCompletenessScore] = useState<number>(0);
-
-  // Dynamic profile completeness engine calculation
-  useEffect(() => {
-    if (!profileData) return;
-    const coreFields = ['name', 'regNo', 'branch', 'yearOfStudy', 'email', 'contactNumber', 'address', 'tenthPercentage', 'twelfthPercentage'];
-    let filled = 0;
-    coreFields.forEach(field => {
-      if (profileData[field] && profileData[field].toString().trim() !== '') filled++;
-    });
-    const score = Math.round((filled / coreFields.length) * 100);
-    setCompletenessScore(score);
-  }, [profileData]);
-
-  const handleWizardCompletion = (data: any) => {
-    localStorage.setItem('placemate_profile', JSON.stringify(data));
-    setProfileData(data);
-    setIsProfileComplete(true);
+interface StudentDashboardProps {
+  user: {
+    fullName: string;
+    email: string;
+    idNumber?: string;
+    contactNo?: string;
   };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const updatedData = { ...profileData, profilePic: base64String };
-        localStorage.setItem('placemate_profile', JSON.stringify(updatedData));
-        setProfileData(updatedData);
-        triggerSaveFlash('header');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const startEditing = (section: 'header' | 'contact' | 'academics') => {
-    setEditForm({ ...profileData });
-    setEditingSection(section);
-  };
-
-  const triggerSaveFlash = (section: 'header' | 'contact' | 'academics') => {
-    setSaveFlash(section);
-    setTimeout(() => setSaveFlash(null), 800);
-  };
-
-  const saveSectionChanges = () => {
-    const currentSection = editingSection;
-    const updatedTimestamp = new Date().toLocaleDateString('en-GB');
-    const updatedData = {
-      ...editForm,
-      profileUpdatedDate: updatedTimestamp
-    };
-    localStorage.setItem('placemate_profile', JSON.stringify(updatedData));
-    setProfileData(updatedData);
-    setEditingSection(null);
-    if (currentSection) triggerSaveFlash(currentSection);
-  };
-
-  const cancelEditing = () => {
-    setEditingSection(null);
-    setEditForm({});
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setEditForm((prev: any) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSemesterMarkChange = (index: number, value: string) => {
-    const updatedMarks = [...(editForm.semesterMarks || Array(8).fill(''))];
-    updatedMarks[index] = value;
-    setEditForm((prev: any) => ({ ...prev, semesterMarks: updatedMarks }));
-  };
-
-  const handleResetProfile = () => {
-    if (window.confirm('Are you sure you want to completely erase your profile records? This cannot be undone.')) {
-      localStorage.removeItem('placemate_profile');
-      setProfileData(null);
-      setIsProfileComplete(false);
-      setEditingSection(null);
-    }
-  };
-<<<<<<< Updated upstream
-
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] flex antialiased selection:bg-orange-500 selection:text-white font-sans text-slate-800">
-      
-      {!isProfileComplete && (
-        <StudentProfileWizard onComplete={handleWizardCompletion} />
-      )}
-
-      {/* GLASSMORPHIC SIDEBAR COMPONENT CONTAINER */}
-      <aside className="w-64 bg-gradient-to-b from-[#001E3D] via-[#001730] to-[#000F21] text-white p-6 flex flex-col justify-between hidden lg:flex shrink-0 border-r border-slate-900 shadow-xl">
-        <div className="space-y-10">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center font-black text-white shadow-lg shadow-orange-500/20 text-base transform hover:rotate-3 transition-transform">
-              P
-            </div>
-            <span className="text-sm font-black tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
-              PLACEMATE
-            </span>
-=======
   onLogout: () => void;
-  onNavigateToBadges: () => void; // New prop wired to handle sub-navigation
+  onNavigateToBadges: () => void;
 }
 
 export default function StudentDashboard({ user, onLogout, onNavigateToBadges }: StudentDashboardProps) {
-  // 1. STRICT GUARD STATE: Forcefully defaults to false so the wizard MUST show first
   const [isSetupComplete, setIsSetupComplete] = useState<boolean>(false);
-  
-  // Storage for the wizard form data fields
-  const [profileFormRecord, setProfileFormRecord] = useState<StudentProfileData | null>(null);
+  const [profileFormRecord, setProfileFormRecord] = useState<Partial<StudentProfileData> | null>(null);
 
-  // 2. RESET HANDLER: Clears form data and kicks the user back to the multi-step wizard pipeline
+  // Profile picture upload and sidebar drawer states
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Staff verified states defaults to false/Not Placed (mock values easily linked to database later)
+  const isVerified = profileFormRecord?.isVerifiedByStaff || false; 
+  const placementStatus = profileFormRecord?.placementStatus || 'Not Placed';
+
   const handleResetProfile = () => {
     if (window.confirm("Are you sure you want to reset your profile details? You will have to fill out the setup form again.")) {
       setProfileFormRecord(null);
@@ -165,552 +38,305 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
     }
   };
 
-  // 3. FORCE INTERCEPT: If the setup flag is false, show the wizard. No bypass allowed.
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setProfilePic(imageUrl);
+    }
+  };
+
   if (!isSetupComplete || !profileFormRecord) {
     return (
       <StudentProfileWizard 
         initialEmail={user.email} 
         onComplete={(completedForm) => {
-          setProfileFormRecord(completedForm);
-          setIsSetupComplete(true); // Flips the gate to open the dashboard view
+          setProfileFormRecord(completedForm as Partial<StudentProfileData>);
+          setIsSetupComplete(true);
         }} 
       />
     );
   }
 
-  // Calculate dynamic metrics from the filled semester matrix data
-  const totalSemFieldsCount = profileFormRecord.sgpaSemesterValues.filter(v => v !== '').length;
+  const totalSemFieldsCount = profileFormRecord.sgpaSemesterValues?.filter(v => v !== '').length || 0;
+  const currentCgpa = profileFormRecord.graduationStanding === 'PG' ? profileFormRecord.ugCgpa : profileFormRecord.finalCgpa;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex">
+    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
-      {/* Side Navigation Bar */}
-      <aside className="w-64 bg-[#002D62] text-white flex flex-col p-5 justify-between shrink-0 hidden md:flex">
-        <div className="space-y-8">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-xl">
+        <div className="p-6 space-y-8 overflow-y-auto">
           <div>
-            <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
-            <p className="text-[10px] font-bold text-slate-300/60 tracking-widest uppercase mt-0.5">Student Workstation</p>
->>>>>>> Stashed changes
+            <h1 className="text-2xl font-black tracking-wider uppercase">Placemate</h1>
+            <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Student Workstation</p>
           </div>
           
           <nav className="space-y-2">
-            <button className="w-full flex items-center justify-between px-4 py-3 bg-[#ffffff]/[0.03] hover:bg-orange-500 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all duration-300 group shadow-inner border border-white/[0.04] hover:border-orange-400 hover:shadow-orange-500/20">
-              <div className="flex items-center gap-3">
-                <LayoutDashboard className="h-4 w-4 text-slate-400 group-hover:text-white transition-colors" /> 
-                <span className="tracking-wide">My Profile Dashboard</span>
-              </div>
-              <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-1" />
+            <button className="w-full flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all border border-white/10">
+              <LayoutDashboard className="h-4 w-4 stroke-[2.5]" />
+              <span>Overview Dashboard</span>
             </button>
 
-            {/* NEW: Navigation trigger targeting the Badges & Certificates view component page */}
-            <button 
-              onClick={onNavigateToBadges}
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all mt-1"
-            >
+            <button onClick={onNavigateToBadges} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
               <Award className="h-4 w-4 text-amber-400 stroke-[2.5]" />
               <span>Badges & Certificates</span>
             </button>
-
-            {/* Reset Details Option inside Sidebar */}
-            <button 
-              onClick={handleResetProfile}
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all mt-1"
-            >
+            
+            <button onClick={handleResetProfile} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
               <RotateCcw className="h-4 w-4 text-orange-400 stroke-[2.5]" />
               <span>Reset Profile Data</span>
             </button>
           </nav>
         </div>
         
-<<<<<<< Updated upstream
-        <div className="space-y-4 px-2 border-t border-white/[0.06] pt-6">
-          {isProfileComplete && (
-            <button 
-              onClick={handleResetProfile} 
-              className="text-left text-[11px] font-bold text-slate-400 hover:text-orange-400 transition-colors flex items-center gap-2 tracking-wide uppercase"
-            >
-              <span>⚙️</span> <span>Reset System Profile</span>
-            </button>
-          )}
-          <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-            © 2026 K.S.R.C.E
-          </div>
+        {/* Profile Settings & Logout Section */}
+        <div className="p-4 border-t border-white/10 space-y-2 bg-[#00224D]">
+          <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <Settings className="h-4 w-4 stroke-[2.5]" />
+            <span>Profile Settings</span>
+          </button>
+
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <LogOut className="h-4 w-4 stroke-[2.5]" />
+            <span>Logout Account</span>
+          </button>
         </div>
       </aside>
 
-      {/* MAIN WORKSPACE REGION */}
-      <main className={`flex-1 p-6 md:p-10 space-y-8 transition-all duration-500 ${!isProfileComplete ? 'blur-lg pointer-events-none select-none' : ''}`}>
+      {/* WORKSPACE WINDOW */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         
-        {/* INTERACTIVE ACTIONS HEADER */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse ring-4 ring-emerald-50" />
-            <div className="text-xs font-bold text-slate-400 tracking-widest uppercase font-mono">
-              Workspace Core System Engine
-            </div>
-          </div>
-          
+        {/* HEADER: Dynamic Circular Avatar and details aligned Left */}
+        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2.5 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200/60">
-              {completenessScore === 100 ? (
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-              )}
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Completeness: <strong className={completenessScore === 100 ? "text-emerald-600" : "text-amber-600"}>{completenessScore}%</strong>
-              </span>
-=======
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 hover:text-red-400 rounded-xl text-[13px] font-bold tracking-wide transition-all border border-transparent hover:border-red-500/20"
-        >
-          <LogOut className="h-4 w-4 stroke-[2.5]" />
-          <span>Logout Account</span>
-        </button>
-      </aside>
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              {/* Conditional ring thickness and coloring: Blue for verified, Yellow for pending */}
+              <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-black text-lg bg-slate-200 overflow-hidden ring-4 transition-all duration-300 ${isVerified ? 'ring-blue-500' : 'ring-amber-400'}`}>
+                {profilePic ? (
+                  <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-slate-400">{(profileFormRecord.name || user.fullName || 'S').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              
+              {/* Badge Stamp overlay */}
+              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                {isVerified ? (
+                  <BadgeCheck className="h-4 w-4 text-blue-500 fill-blue-50" />
+                ) : (
+                  <Clock className="h-4 w-4 text-amber-500 fill-amber-50" />
+                )}
+              </div>
 
-      {/* Main Panel Content Window */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between md:justify-end gap-4">
-          <div className="md:hidden flex items-center gap-2">
-            <h1 className="text-lg font-black text-[#002D62] uppercase tracking-wider">Placemate</h1>
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Camera className="h-4 w-4 text-white" />
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-slate-800 leading-none">{profileFormRecord.name || user.fullName}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{profileFormRecord.department || 'Student'}</p>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <p className={`text-[9px] font-black uppercase tracking-widest ${isVerified ? 'text-blue-600' : 'text-amber-600'}`}>
+                  {isVerified ? 'Verified Profile' : 'Pending Verification'}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Mobile View: Badges Navigation Shortcut */}
-            <button 
-              onClick={onNavigateToBadges} 
-              className="md:hidden p-2 text-slate-400 hover:text-amber-500"
-              title="View Badges & Certificates"
-            >
-              <Award className="h-4 w-4" />
-            </button>
 
-            {/* Mobile Reset Action View Shortcut button */}
-            <button 
-              onClick={handleResetProfile} 
-              className="md:hidden p-2 text-slate-400 hover:text-orange-500"
-              title="Reset Profile Setup"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            
-            <div className="text-right">
-              <p className="text-[13px] font-bold text-slate-800 leading-none">{profileFormRecord.name || user.fullName}</p>
-              <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">{profileFormRecord.department || 'Student Profile'}</p>
-            </div>
-            <div className="h-9 w-9 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 font-black text-[14px]">
-              {(profileFormRecord.name || user.fullName).charAt(0).toUpperCase()}
-            </div>
-            <button onClick={onLogout} className="md:hidden p-2 text-slate-400 hover:text-red-500">
-              <LogOut className="h-4 w-4" />
-            </button>
+          <div className="flex items-center gap-3 md:hidden">
+            <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-slate-400 hover:text-[#002D62]"><Settings className="h-5 w-5" /></button>
+            <button onClick={onLogout} className="p-2 text-slate-400 hover:text-red-500"><LogOut className="h-5 w-5" /></button>
           </div>
         </header>
 
-        <main className="p-6 max-w-6xl w-full mx-auto space-y-6">
-          {/* Welcome Intro Section */}
-          <div className="bg-white border border-slate-100 p-6 rounded-[24px] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 tracking-tight">Welcome to your Dashboard, {profileFormRecord.name || user.fullName}!</h2>
-              <p className="text-[13px] text-slate-500 font-medium mt-0.5">Keep track of your pending campus application metrics and profile status updates.</p>
->>>>>>> Stashed changes
-            </div>
-
-            <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-              <div className="h-5.5 w-5.5 rounded-md bg-orange-500 flex items-center justify-center font-black text-white text-[11px]">P</div>
-              <span className="text-xs font-black tracking-wider text-[#002D62]">PLACEMATE</span>
-            </div>
-          </div>
-        </div>
-
-        {/* PROFILE HEADER HERO SPACE */}
-        <div className={`bg-white rounded-2xl border transition-all duration-500 p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-sm ${saveFlash === 'header' ? 'border-emerald-400 ring-4 ring-emerald-50 bg-emerald-50/10' : 'border-slate-200/70'}`}>
-          <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left w-full">
-            
-            {/* AVATAR DEPLOYMENT WRAPPER */}
-            <div className="flex flex-col items-center gap-2.5 shrink-0 relative group">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="h-24 w-24 rounded-full bg-slate-50 border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center cursor-pointer transition-all duration-300 ring-4 ring-slate-100 group-hover:ring-orange-100"
-              >
-                {profileData?.profilePic ? (
-                  <img src={profileData.profilePic} alt="Avatar" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                ) : (
-                  <div className="text-slate-400 font-bold text-[11px] flex flex-col items-center gap-1">
-                    <Upload className="h-4 w-4 text-slate-300" />
-                    <span>Photo</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-[#001E3D]/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full backdrop-blur-[1px]">
-                  <Upload className="h-4 w-4 text-white" />
-                </div>
-              </div>
-<<<<<<< Updated upstream
-              <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
-              
-              {editingSection !== 'header' ? (
-                <button 
-                  type="button" onClick={() => startEditing('header')}
-                  className="inline-flex items-center gap-1 text-[10px] text-orange-600 font-bold bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100 transition-colors uppercase tracking-wide mt-1 shadow-sm hover:bg-orange-100"
-                >
-                  <Edit3 className="h-2.5 w-2.5" /> Edit Bio
-                </button>
-              ) : (
-                <div className="flex gap-1 absolute -bottom-1">
-                  <button type="button" onClick={saveSectionChanges} className="p-1 bg-emerald-500 text-white rounded-md shadow-sm hover:bg-emerald-600"><Check className="h-3 w-3" /></button>
-                  <button type="button" onClick={cancelEditing} className="p-1 bg-slate-200 text-slate-600 rounded-md shadow-sm hover:bg-slate-300"><X className="h-3 w-3" /></button>
-                </div>
-              )}
-            </div>
-
-            {/* IDENTITY HEADER FIELDS */}
-            <div className="flex-1 w-full space-y-1">
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                {editingSection === 'header' ? (
-                  <input 
-                    type="text" value={editForm.name || ''} placeholder="Student Name"
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="text-xl font-bold text-[#002D62] bg-slate-50 border-b-2 border-orange-400 px-2 py-0.5 outline-none w-full sm:w-auto focus:bg-orange-50/30 transition-colors"
-                  />
-                ) : (
-                  <h1 className="text-2xl font-black text-[#002D62] tracking-tight">{profileData?.name || 'Student Candidate Name'}</h1>
-                )}
-                <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 font-bold text-[10px] rounded-md border border-orange-100 uppercase tracking-widest shrink-0">
-                  {profileData?.degreeType || 'UG'} Candidate
-                </span>
-              </div>
-
-              <div className="text-xs font-mono font-bold text-slate-400">
-                {editingSection === 'header' ? (
-                  <input 
-                    type="text" value={editForm.regNo || ''} placeholder="Registration ID"
-                    onChange={(e) => handleInputChange('regNo', e.target.value)}
-                    className="text-xs font-mono bg-slate-50 border-b border-orange-400 px-2 py-0.5 outline-none w-44"
-                  />
-                ) : (
-                  profileData?.regNo || 'REGISTRATION_ID'
-                )}
-              </div>
-              
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-3 text-xs text-slate-500 font-semibold">
-                <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200/40 text-slate-600">
-                  <BookOpen className="h-3.5 w-3.5 text-slate-400" /> 
-                  {editingSection === 'header' ? (
-                    <input type="text" value={editForm.branch || ''} onChange={(e) => handleInputChange('branch', e.target.value)} className="bg-white border rounded px-1 w-20 outline-none" placeholder="Branch" />
-                  ) : (
-                    profileData?.branch || 'N/A'
-                  )}
-                </span>
-                
-                <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200/40 text-slate-600">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" /> 
-                  {editingSection === 'header' ? (
-                    <select value={editForm.yearOfStudy || ''} onChange={(e) => handleInputChange('yearOfStudy', e.target.value)} className="bg-white border rounded outline-none">
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                    </select>
-                  ) : (
-                    profileData?.yearOfStudy || 'N/A'
-                  )}
-                </span>
-
-                <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200/40 text-slate-600">
-                  <span className="text-slate-400">Graduation Track:</span> 
-                  {editingSection === 'header' ? (
-                    <input type="text" value={editForm.passOutYear || ''} onChange={(e) => handleInputChange('passOutYear', e.target.value)} className="bg-white border rounded px-1 w-14 outline-none text-center" placeholder="YYYY" />
-                  ) : (
-                    <strong className="text-slate-800">{profileData?.passOutYear || 'N/A'}</strong>
-                  )}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* AGGREGATED METRIC Display */}
-          <div className="bg-gradient-to-br from-[#002D62] to-[#001836] text-white px-8 py-5 rounded-2xl text-center shadow-lg shrink-0 w-full sm:w-auto border border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 h-12 w-12 bg-white/[0.02] rounded-bl-full pointer-events-none" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">AGGREGATED CGPA</span>
-            {editingSection === 'header' ? (
-              <input 
-                type="text" value={editForm.finalCgpa || ''} placeholder="0.00"
-                onChange={(e) => handleInputChange('finalCgpa', e.target.value)}
-                className="text-xl font-black text-center text-orange-400 bg-slate-900/50 border border-slate-700 rounded-lg outline-none mt-2 w-20 py-0.5"
-              />
-            ) : (
-              <span className="text-3xl font-black tracking-tight block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">
-                {profileData?.finalCgpa || '0.00'}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* MAIN GRID LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* WORKSPACE VIEWPORT */}
+        <main className="p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">
           
-          {/* LEFT ZONE CONTAINER */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* CONTACT INFORMATION */}
-            <div className={`bg-white rounded-2xl border transition-all duration-300 p-6 space-y-5 shadow-sm ${saveFlash === 'contact' ? 'border-emerald-400 ring-4 ring-emerald-50 bg-emerald-50/10' : 'border-slate-200/70'}`}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5 text-[#002D62]">
-                  <Phone className="h-4 w-4 text-orange-500" />
-                  <h3 className="font-bold text-xs uppercase tracking-widest text-slate-600">Contact & Communication Records</h3>
-                </div>
-                
-                {editingSection !== 'contact' ? (
-                  <button type="button" onClick={() => startEditing('contact')} className="text-slate-400 hover:text-orange-500 p-1.5 hover:bg-slate-50 rounded-xl transition-all">
-                    <Edit3 className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <div className="flex gap-1.5">
-                    <button type="button" onClick={saveSectionChanges} className="text-white font-bold text-xs bg-emerald-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-emerald-700">Save</button>
-                    <button type="button" onClick={cancelEditing} className="text-slate-600 font-bold text-xs bg-slate-100 px-3 py-1.5 rounded-lg border hover:bg-slate-200">Cancel</button>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-medium">
-                <div className="p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Mail className="h-3 w-3" /> Primary Email Address</span>
-                  {editingSection === 'contact' ? (
-                    <input type="email" value={editForm.email || ''} onChange={(e) => handleInputChange('email', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs outline-none focus:border-orange-500" />
-                  ) : (
-                    <span className="text-slate-700 font-bold block break-all">{profileData?.email || 'N/A'}</span>
-                  )}
-                </div>
-
-                <div className="p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Phone className="h-3 w-3" /> Contact Mobile Number</span>
-                  {editingSection === 'contact' ? (
-                    <input type="text" value={editForm.contactNumber || ''} onChange={(e) => handleInputChange('contactNumber', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs outline-none focus:border-orange-500" />
-                  ) : (
-                    <span className="text-slate-700 font-bold block">{profileData?.contactNumber || 'N/A'}</span>
-                  )}
-                </div>
-
-                <div className="sm:col-span-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Phone className="h-3 w-3" /> Alternative Mobile Number</span>
-                  {editingSection === 'contact' ? (
-                    <input type="text" value={editForm.altContactNumber || ''} onChange={(e) => handleInputChange('altContactNumber', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs outline-none focus:border-orange-500" />
-                  ) : (
-                    <span className="text-slate-700 font-bold block">{profileData?.altContactNumber || 'None'}</span>
-                  )}
-                </div>
-
-                <div className="sm:col-span-2 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><MapPin className="h-3 w-3" /> Residential Mailing Address</span>
-                  {editingSection === 'contact' ? (
-                    <input type="text" value={editForm.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs outline-none focus:border-orange-500" />
-                  ) : (
-                    <span className="text-slate-700 font-bold block">{profileData?.address || 'N/A'}</span>
-                  )}
-=======
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
-                <div className="p-3 bg-slate-50/60 rounded-xl border border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Register Number</p>
-                  <p className="font-bold text-slate-800 mt-1">{profileFormRecord.regsNumber || 'Not provided'}</p>
-                </div>
-                <div className="p-3 bg-slate-50/60 rounded-xl border border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Official Email Address</p>
-                  <p className="font-bold text-slate-800 mt-1 break-all">{profileFormRecord.email}</p>
-                </div>
-                <div className="p-3 bg-slate-50/60 rounded-xl border border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Mobile Phone Contact</p>
-                  <p className="font-bold text-slate-800 mt-1">{profileFormRecord.phone || 'Not provided'}</p>
-                </div>
-                <div className="p-3 bg-slate-50/60 rounded-xl border border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Current Setup Tracking Year</p>
-                  <p className="font-bold text-[#002D62] mt-1 uppercase">{profileFormRecord.year || 'Not configured'}</p>
-                </div>
-                <div className="p-3 bg-slate-50/60 rounded-xl border border-slate-100 sm:col-span-2">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Permanent Home Address</p>
-                  <p className="font-bold text-slate-600 mt-1">
-                    {profileFormRecord.address}, {profileFormRecord.district}, {profileFormRecord.stateName} — {profileFormRecord.pinCode}
-                  </p>
->>>>>>> Stashed changes
-                </div>
-              </div>
+          {/* Welcome Banner */}
+          <div className="bg-white border border-slate-200 p-6 rounded-[24px] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">Welcome to your Dashboard, {profileFormRecord.name?.split(' ')[0] || 'Student'}!</h2>
+              <p className="text-sm text-slate-500 font-medium mt-1">Keep track of your pending campus application metrics and profile status updates.</p>
             </div>
-
-<<<<<<< Updated upstream
-            {/* LIVE TERM SEMESTER TRACKING MATRICES */}
-            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5 text-[#002D62]">
-                  <Award className="h-4 w-4 text-orange-500" />
-                  <h3 className="font-bold text-xs uppercase tracking-widest text-slate-600">Live Term Semester Tracking Matrices</h3>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                {Array.from({ length: (editingSection === 'contact' ? editForm.degreeType : profileData?.degreeType) === 'PG' ? 4 : 8 }).map((_, index) => {
-                  const score = editingSection === 'contact' ? editForm.semesterMarks?.[index] : profileData?.semesterMarks?.[index];
-                  const hasValue = score && score.toString().trim() !== '';
-                  const numericScore = parseFloat(score || '0');
-                  
-                  return (
-                    <div key={index} className="p-3 bg-slate-50/40 border border-slate-100 rounded-xl text-center transition-all duration-200 hover:shadow-sm">
-                      <span className="text-[9px] uppercase font-black text-slate-400 tracking-widest block">Semester {index + 1}</span>
-                      {editingSection === 'contact' ? (
-                        <input 
-                          type="text" value={score || ''} onChange={(e) => handleSemesterMarkChange(index, e.target.value)} 
-                          className="w-full text-center bg-white border border-slate-200 rounded-lg text-xs font-bold mt-1.5 py-0.5 focus:border-orange-500 outline-none"
-                          placeholder="0.00"
-                        />
-                      ) : (
-                        <span className={`text-base font-black block mt-1.5 ${hasValue ? (numericScore >= 8.5 ? 'text-emerald-600' : 'text-[#002D62]') : 'text-slate-300 font-normal'}`}>
-                          {hasValue ? score : '—'}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
+            <div className="w-16 h-[3px] sm:w-[3px] sm:h-12 bg-orange-500 rounded-full shrink-0"></div>
           </div>
 
-          {/* RIGHT ZONE CONTAINER */}
-          <div className="space-y-8">
+          {/* MAIN GRID BLOCK: 70% Left details, 30% Right stats and placement card */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* SCHOOL ACADEMIC HISTORY */}
-            <div className={`bg-white rounded-2xl border transition-all duration-300 p-6 space-y-5 shadow-sm ${saveFlash === 'academics' ? 'border-emerald-400 ring-4 ring-emerald-50 bg-emerald-50/10' : 'border-slate-200/70'}`}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5 text-[#002D62]">
-                  <GraduationCap className="h-4 w-4 text-orange-500" />
-                  <h3 className="font-bold text-xs uppercase tracking-widest text-slate-600">School Academic History</h3>
-                </div>
-
-                {editingSection !== 'academics' ? (
-                  <button type="button" onClick={() => startEditing('academics')} className="text-slate-400 hover:text-orange-500 p-1.5 hover:bg-slate-50 rounded-xl transition-all">
-                    <Edit3 className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <div className="flex gap-1.5">
-                    <button type="button" onClick={saveSectionChanges} className="text-white font-bold text-xs bg-emerald-600 px-2 py-0.5 rounded-md hover:bg-emerald-700">Save</button>
-                    <button type="button" onClick={cancelEditing} className="p-1 bg-slate-100 rounded-md text-slate-500 hover:bg-slate-200"><X className="h-3.5 w-3.5" /></button>
+            {/* 70% Column (Details) */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white border border-slate-200 rounded-[24px] shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-[#002D62]" />
+                    <h3 className="text-sm font-bold text-[#002D62] tracking-wider uppercase">Verified Profile Credentials</h3>
                   </div>
-                )}
+                  <button onClick={() => setIsSettingsOpen(true)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors">Edit Settings</button>
+                </div>
+                
+                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Register Number</p>
+                    <p className="font-black text-slate-700 mt-1">{profileFormRecord.regsNumber || 'Not provided'}</p>
+                  </div>
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      <p className="text-[11px] font-bold uppercase tracking-wide">Date of Birth</p>
+                    </div>
+                    <p className="font-black text-slate-700">{profileFormRecord.dob || 'Not provided'}</p>
+                  </div>
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Official Email Address</p>
+                    <p className="font-black text-slate-700 mt-1 break-all">{profileFormRecord.email}</p>
+                  </div>
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Mobile Phone Contact</p>
+                    <p className="font-black text-slate-700 mt-1">{profileFormRecord.phone || 'Not provided'}</p>
+                  </div>
+                  
+                  {/* LinkedIn Container */}
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 sm:col-span-2 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">LinkedIn Profile URL</p>
+                      <p className="font-black text-blue-600 mt-1 truncate max-w-[200px] sm:max-w-xs">{profileFormRecord.linkedinUrl || 'Not linked'}</p>
+                    </div>
+                    {}
+                    <svg className="h-6 w-6 text-blue-600/30 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                    </svg>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 sm:col-span-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Current Setup Tracking Term</p>
+                    <p className="font-black text-[#002D62] mt-1 uppercase">
+                      {profileFormRecord.year || 'N/A'} — {profileFormRecord.semesterTerm ? `${profileFormRecord.semesterTerm} Semester` : 'N/A'}
+                    </p>
+                  </div>
+                  
+                  {/* Display Address block dynamically if completed */}
+                  {profileFormRecord.address && (
+                    <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 sm:col-span-2">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Permanent Home Address</p>
+                      <p className="font-black text-slate-600 mt-1">
+                        {profileFormRecord.address}{profileFormRecord.district ? `, ${profileFormRecord.district}` : ''}{profileFormRecord.stateName ? `, ${profileFormRecord.stateName}` : ''}{profileFormRecord.pinCode ? ` — ${profileFormRecord.pinCode}` : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
 
-              <div className="space-y-4 text-sm font-medium">
-                <div className="p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">10th Matriculation Board</span>
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
-                      {editingSection === 'academics' ? (
-                        <input type="text" value={editForm.tenthPercentage || ''} onChange={(e) => handleInputChange('tenthPercentage', e.target.value)} className="w-10 text-center border bg-white rounded text-xs outline-none" />
-                      ) : (
-                        profileData?.tenthPercentage || '0'
-                      )}%
-                    </span>
-                  </div>
-                  {editingSection === 'academics' ? (
-                    <input type="text" value={editForm.tenthSchool || ''} onChange={(e) => handleInputChange('tenthSchool', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs mt-1 outline-none focus:border-orange-500" placeholder="Institution Name" />
-                  ) : (
-                    <p className="font-bold text-slate-700 mt-1">{profileData?.tenthSchool || 'N/A'}</p>
-                  )}
-                </div>
-
-                <div className="p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">12th / Diploma Grade</span>
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
-                      {editingSection === 'academics' ? (
-                        <input type="text" value={editForm.twelfthPercentage || ''} onChange={(e) => handleInputChange('twelfthPercentage', e.target.value)} className="w-10 text-center border bg-white rounded text-xs outline-none" />
-                      ) : (
-                        profileData?.twelfthPercentage || '0'
-                      )}%
-                    </span>
-                  </div>
-                  {editingSection === 'academics' ? (
-                    <input type="text" value={editForm.twelfthSchool || ''} onChange={(e) => handleInputChange('twelfthSchool', e.target.value)} className="w-full bg-white border border-slate-200 px-2 py-0.5 rounded text-xs mt-1 outline-none focus:border-orange-500" placeholder="Institution Name" />
-                  ) : (
-                    <p className="font-bold text-slate-700 mt-1">{profileData?.twelfthSchool || 'N/A'}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs font-bold pt-1">
-                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-center space-y-1">
-                    <span className="text-[9px] text-slate-400 uppercase tracking-wider block">Board Affiliation</span>
-                    {editingSection === 'academics' ? (
-                      <input type="text" value={editForm.boardType || ''} onChange={(e) => handleInputChange('boardType', e.target.value)} className="w-full text-center border bg-white rounded outline-none" placeholder="State/CBSE" />
-                    ) : (
-                      <span className="text-slate-700 font-black block">{profileData?.boardType || 'State'}</span>
-                    )}
-                  </div>
-                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-center space-y-1">
-                    <span className="text-[9px] text-slate-400 uppercase tracking-wider block">Prior UG CGPA</span>
-                    {editingSection === 'academics' ? (
-                      <input type="text" value={editForm.ugCgpaForPg || ''} onChange={(e) => handleInputChange('ugCgpaForPg', e.target.value)} className="w-full text-center border bg-white rounded outline-none" placeholder="0.00" />
-                    ) : (
-                      <span className="text-slate-700 font-black block">{profileData?.ugCgpaForPg || 'N/A'}</span>
-                    )}
-                  </div>
-=======
-            {/* Quick Metrics Cards */}
+            {/* 30% Column (Stats and Placements Card) */}
             <div className="space-y-4">
-              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Briefcase className="h-5 w-5" /></div>
+              
+              {/* Active Semester Metrics */}
+              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors duration-200">
                 <div>
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Active Track Semesters</p>
-                  <p className="text-2xl font-black text-slate-800 mt-0.5">{totalSemFieldsCount} / 8</p>
+                  <p className="text-3xl font-black text-slate-800 mt-1">{totalSemFieldsCount} <span className="text-lg text-slate-300">/ 8</span></p>
                 </div>
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><Briefcase className="h-6 w-6" /></div>
               </div>
-              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center gap-4">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 className="h-5 w-5" /></div>
+              
+              {/* Professional CGPA Display */}
+              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-300 transition-colors duration-200">
                 <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Eligibility Basis</p>
-                  <p className="text-sm font-black text-emerald-600 mt-0.5">
-                    {profileFormRecord.graduationStanding === 'PG' ? `UG CGPA: ${profileFormRecord.ugCgpa}` : `10th: ${profileFormRecord.tenthPercentage}%`}
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
+                    {profileFormRecord.graduationStanding === 'PG' ? 'UG Academic Track CGPA' : 'Current Eligibility (CGPA)'}
                   </p>
->>>>>>> Stashed changes
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
                 </div>
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><CheckCircle2 className="h-6 w-6" /></div>
               </div>
-            </div>
 
-            {/* SYSTEM LOGGING INTEGRITY */}
-            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 space-y-3 text-xs font-semibold text-slate-500">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-[#002D62] font-black uppercase tracking-widest text-[10px]">
-                <Clock className="h-3.5 w-3.5 text-slate-400" />
-                <span>System Logging Integrity</span>
+              {/* DYNAMIC PLACEMENT STATUS BIG CARD (As mapped on drawing blueprint) */}
+              <div className={`p-6 rounded-2xl border-2 shadow-sm text-center flex flex-col items-center justify-center relative overflow-hidden min-h-[140px] transition-all duration-300 ${
+                placementStatus === 'Placed' 
+                  ? 'bg-emerald-50 border-emerald-500/30' 
+                  : 'bg-orange-50 border-orange-500/30'
+              }`}>
+                {/* Decorative background overlay */}
+                <div className={`absolute -right-4 -bottom-4 opacity-5 rotate-[-15deg] transition-all duration-300 ${placementStatus === 'Placed' ? 'text-emerald-900' : 'text-orange-900'}`}>
+                  <CheckCircle className="w-48 h-48" />
+                </div>
+                
+                <p className={`text-[10px] font-black uppercase tracking-widest relative z-10 mb-2 ${placementStatus === 'Placed' ? 'text-emerald-700' : 'text-orange-700'}`}>
+                  Official Placement Status
+                </p>
+                <h3 className={`text-4xl font-black tracking-tight relative z-10 ${placementStatus === 'Placed' ? 'text-emerald-600' : 'text-orange-600'}`}>
+                  {placementStatus === 'Placed' ? 'PLACED' : 'NOT PLACED'}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 mt-3 relative z-10 uppercase tracking-wide">
+                  Verified by Staff Administration
+                </p>
               </div>
-              <div className="flex justify-between items-center p-2.5 bg-slate-50/40 border border-slate-100 rounded-xl">
-                <span className="text-slate-400">Profile Initialized:</span>
-                <span className="font-mono text-slate-700 font-bold">{profileData?.profileCreatedDate || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between items-center p-2.5 bg-slate-50/40 border border-slate-100 rounded-xl">
-                <span className="text-slate-400">Transaction Sync:</span>
-                <span className="font-mono text-slate-700 font-bold">{profileData?.profileUpdatedDate || 'N/A'}</span>
-              </div>
-            </div>
 
+            </div>
           </div>
 
-<<<<<<< Updated upstream
-        </div>
-
-      </main>
-=======
-          {/* Historical Semester Cards Matrix view layout layout */}
-          <div className="bg-white border border-slate-100 rounded-[24px] shadow-sm p-6">
-            <h3 className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2 mb-4">Historical Semester Matrix Scores</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {profileFormRecord.sgpaSemesterValues.map((score, i) => (
-                <div key={i} className={`p-3 border rounded-xl text-center transition-all ${score ? 'bg-blue-50/20 border-blue-100' : 'bg-slate-50/40 border-slate-100/60 opacity-50'}`}>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Sem {i + 1}</span>
-                  <span className="text-sm font-bold text-[#002D62] mt-0.5 block">{score || '—'}</span>
+          {/* Historical SGPA Matrix Logs */}
+          <div className="bg-white border border-slate-200 rounded-[24px] shadow-sm p-6">
+            <div className="flex justify-between items-end border-b border-slate-100 pb-3 mb-5">
+              <h3 className="text-sm font-bold text-slate-800">Historical Semester Matrix Scores</h3>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Max Scale: 10.00</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              {(profileFormRecord.sgpaSemesterValues || Array(8).fill('')).map((score, i) => (
+                <div key={i} className={`p-4 border rounded-xl text-center transition-all ${score ? 'bg-blue-50/30 border-blue-100' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Sem {i + 1}</span>
+                  <span className="text-lg font-black text-[#002D62] mt-1 block">{score || '—'}</span>
                 </div>
               ))}
             </div>
           </div>
         </main>
       </div>
->>>>>>> Stashed changes
+
+      {/* SETTINGS DRAWER MODAL OVERLAY */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[24px]">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-[#002D62]" />
+                <h2 className="text-lg font-bold text-[#002D62]">Profile Settings</h2>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-3">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Select a section to edit</p>
+              
+              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-400 hover:bg-blue-50 transition-all text-left group">
+                <div>
+                  <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Basic & Contact Details</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Phone, Address, LinkedIn, DOB</p>
+                </div>
+              </button>
+              
+              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-400 hover:bg-blue-50 transition-all text-left group">
+                <div>
+                  <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Academic Records</p>
+                  <p className="text-xs text-slate-500 mt-0.5">10th, 12th, Current Semesters, SGPA</p>
+                </div>
+              </button>
+
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <p className="text-xs text-slate-400 italic">Note: Making changes will require you to review and confirm the profile setup wizard.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
