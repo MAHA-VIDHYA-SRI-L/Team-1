@@ -10,6 +10,7 @@ interface UserSessionData {
   email: string;
   idNumber?: string;
   contactNo?: string;
+  department?: string;
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -66,27 +67,26 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    setIsAuthenticated(false); setUserRole(null); setActiveUser(null);
+    setIsAuthenticated(false);
+    setUserRole(null);
+    setActiveUser(null);
   };
 
   if (sessionLoading) return null;
 
   if (isAuthenticated && activeUser) {
     if (userRole === 'student') {
+      // Swapped out the old top header bar completely.
+      // We now mount the Badges component directly and pass down the back-navigation callback straight to its sidebar footer!
       if (studentSubPage === 'badges') {
         return (
-          <div className="flex flex-col min-h-screen">
-            <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
-              <button onClick={() => setStudentSubPage('home')} className="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1">
-                ← Back to main dashboard workspace
-              </button>
-              <span className="text-xs text-slate-400 font-medium">Logged in as {activeUser.fullName}</span>
-            </div>
-            <div className="flex-1">
-              <Badges user={{ fullName: activeUser.fullName }} onBackToDashboard={() => setStudentSubPage('home')} />
-            </div>
-          </div>
+          <Badges 
+            user={{ 
+              fullName: activeUser.fullName,
+              department: activeUser.department || 'CSE'
+            }} 
+            onBackToDashboard={() => setStudentSubPage('home')}
+          />
         );
       }
       return <StudentDashboard user={activeUser} onLogout={handleLogout} onNavigateToBadges={() => setStudentSubPage('badges')} />;
