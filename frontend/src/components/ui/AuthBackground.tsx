@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import campusImg from '../../assets/campus.jpg';
 
 interface AuthBackgroundProps {
   children: ReactNode;
@@ -6,9 +7,6 @@ interface AuthBackgroundProps {
 }
 
 export default function AuthBackground({ children, layout = 'split' }: AuthBackgroundProps) {
-  const [imageSrc, setImageSrc] = useState('/campus.jpg');
-  const [imgFallbackFailed, setImgFallbackFailed] = useState(false);
-
   const totalLines = 40;
   const lines = Array.from({ length: totalLines }, (_, i) => {
     const baseHeight = (900 / (totalLines + 1)) * (i + 1);
@@ -30,13 +28,6 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
       opacity: i % 2 === 0 ? '0.06' : '0.10'
     };
   });
-
-  const handleImageError = () => {
-    if (!imgFallbackFailed) {
-      setImgFallbackFailed(true);
-      setImageSrc('/src/assets/campus.jpg');
-    }
-  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-100 via-slate-50 to-[#002D62]/5 flex items-center justify-center font-sans antialiased selection:bg-[#002D62]/10 selection:text-[#002D62] overflow-x-hidden relative">
@@ -90,10 +81,9 @@ export default function AuthBackground({ children, layout = 'split' }: AuthBackg
           <div className="hidden md:block w-full h-[calc(100vh-40px)] relative sticky top-5 rounded-[24px] overflow-hidden bg-white/40 backdrop-blur-[6px] p-2 border border-white/80 shadow-[0_12px_40px_rgba(0,45,98,0.04)]">
             <div className="w-full h-full rounded-[18px] overflow-hidden relative shadow-inner group">
               <img 
-                src={imageSrc} 
+                src={campusImg} 
                 alt="Institutional Campus Hub" 
                 className="w-full h-full object-cover select-none transition-transform duration-700 group-hover:scale-105"
-                onError={handleImageError}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-black/5"></div>
             </div>

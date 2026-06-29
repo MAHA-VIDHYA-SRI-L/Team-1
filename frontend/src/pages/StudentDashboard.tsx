@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   LogOut, LayoutDashboard, User, Briefcase, CheckCircle2, 
   RotateCcw, Award, CalendarDays, Settings, Camera, 
-  X, BadgeCheck, Clock, CheckCircle
+  X, BadgeCheck, Clock, CheckCircle, FileText, Upload,
+  Sparkles, Loader2, TrendingUp, AlertTriangle, Lightbulb
 } from 'lucide-react';
+import { uploadResume, fetchResume, runAnalysis, fetchAnalysis, fetchStudentProfile, fetchAcademicDetails, saveStudentProfile, saveAcademicDetails } from '../services/api';
 import StudentProfileWizard from '../components/StudentProfileWizard';
 import type { StudentProfileData } from '../types/profile';
 
@@ -31,6 +33,61 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
   const isVerified = profileFormRecord?.isVerifiedByStaff || false; 
   const placementStatus = profileFormRecord?.placementStatus || 'Not Placed';
 
+  // Resume & Analysis state
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
+    fetchAnalysis().then(d => { if (d?.analysis) setAnalysis(d.analysis); }).catch(() => {});
+    Promise.all([
+      fetchStudentProfile(),
+      fetchAcademicDetails().catch(() => ({ academic: {} })),
+    ])
+      .then(([profileRes, academicRes]) => {
+        const merged: Partial<StudentProfileData> = { ...profileRes.profile, ...academicRes.academic };
+        if (merged.name) {
+          setProfileFormRecord(merged);
+          setIsSetupComplete(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeUploading(true);
+    setResumeError(null);
+    try {
+      const data = await uploadResume(file);
+      setResumeUrl(data.resume_url);
+    } catch (err: any) {
+      setResumeError(err.message);
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
+  const handleRunAnalysis = async () => {
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    try {
+      const data = await runAnalysis();
+      setAnalysis(data.analysis);
+    } catch (err: any) {
+      setAnalysisError(err.message);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   const handleResetProfile = () => {
     if (window.confirm("Are you sure you want to reset your profile details? You will have to fill out the setup form again.")) {
       setProfileFormRecord(null);
@@ -49,17 +106,26 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
   if (!isSetupComplete || !profileFormRecord) {
     return (
       <StudentProfileWizard 
-        initialEmail={user.email} 
-        onComplete={(completedForm) => {
+        initialEmail={user.email}
+        initialName={user.fullName}
+        initialRegsNumber={user.idNumber}
+        onComplete={async (completedForm) => {
           setProfileFormRecord(completedForm as Partial<StudentProfileData>);
           setIsSetupComplete(true);
+          try {
+            const [, academicRes] = await Promise.all([
+              saveStudentProfile(completedForm),
+              fetchAcademicDetails().catch(() => null),
+            ]);
+            await saveAcademicDetails(completedForm, !!academicRes?.academic);
+          } catch {}
         }} 
       />
     );
   }
 
   const totalSemFieldsCount = profileFormRecord.sgpaSemesterValues?.filter(v => v !== '').length || 0;
-  const currentCgpa = profileFormRecord.graduationStanding === 'PG' ? profileFormRecord.ugCgpa : profileFormRecord.finalCgpa;
+  const currentCgpa = profileFormRecord.graduationStanding === 'PG' ? profileFormRecord.pgCgpa : profileFormRecord.finalCgpa;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
@@ -248,7 +314,7 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
               <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-300 transition-colors duration-200">
                 <div>
                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
-                    {profileFormRecord.graduationStanding === 'PG' ? 'UG Academic Track CGPA' : 'Current Eligibility (CGPA)'}
+                    {profileFormRecord.graduationStanding === 'PG' ? 'PG Current CGPA' : 'Current Eligibility (CGPA)'}
                   </p>
                   <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
                 </div>
@@ -295,6 +361,111 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
               ))}
             </div>
           </div>
+
+          {/* RESUME UPLOAD */}
+          <div className="bg-white border border-slate-200 rounded-[24px] shadow-sm p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-5">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#002D62]" />
+                <h3 className="text-sm font-bold text-slate-800">Resume</h3>
+              </div>
+              <button
+                onClick={() => resumeInputRef.current?.click()}
+                disabled={resumeUploading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#002D62] text-white text-[11px] font-bold rounded-lg hover:bg-[#052349] disabled:opacity-60 transition-colors"
+              >
+                {resumeUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                {resumeUploading ? 'Uploading...' : 'Upload PDF'}
+              </button>
+              <input ref={resumeInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleResumeUpload} />
+            </div>
+
+            {resumeError && <p className="text-xs text-red-500 font-semibold mb-3">{resumeError}</p>}
+
+            {resumeUrl ? (
+              <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline">
+                <FileText className="h-4 w-4" /> View Uploaded Resume
+              </a>
+            ) : (
+              <p className="text-xs text-slate-400 font-medium">No resume uploaded yet. Upload a PDF to enable AI analysis.</p>
+            )}
+          </div>
+
+          {/* AI PLACEMENT ANALYSIS */}
+          <div className="bg-white border border-slate-200 rounded-[24px] shadow-sm p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[#002D62]" />
+                <h3 className="text-sm font-bold text-slate-800">AI Placement Analysis</h3>
+              </div>
+              <button
+                onClick={handleRunAnalysis}
+                disabled={analysisLoading || !resumeUrl}
+                title={!resumeUrl ? 'Upload a resume first' : ''}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-[11px] font-bold rounded-lg hover:bg-orange-600 disabled:opacity-60 transition-colors"
+              >
+                {analysisLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {analysisLoading ? 'Analyzing...' : analysis ? 'Re-Analyze' : 'Run Analysis'}
+              </button>
+            </div>
+
+            {analysisError && <p className="text-xs text-red-500 font-semibold mb-3">{analysisError}</p>}
+
+            {!analysis && !analysisLoading && (
+              <p className="text-xs text-slate-400 font-medium">No analysis yet. {!resumeUrl ? 'Upload a resume first, then run' : 'Click "Run Analysis"'} to generate your placement readiness report.</p>
+            )}
+
+            {analysis && (
+              <div className="space-y-4">
+                {/* Score + Status */}
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-black text-[#002D62]">{analysis.readiness_score}<span className="text-lg text-slate-400">/100</span></p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mt-0.5">Readiness Score</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wide ${
+                    analysis.readiness_status === 'Ready' ? 'bg-emerald-100 text-emerald-700' :
+                    analysis.readiness_status === 'Almost Ready' ? 'bg-blue-100 text-blue-700' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>{analysis.readiness_status}</span>
+                </div>
+
+                {/* Report */}
+                {analysis.consolidated_report && (
+                  <p className="text-xs text-slate-600 leading-relaxed border-l-2 border-[#002D62]/20 pl-3">{analysis.consolidated_report}</p>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">Strengths</p>
+                    </div>
+                    <p className="text-[11px] text-slate-700 font-medium">{analysis.strengths}</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                      <p className="text-[10px] font-black text-amber-700 uppercase tracking-wide">Weaknesses</p>
+                    </div>
+                    <p className="text-[11px] text-slate-700 font-medium">{analysis.weaknesses}</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Lightbulb className="h-3.5 w-3.5 text-blue-600" />
+                      <p className="text-[10px] font-black text-blue-700 uppercase tracking-wide">Recommendations</p>
+                    </div>
+                    <p className="text-[11px] text-slate-700 font-medium">{analysis.recommendations}</p>
+                  </div>
+                </div>
+
+                {analysis.analyzed_at && (
+                  <p className="text-[10px] text-slate-400 font-medium">Last analyzed: {new Date(analysis.analyzed_at).toLocaleString()}</p>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
@@ -315,14 +486,14 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges }:
             <div className="p-6 overflow-y-auto space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Select a section to edit</p>
               
-              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-400 hover:bg-blue-50 transition-all text-left group">
+              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-50 transition-all text-left group">
                 <div>
                   <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Basic & Contact Details</p>
                   <p className="text-xs text-slate-500 mt-0.5">Phone, Address, LinkedIn, DOB</p>
                 </div>
               </button>
               
-              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-400 hover:bg-blue-50 transition-all text-left group">
+              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-blue-50 transition-all text-left group">
                 <div>
                   <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Academic Records</p>
                   <p className="text-xs text-slate-500 mt-0.5">10th, 12th, Current Semesters, SGPA</p>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -20,18 +20,27 @@ import {
   Unlock,
   X,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
+import {
+  fetchCertifications,
+  addCertification,
+  editCertification,
+  removeCertification,
+  fetchResume,
+  uploadResume,
+} from '../services/api';
 
 // --- Interfaces & Types ---
 interface Certificate {
   id: string;
-  title: string;
-  issuingOrganization: string;
+  title: string;           // certification_name
+  issuingOrganization: string; // issuer
   category: string;
-  startDate: string;
-  endDate: string;
-  fileName: string;
+  startDate: string;       // start_date
+  endDate: string;         // end_date
+  fileName: string;        // certificate_url (used as display name)
   status: 'Approved' | 'Pending Review';
   description?: string;
 }
@@ -66,9 +75,9 @@ export default function Badges({
   // Editing state
   const [editingCertId, setEditingCertId] = useState<string | null>(null);
 
-  // Resume State (Compulsory)
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeUploaded, setResumeUploaded] = useState<boolean>(false);
+  // Resume State
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   // Preview Drawer Modal state
@@ -83,31 +92,40 @@ export default function Badges({
     status?: 'Approved' | 'Pending Review';
   } | null>(null);
 
-  // Initial mockup state for certificates data tracking
-  const [certificates, setCertificates] = useState<Certificate[]>([
-    {
-      id: 'cert-1',
-      title: 'Smart India Hackathon Internal Tier',
-      issuingOrganization: 'K.S.R. College of Engineering',
-      category: 'Hackathon',
-      startDate: '2026-02-12',
-      endDate: '2026-02-13',
-      fileName: 'sih_internal_2026.pdf',
-      status: 'Approved',
-      description: 'Developed an automated water conservation platform tracking consumption matrices.'
-    },
-    {
-      id: 'cert-2',
-      title: 'LLM Workshop in Generative AI',
-      issuingOrganization: 'VIT Vellore',
-      category: 'Workshop',
-      startDate: '2026-03-05',
-      endDate: '2026-03-06',
-      fileName: 'vit_llm_workshop.png',
-      status: 'Pending Review',
-      description: 'Hands-on training building RAG models and context pipelines using Python framework tools.'
-    }
-  ]);
+  // Certificates from backend
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [certsLoading, setCertsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const mapRaw = (c: any): Certificate => ({
+    id: c.id,
+    title: c.certification_name,
+    issuingOrganization: c.issuer || '',
+    category: c.category || 'General',
+    startDate: c.start_date || '',
+    endDate: c.end_date || '',
+    fileName: c.certificate_url || '',
+    status: c.status === 'Approved' ? 'Approved' : 'Pending Review',
+    description: c.description || '',
+  });
+
+  const loadCerts = () =>
+    fetchCertifications()
+      .then(d => {
+        const mapped = (d.certifications || []).map(mapRaw);
+        setCertificates(mapped);
+        // Sync any new categories from DB
+        const extraCats = [...new Set(mapped.map((c: Certificate) => c.category))]
+          .filter((cat: string) => !['Hackathon','Workshop','Paper Presentation','Internship'].includes(cat));
+        if (extraCats.length) setCategories(prev => [...new Set([...prev, ...extraCats])]);
+      })
+      .catch(() => {})
+      .finally(() => setCertsLoading(false));
+
+  useEffect(() => {
+    loadCerts();
+    fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
+  }, []);
 
   // --- Form Input States for Upload / Edit Modal ---
   const [formTitle, setFormTitle] = useState('');
@@ -149,22 +167,22 @@ export default function Badges({
   };
 
   // --- Handle Resume Upload ---
-  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setResumeFile(file);
-      setResumeUploaded(true);
-    }
+    if (!file) return;
+    setResumeUploading(true);
+    try {
+      const data = await uploadResume(file);
+      setResumeUrl(data.resume_url);
+    } catch {}
+    finally { setResumeUploading(false); }
   };
 
-  // --- Delete Resume Action with Safety Warnings ---
+  // --- Delete Resume Action ---
   const handleDeleteResume = () => {
-    if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement to apply for drives. You will be restricted from placement opportunities until you upload a replacement.")) {
-      setResumeFile(null);
-      setResumeUploaded(false);
-      if (resumeInputRef.current) {
-        resumeInputRef.current.value = '';
-      }
+    if (window.confirm("Are you sure you want to delete your resume? This is a mandatory requirement.")) {
+      setResumeUrl(null);
+      if (resumeInputRef.current) resumeInputRef.current.value = '';
     }
   };
 
@@ -183,10 +201,10 @@ export default function Badges({
   };
 
   const handleOpenResumePreview = () => {
-    if (!resumeFile && !resumeUploaded) return;
+    if (!resumeUrl) return;
     setPreviewDocument({
-      title: 'Francis Fernando Master Resume',
-      fileName: resumeFile ? resumeFile.name : 'francis_resume_verified.pdf',
+      title: `${user.fullName} Resume`,
+      fileName: resumeUrl.split('/').pop() || 'resume.pdf',
       type: 'resume',
       description: 'Primary master resume containing academic profiles, core technical stacks, and verified academic index metrics.',
       status: 'Approved'
@@ -208,7 +226,7 @@ export default function Badges({
   };
 
   // --- Core Certificate Upload & Edit Processor ---
-  const handleCertificateUpload = (e: React.FormEvent) => {
+  const handleCertificateUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -216,64 +234,53 @@ export default function Badges({
       setFormError('Please fulfill all mandatory text fields.');
       return;
     }
-
     if (!editingCertId && !formFile) {
       setFormError('Please upload the certificate soft copy file.');
       return;
     }
 
-    const finalFileName = formFile ? formFile.name : (formFileName || 'uploaded_doc.pdf');
-
     if (editingCertId) {
-      // Editing Mode
       const targetCert = certificates.find(c => c.id === editingCertId);
       if (targetCert?.status === 'Approved') {
-        const confirmEdit = window.confirm("This certificate is already APPROVED by staff. Editing its parameters will reset its verification status to 'Pending Review'. Do you want to proceed?");
-        if (!confirmEdit) return;
+        if (!window.confirm("This certificate is already APPROVED. Editing will reset it to 'Pending Review'. Continue?")) return;
       }
+    }
 
-      setCertificates(prev => prev.map(c => {
-        if (c.id === editingCertId) {
-          return {
-            ...c,
-            title: formTitle,
-            issuingOrganization: formOrg,
-            category: formCategory,
-            startDate: formStart,
-            endDate: formEnd,
-            fileName: finalFileName,
-            status: 'Pending Review', // Resets back to Pending safely
-            description: formDesc
-          };
-        }
-        return c;
-      }));
-    } else {
-      // Create Mode
-      const newCert: Certificate = {
-        id: `cert-${Date.now()}`,
-        title: formTitle,
-        issuingOrganization: formOrg,
+    setActionLoading(true);
+    try {
+      const body: Record<string, string> = {
+        certification_name: formTitle,
+        issuer: formOrg,
         category: formCategory,
-        startDate: formStart,
-        endDate: formEnd,
-        fileName: finalFileName,
+        start_date: formStart,
+        end_date: formEnd,
+        description: formDesc,
+        certificate_url: formFile ? formFile.name : formFileName,
         status: 'Pending Review',
-        description: formDesc
       };
 
-      setCertificates([newCert, ...certificates]);
-      setActiveTab(formCategory); 
+      if (editingCertId) {
+        await editCertification(editingCertId, body);
+      } else {
+        await addCertification(body);
+      }
+      await loadCerts();
+      setActiveTab(formCategory);
+      closeFormModal();
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setActionLoading(false);
     }
-    
-    closeFormModal();
   };
 
   // --- Document Record Deletion ---
-  const handleDeleteCertificate = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this certificate record submission?")) {
-      setCertificates(certificates.filter(c => c.id !== id));
-    }
+  const handleDeleteCertificate = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this certificate record?')) return;
+    try {
+      await removeCertification(id);
+      setCertificates(prev => prev.filter(c => c.id !== id));
+    } catch {}
   };
 
   // --- Document Record Edit Initializer ---
@@ -398,84 +405,78 @@ export default function Badges({
         {/* Main interactive content workspace viewport */}
         <main className="p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
           
-          {/* COMPULSORY RESUME UPLOAD SECTION (Highlighted separately & highly visible) */}
+          {/* COMPULSORY RESUME UPLOAD SECTION */}
           <div className={`p-6 rounded-[24px] border transition-all ${
-            resumeUploaded 
+            resumeUrl 
               ? 'bg-emerald-50/50 border-emerald-500/20' 
               : 'bg-gradient-to-r from-red-50/60 to-orange-50/60 border-orange-200 shadow-md'
           }`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex items-start gap-4">
-                <div className={`p-4 rounded-2xl shrink-0 ${resumeUploaded ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                <div className={`p-4 rounded-2xl shrink-0 ${resumeUrl ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
                   <FileCheck className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base font-black text-slate-800 tracking-tight">Compulsory Placement Resume</h2>
                     <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${
-                      resumeUploaded ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
+                      resumeUrl ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
                     }`}>
-                      {resumeUploaded ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
+                      {resumeUrl ? 'Uploaded & Verified' : 'COMPULSORY REQUIREMENT'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 max-w-2xl font-medium leading-relaxed">
-                    To participate in campus recruitment drives, it is mandatory to upload your master resume. The placement officer will review this document to compute your overall Readiness Index score.
+                    To participate in campus recruitment drives, it is mandatory to upload your master resume.
                   </p>
                 </div>
               </div>
 
-              {/* Dynamic Interactive Action Suite based on upload status */}
               <div className="w-full lg:w-auto shrink-0 flex flex-col sm:flex-row items-center gap-2">
                 <input type="file" ref={resumeInputRef} onChange={handleResumeChange} accept=".pdf" className="hidden" />
                 
-                {resumeUploaded ? (
+                {resumeUrl ? (
                   <>
-                    <button
-                      onClick={handleOpenResumePreview}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
-                    >
+                    <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-[#002D62] text-white hover:bg-[#001c3d] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm">
                       View Resume
-                    </button>
+                    </a>
                     <button
                       onClick={() => resumeInputRef.current?.click()}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+                      disabled={resumeUploading}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm disabled:opacity-60"
                     >
-                      Replace (PDF)
+                      {resumeUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {resumeUploading ? 'Uploading...' : 'Replace (PDF)'}
                     </button>
                     <button
                       onClick={handleDeleteResume}
                       className="w-full sm:w-auto flex items-center justify-center gap-2 p-3.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all shadow-sm border border-red-100"
-                      title="Delete Resume"
                     >
-                      <Trash2 className="h-4.5 w-4.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </>
                 ) : (
                   <button
                     onClick={() => resumeInputRef.current?.click()}
-                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+                    disabled={resumeUploading}
+                    className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98] disabled:opacity-60"
                   >
-                    <UploadCloud className="h-4.5 w-4.5" />
-                    Upload Mandatory Resume
+                    {resumeUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                    {resumeUploading ? 'Uploading...' : 'Upload Mandatory Resume'}
                   </button>
                 )}
               </div>
             </div>
-
-            {resumeFile && (
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                  <span>Attached Resume: <span className="font-mono font-medium">{resumeFile.name}</span></span>
-                </div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wide">Last Updated: Just Now</span>
-              </div>
-            )}
           </div>
 
           {/* VISUAL GALLERY VIEWPORT GRID */}
           <div>
-            {filteredCertificates.length === 0 ? (
+            {certsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-5 w-5 animate-spin text-[#002D62]" />
+                <span className="ml-2 text-sm font-bold text-slate-400">Loading certificates...</span>
+              </div>
+            ) : filteredCertificates.length === 0 ? (
               <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
                 <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 mb-4">
                   {getCategoryIcon(activeTab, "h-8 w-8 stroke-[1.5]")}
@@ -721,8 +722,10 @@ export default function Badges({
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all"
+                  disabled={actionLoading}
+                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all disabled:opacity-60 flex items-center gap-1.5"
                 >
+                  {actionLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {editingCertId ? 'Update Record' : 'Save Certificate'}
                 </button>
               </div>
@@ -818,7 +821,7 @@ export default function Badges({
                   </h1>
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">has successfully submitted valid scholastic records for</span>
                   <p className="text-sm font-black text-[#002D62] px-6 leading-tight line-clamp-2">
-                    {previewDocumentTitle(previewDocumentTruncateText(previewDocumentSafeString(previewDocumentDefaultValue(previewDocumentTextFallback(previewDocument.title)))))}
+                    {previewDocument.title}
                   </p>
                 </div>
 
@@ -866,7 +869,13 @@ export default function Badges({
                 Close Viewer
               </button>
               <button 
-                onClick={() => alert(`Simulated Download Completed: ${previewDocument.fileName}`)}
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = previewDocument.fileName;
+                  link.download = previewDocument.fileName.split('/').pop() || 'document';
+                  link.target = '_blank';
+                  link.click();
+                }}
                 className="px-4 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -881,10 +890,3 @@ export default function Badges({
     </div>
   );
 }
-
-// Simulated viewing text safety wrappers
-function previewDocumentTitle(text: string) { return text; }
-function previewDocumentTruncateText(text: string) { return text; }
-function previewDocumentSafeString(text: string) { return text; }
-function previewDocumentDefaultValue(text: string) { return text; }
-function previewDocumentTextFallback(text: string) { return text; }

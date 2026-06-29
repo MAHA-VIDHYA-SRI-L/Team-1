@@ -1,17 +1,17 @@
 export interface StudentProfileData {
   // Basic Details
   name: string;
-  dob: string;
+  email: string;
   regsNumber: string;
   department: string;
-  year: string; // e.g. 'I year', 'II year'
-  semesterTerm: 'Odd' | 'Even' | '';
+  year: string;            // 'I year' | 'II year' | 'III year' | 'IV year'
+  semesterTerm: string;    // 'Odd' | 'Even'
   currentSemester: string;
-  yearOfStudy: string; // Academic Entry Year
+  yearOfStudy: string;     // 4-digit entry year e.g. '2022'
   passOutYear: string;
+  dob: string;
 
-  // Communication & Contact Details
-  email: string;
+  // Communication
   phone: string;
   alternativePhone: string;
   address: string;
@@ -24,22 +24,33 @@ export interface StudentProfileData {
   // Academic Records
   boardOfStudy: string;
   graduationStanding: 'UG' | 'PG' | '';
+  diplomaPercentage: string;
+
   tenthPercentage: string;
-  tenthSchool?: string;
-  twelfthPercentage?: string;
-  twelfthSchool?: string;
-  diplomaPercentage?: string;
-  ugCgpa?: string; // Conditional for PG track
-  finalCgpa?: string; // Calculated CGPA
+  tenthSchool: string;       // maps to tenth_school in DB
+
+  twelfthPercentage: string;
+  twelfthSchool: string;     // maps to twelfth_school in DB
+
+  // UG details — always required
+  ugCollegeName: string;
+  ugCgpa: string;   // UG: running CGPA | PG: completed UG degree CGPA
+
+  // PG details — only when graduationStanding === 'PG'
+  pgCollegeName: string;
+  pgCgpa: string;   // auto-computed from PG SGPA
+
+  // SGPA per semester
   sgpaSemesterValues: string[];
 
-  // Metadata, Media, & Admin Checks
-  profilePic?: string;
-  boardType?: string;
-  profileCreatedDate?: string;
-  profileUpdatedDate?: string;
-  isVerifiedByStaff?: boolean; // Controls Blue vs Yellow rings
-  placementStatus?: 'Placed' | 'Not Placed' | 'Pending'; // Controls Placement status card
+  // Computed
+  finalCgpa: string;
+  profileCreatedDate: string;
+  profileUpdatedDate: string;
+
+  // Staff-managed (read-only in student UI)
+  isVerifiedByStaff?: boolean;
+  placementStatus?: 'Placed' | 'Not Placed';
 }
 
 export interface FormErrors {

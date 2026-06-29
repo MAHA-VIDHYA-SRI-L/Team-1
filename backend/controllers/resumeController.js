@@ -40,7 +40,7 @@ export const uploadResume = async (req, res) => {
     // Upsert so only latest resume is kept per student
     const { error: dbError } = await supabase
       .from("resumes")
-      .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText }, { onConflict: "student_id" });
+      .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText, uploaded_at: new Date().toISOString() }, { onConflict: "student_id" });
 
     if (dbError) return res.status(400).json({ error: dbError.message });
 
