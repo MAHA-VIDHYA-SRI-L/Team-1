@@ -72,7 +72,21 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
   };
 
   useEffect(() => {
-    loadPageData();
+    (async () => {
+      try {
+        const [analysisRes, profileRes, academicRes] = await Promise.all([
+          fetchAnalysis().catch(() => ({ analysis: null })),
+          fetchStudentProfile().catch(() => ({ profile: {} })),
+          fetchAcademicDetails().catch(() => ({ academic: {} })),
+        ]);
+        if (analysisRes && analysisRes.analysis) setAnalysis(analysisRes.analysis);
+        setProfileData({ ...profileRes.profile, ...academicRes.academic });
+      } catch {
+        // silently handled — individual fetches already have fallbacks
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   if (loading) {

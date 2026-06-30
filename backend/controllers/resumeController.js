@@ -1,7 +1,5 @@
 import supabase from "../config/supabase.js";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import pdfParse from "pdf-parse";
 
 const getStudentId = async (authUserId) => {
   const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
