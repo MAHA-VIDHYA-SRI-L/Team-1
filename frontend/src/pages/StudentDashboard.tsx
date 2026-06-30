@@ -14,14 +14,16 @@ interface StudentDashboardProps {
     email: string;
     idNumber?: string;
     contactNo?: string;
+    department?: string;
   };
   onLogout: () => void;
   onNavigateToBadges: () => void;
   onNavigateToPlacement: () => void;
   onNavigateToReport: () => void;
+  onDepartmentLoaded?: (dept: string) => void;
 }
 
-export default function StudentDashboard({ user, onLogout, onNavigateToBadges, onNavigateToPlacement, onNavigateToReport }: StudentDashboardProps) {
+export default function StudentDashboard({ user, onLogout, onNavigateToBadges, onNavigateToPlacement, onNavigateToReport, onDepartmentLoaded }: StudentDashboardProps) {
   const [isSetupComplete, setIsSetupComplete] = useState<boolean>(false);
   const [checkingProfile, setCheckingProfile] = useState<boolean>(true);
   const [profileFormRecord, setProfileFormRecord] = useState<Partial<StudentProfileData> | null>(null);
@@ -41,7 +43,11 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchResume().then(d => { if (d?.resume?.resume_url) setResumeUrl(d.resume.resume_url); }).catch(() => {});
+    fetchResume().then(d => {
+      // backend returns { resume: { resume_url, uploaded_at } }
+      const url = d?.resume?.resume_url || d?.resume_url || null;
+      if (url) setResumeUrl(url);
+    }).catch(() => {});
     Promise.all([
       fetchStudentProfile(),
       fetchAcademicDetails().catch(() => ({ academic: {} })),
@@ -51,6 +57,9 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
         if (merged.name) {
           setProfileFormRecord(merged);
           setIsSetupComplete(true);
+          if (merged.department && onDepartmentLoaded) {
+            onDepartmentLoaded(merged.department as string);
+          }
         } else {
           setIsSetupComplete(false);
         }
@@ -78,6 +87,7 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
 
   const handleResetProfile = () => {
     if (window.confirm("Are you sure you want to reset your profile details? You will have to fill out the setup form again.")) {
+      sessionStorage.removeItem('studentWizardState');
       setProfileFormRecord(null);
       setIsSetupComplete(false);
     }
@@ -104,11 +114,10 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
           setProfileFormRecord(completedForm as Partial<StudentProfileData>);
           setIsSetupComplete(true);
           try {
-            const [, academicRes] = await Promise.all([
-              saveStudentProfile(completedForm),
-              fetchAcademicDetails().catch(() => null),
-            ]);
-            await saveAcademicDetails(completedForm, !!academicRes?.academic);
+            await saveStudentProfile(completedForm);
+            const existingAcademic = await fetchAcademicDetails().catch(() => null);
+            const hasExisting = !!(existingAcademic?.academic && Object.keys(existingAcademic.academic).length > 0);
+            await saveAcademicDetails(completedForm, hasExisting);
           } catch {}
         }} 
       />
@@ -119,7 +128,12 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
   const pf = profileFormRecord || ({} as Partial<StudentProfileData>);
 
   const totalSemFieldsCount = (pf.sgpaSemesterValues || []).filter((v: any) => v !== '').length || 0;
-  const currentCgpa = pf.graduationStanding === 'PG' ? ((pf as any).pgCgpa || (pf as any).ugCgpa) : (pf as any).finalCgpa;
+  // ugCgpa is always set from API (ug_cgpa field). finalCgpa is computed locally by the wizard.
+  // For PG students use pgCgpa, for UG use ugCgpa then fallback to finalCgpa.
+  const currentCgpa =
+    pf.graduationStanding === 'PG'
+      ? ((pf as any).pgCgpa || (pf as any).ugCgpa || '0.00')
+      : ((pf as any).ugCgpa || (pf as any).finalCgpa || '0.00');
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">

@@ -1,11 +1,13 @@
 import express from "express";
 import { getStudentProfile, updateStudentProfile, updateSelfPlacementStatus } from "../controllers/studentController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, verifyStudent } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/profile", verifyToken, getStudentProfile);
-router.put("/profile", verifyToken, updateStudentProfile);
-router.patch("/placement", verifyToken, updateSelfPlacementStatus);
+router.use(verifyToken, verifyStudent);
+
+router.get("/profile", getStudentProfile);
+router.put("/profile", updateStudentProfile);
+router.patch("/placement", updateSelfPlacementStatus);
 
 export default router;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, WifiOff, Phone, ArrowLeft } from 'lucide-react';
+import { setTokens } from '../services/api';
 import AuthBackground from '../components/ui/AuthBackground';
 import collegeLogo from '../assets/logo.jpg';
 
@@ -206,10 +207,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       }
 
       if (result.token) {
-        localStorage.setItem('token', result.token);
-      }
-      if (result.refreshToken) {
-        localStorage.setItem('refreshToken', result.refreshToken);
+        setTokens(result.token);
       }
       setToastMessage('Session Logged in Successfully');
       setShowToast(true);

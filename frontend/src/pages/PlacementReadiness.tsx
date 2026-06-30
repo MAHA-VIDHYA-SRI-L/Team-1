@@ -27,24 +27,14 @@ export default function PlacementReadiness({ user, onBackToDashboard, onViewRepo
     (async () => {
       try {
         const [analysisRes, profileRes, academicRes] = await Promise.all([
-          fetchAnalysis().catch((e) => {
-            console.error('fetchAnalysis error', e);
-            return { analysis: null };
-          }),
-          fetchStudentProfile().catch((e) => {
-            console.error('fetchStudentProfile error', e);
-            return { profile: {} };
-          }),
-          fetchAcademicDetails().catch((e) => {
-            console.error('fetchAcademicDetails error', e);
-            return { academic: {} };
-          }),
+          fetchAnalysis().catch(() => ({ analysis: null })),
+          fetchStudentProfile().catch(() => ({ profile: {} })),
+          fetchAcademicDetails().catch(() => ({ academic: {} })),
         ]);
-        console.debug('PlacementReadiness fetch results', { analysisRes, profileRes, academicRes });
         if (analysisRes && analysisRes.analysis) setAnalysis(analysisRes.analysis);
         setProfileData({ ...profileRes.profile, ...academicRes.academic });
-      } catch (err) {
-        console.error('PlacementReadiness unexpected error', err);
+      } catch {
+        // silently handled — individual fetches already have fallbacks
       } finally {
         setLoading(false);
       }

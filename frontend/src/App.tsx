@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { clearTokens } from './services/api';
 import Login from './pages/login';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
+import StaffReport from './pages/StaffReport';
 import AdminDashboard from './pages/AdminDashboard';
 import Badges from './pages/Badges'; 
 import PlacementReadiness from './pages/PlacementReadiness';
@@ -21,6 +23,7 @@ export default function App() {
   
   // Sub-view state management for logged-in student routing
   const [studentSubPage, setStudentSubPage] = useState<'home' | 'badges' | 'placement' | 'report'>('home');
+  const [staffSubPage, setStaffSubPage] = useState<'home' | 'report'>('home');
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(null);
 
   const handleLoginSuccess = (role: 'student' | 'staff' | 'admin', user: UserSessionData) => {
@@ -30,8 +33,12 @@ export default function App() {
     setStudentSubPage('home'); 
   };
 
+  const handleDepartmentLoaded = (dept: string) => {
+    setActiveUser(prev => prev ? { ...prev, department: dept } : prev);
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    clearTokens();
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
@@ -92,13 +99,28 @@ export default function App() {
           onNavigateToBadges={() => setStudentSubPage('badges')}
           onNavigateToPlacement={() => setStudentSubPage('placement')}
           onNavigateToReport={() => setStudentSubPage('report')}
+          onDepartmentLoaded={handleDepartmentLoaded}
         />
       );
     }
     
     // --- 2. STAFF DOMAIN ---
     if (userRole === 'staff') {
-      return <StaffDashboard user={activeUser} onLogout={handleLogout} />;
+      if (staffSubPage === 'report') {
+        return (
+          <StaffReport
+            user={activeUser}
+            onBack={() => setStaffSubPage('home')}
+          />
+        );
+      }
+      return (
+        <StaffDashboard
+          user={activeUser}
+          onLogout={handleLogout}
+          onNavigateToReport={() => setStaffSubPage('report')}
+        />
+      );
     }
 
     // --- 3. ADMIN DOMAIN ---

@@ -1,5 +1,6 @@
 import supabase, { supabaseAdmin } from "../config/supabase.js";
 import { sendCredentialsMail } from "../config/mailer.js";
+import crypto from "crypto";
 
 const NAME_REGEX = /^[a-zA-Z\s]+$/;
 const EMAIL_REGEX = /^[^\s@]+@(gmail\.com|ksrce\.ac\.in)$/;
@@ -15,7 +16,11 @@ const findOrphanedAuthUser = async (email) => {
   let page = 1;
   while (true) {
     const { data: { users: batch } } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-    const found = batch.find(u => u.email === email);
+    const found = batch.find(u => {
+      const a = Buffer.from((u.email || '').toLowerCase());
+      const b = Buffer.from(email.toLowerCase());
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    });
     if (found) return found;
     if (batch.length < 1000) break;
     page++;
@@ -144,7 +149,10 @@ export const resetPassword = async (req, res) => {
     if (!profile) return res.status(404).json({ error: "No account found with that email" });
 
     const storedLast5 = (profile.phone || '').replace(/\D/g, '').slice(-5);
-    if (storedLast5 !== phoneDigits)
+    const storedBuf = Buffer.from(storedLast5.padEnd(5, '\0'));
+    const inputBuf = Buffer.from(phoneDigits.padEnd(5, '\0'));
+    const phoneMatch = storedBuf.length === inputBuf.length && crypto.timingSafeEqual(storedBuf, inputBuf);
+    if (!phoneMatch)
       return res.status(401).json({ error: "Phone digits do not match our records" });
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(profile.auth_user_id, { password: newPassword });
@@ -199,12 +207,25 @@ export const getMe = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+    if (!email) return res.status(400).json({ error: "Email and password are required" });
+    if (!password) return res.status(400).json({ error: "Email and password are required" });
 
     const cleanEmail = email.trim().toLowerCase();
 
-    if (cleanEmail === process.env.ADMIN_EMAIL?.toLowerCase() && password === process.env.ADMIN_PASSWORD)
-      return res.status(200).json({ role: "admin", user: { fullName: "Administrator", email: cleanEmail } });
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase() || "";
+    const adminPassword = process.env.ADMIN_PASSWORD || "";
+    if (adminEmail) {
+      const emailBuf = Buffer.from(cleanEmail.padEnd(adminEmail.length || 1, '\0'));
+      const adminEmailBuf = Buffer.from(adminEmail.padEnd(cleanEmail.length || 1, '\0'));
+      const isAdminEmail = emailBuf.length === adminEmailBuf.length &&
+        crypto.timingSafeEqual(emailBuf, adminEmailBuf);
+      const passwordBuffer = Buffer.from(password);
+      const adminBuffer = Buffer.from(adminPassword);
+      const isAdminPassword = passwordBuffer.length === adminBuffer.length &&
+        crypto.timingSafeEqual(passwordBuffer, adminBuffer);
+      if (isAdminEmail && isAdminPassword)
+        return res.status(200).json({ role: "admin", user: { fullName: "Administrator", email: cleanEmail } });
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (error) return res.status(401).json({ error: error.message });

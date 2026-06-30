@@ -8,9 +8,6 @@ frontend/node_modules/
 .env.production
 !.env.example
 
-# Requirements file
-doc/requirements.txt
-
 # Build files
 dist/
 build/

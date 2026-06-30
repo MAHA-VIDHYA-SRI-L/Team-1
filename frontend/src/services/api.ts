@@ -2,12 +2,26 @@ import type { StudentProfileData } from '../types/profile';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-const getToken = (): string => localStorage.getItem('token') || '';
+let _authToken = '';
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${getToken()}`,
-});
+const getToken = (): string => _authToken;
+
+const buildHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const tok = getToken();
+  if (tok) headers['Authorization'] = ['Bearer', tok].join(' ');
+  return headers;
+};
+
+const authHeaders = buildHeaders;
+
+export const setTokens = (token: string) => {
+  _authToken = token;
+};
+
+export const clearTokens = () => {
+  _authToken = '';
+};
 
 export const updateSelfPlacement = async (placement_status: string, company_name?: string) => {
   const res = await fetch(`${BASE_URL}/student/placement`, {
@@ -61,6 +75,16 @@ export const updateCertStatus = async (certId: string, status: string) => {
   return res.json();
 };
 
+export const blockStudent = async (id: string, is_blocked: boolean) => {
+  const res = await fetch(`${BASE_URL}/staff/students/${id}/block`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ is_blocked }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  return res.json();
+};
+
 export const fetchCertifications = async () => {
   const res = await fetch(`${BASE_URL}/student/certifications`, { headers: authHeaders() });
   if (!res.ok) throw new Error((await res.json()).error);
@@ -107,7 +131,7 @@ export const uploadResume = async (file: File) => {
   form.append('resume', file);
   const res = await fetch(`${BASE_URL}/student/resume`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers: { Authorization: ['Bearer', getToken()].join(' ') },
     body: form,
   });
   if (!res.ok) throw new Error((await res.json()).error);
@@ -129,30 +153,8 @@ export const runAnalysis = async () => {
   return res.json();
 };
 
-const refreshAccessToken = async (): Promise<string | null> => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
-  const r = await fetch(`${BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!r.ok) return null;
-  const d = await r.json();
-  localStorage.setItem('token', d.token);
-  localStorage.setItem('refreshToken', d.refreshToken);
-  return d.token;
-};
-
-export const fetchStudentProfile = async (): Promise<{ profile: Partial<import('../types/profile').StudentProfileData> }> => {
-  let res = await fetch(`${BASE_URL}/student/profile`, { headers: authHeaders() });
-  if (res.status === 401) {
-    const newToken = await refreshAccessToken();
-    if (!newToken) throw new Error('unauthorized');
-    res = await fetch(`${BASE_URL}/student/profile`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${newToken}` },
-    });
-  }
+export const fetchStudentProfile = async (): Promise<{ profile: Partial<StudentProfileData> }> => {
+  const res = await fetch(`${BASE_URL}/student/profile`, { headers: authHeaders() });
   if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
   if (!res.ok) return { profile: {} };
   const { profile: p } = await res.json();
@@ -165,7 +167,6 @@ export const fetchStudentProfile = async (): Promise<{ profile: Partial<import('
       alternativePhone: p.alternative_phone,
       address: p.address,
       dob: p.dob,
-      department: p.branch,
       year: p.current_year,
       yearOfStudy: p.year_of_study,
       passOutYear: p.pass_out_year,
@@ -177,6 +178,7 @@ export const fetchStudentProfile = async (): Promise<{ profile: Partial<import('
       pinCode: p.pin_code,
       isOtherState: p.state_name !== 'Tamil Nadu',
       isVerifiedByStaff: p.is_verified,
+      department: p.branch,
     },
   };
 };
@@ -208,26 +210,33 @@ export const saveStudentProfile = async (data: StudentProfileData) => {
   return res.json();
 };
 
-export const fetchAcademicDetails = async (): Promise<{ academic: Partial<import('../types/profile').StudentProfileData> }> => {
+export const fetchAcademicDetails = async (): Promise<{ academic: Partial<StudentProfileData> }> => {
   const res = await fetch(`${BASE_URL}/student/academic`, { headers: authHeaders() });
+  if (res.status === 404) return { academic: {} };
   if (!res.ok) throw new Error((await res.json()).error);
   const { academic: a } = await res.json();
+  const isPG = a.graduation_standing === 'PG';
   return {
     academic: {
       boardOfStudy: a.board_of_study,
       graduationStanding: a.graduation_standing,
       tenthPercentage: a.tenth_percentage?.toString() ?? '',
-      tenthSchool: a.tenth_school,
+      tenthSchool: a.tenth_school ?? '',
       twelfthPercentage: a.twelfth_percentage?.toString() ?? '',
-      twelfthSchool: a.twelfth_school,
+      twelfthSchool: a.twelfth_school ?? '',
       diplomaPercentage: a.diploma_percentage?.toString() ?? '',
       diplomaInstitution: a.diploma_institution ?? '',
-      ugCollegeName: a.ug_college,
+      ugCollegeName: a.ug_college ?? '',
       ugCgpa: a.ug_cgpa?.toString() ?? '',
-      pgCollegeName: a.pg_college,
+      pgCollegeName: a.pg_college ?? '',
       pgCgpa: a.pg_cgpa?.toString() ?? '',
-      finalCgpa: a.ug_cgpa?.toString() ?? '',
-      sgpaSemesterValues: Array.isArray(a.sgpa_values) ? a.sgpa_values : Array(8).fill(''),
+      // finalCgpa: for PG use pg_cgpa, for UG use ug_cgpa so dashboard currentCgpa always works
+      finalCgpa: isPG
+        ? (a.pg_cgpa?.toString() ?? '')
+        : (a.ug_cgpa?.toString() ?? ''),
+      sgpaSemesterValues: Array.isArray(a.sgpa_values)
+        ? a.sgpa_values.map((v: any) => (v !== null && v !== undefined ? String(v) : ''))
+        : Array(8).fill(''),
       placementStatus: a.placement_status,
       placementVerified: a.placement_verified,
       companyName: a.company_name,
@@ -247,10 +256,10 @@ export const saveAcademicDetails = async (data: StudentProfileData, isUpdate: bo
     diploma_institution: data.diplomaInstitution || null,
     ug_college: data.ugCollegeName,
     ug_cgpa: parseFloat(data.ugCgpa) || null,
-    pg_college: data.graduationStanding === 'PG' ? data.pgCollegeName : null,
+    pg_college: data.graduationStanding === 'PG' ? (data.pgCollegeName || null) : null,
     pg_cgpa: data.graduationStanding === 'PG' ? (parseFloat(data.pgCgpa) || null) : null,
     sgpa_values: data.sgpaSemesterValues,
-    ...(isUpdate ? {} : { placement_status: data.placementStatus || 'Not Placed' }),
+    ...(!isUpdate && { placement_status: data.placementStatus || 'Not Placed' }),
   };
   const res = await fetch(`${BASE_URL}/student/academic`, {
     method: isUpdate ? 'PUT' : 'POST',

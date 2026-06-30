@@ -20,9 +20,10 @@ import {
   Phone,
   Mail,
   BadgeCheck,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
-import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff } from '../services/api';
+import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent } from '../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -34,6 +35,7 @@ interface StaffDashboardProps {
     email: string;
   };
   onLogout: () => void;
+  onNavigateToReport?: () => void;
 }
 
 interface StudentRecord {
@@ -50,7 +52,7 @@ interface StudentRecord {
   isVerified: boolean;
 }
 
-export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) {
+export default function StaffDashboard({ user, onLogout, onNavigateToReport }: StaffDashboardProps) {
   const [showDeptBreakdown, setShowDeptBreakdown] = useState<boolean>(false);
   
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,12 +92,12 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
   useEffect(() => { loadStudents(); }, []);
 
   const handleBlockToggle = async (id: string, block: boolean) => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/staff/students/${id}/block`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ is_blocked: block }),
-    });
-    if (res.ok) setStudents(prev => prev.map(s => s.id === id ? { ...s, isBlocked: block } : s));
+    try {
+      await blockStudent(id, block);
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, isBlocked: block } : s));
+    } catch (e: any) {
+      alert('Failed to update block status: ' + e.message);
+    }
   };
 
   const handleVerifyPlacement = async () => {
@@ -227,6 +229,15 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
             <p className="text-[13px] font-bold text-slate-800 leading-none">{user.fullName}</p>
             <p className="text-[10px] font-bold text-orange-500 mt-1 uppercase tracking-wider">Placement Officer</p>
           </div>
+          {onNavigateToReport && (
+            <button
+              onClick={onNavigateToReport}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#002D62] border border-[#002D62]/20 bg-[#002D62]/5 hover:bg-[#002D62]/10 rounded-xl transition-all"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Reports</span>
+            </button>
+          )}
           <button 
             onClick={onLogout}
             className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-500 border border-red-100 bg-red-50/50 hover:bg-red-50 rounded-xl transition-all"
