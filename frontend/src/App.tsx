@@ -72,7 +72,6 @@ export default function App() {
               department: activeUser.department || 'CSE'
             }}
             onBackToDashboard={() => setStudentSubPage('home')}
-            onViewReport={() => setStudentSubPage('report')}
           />
         );
       }
