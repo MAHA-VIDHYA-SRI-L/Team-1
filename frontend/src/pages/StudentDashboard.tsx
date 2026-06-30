@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   LogOut, LayoutDashboard, User, Briefcase, CheckCircle2, 
   RotateCcw, Award, CalendarDays, Settings, Camera, 
-  X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart
+  X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu, ChevronLeft
 } from 'lucide-react';
 import { uploadResume, fetchResume, fetchStudentProfile, fetchAcademicDetails, saveStudentProfile, saveAcademicDetails } from '../services/api';
 import StudentProfileWizard from '../components/StudentProfileWizard';
@@ -29,6 +29,7 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
   // Profile picture upload and sidebar drawer states
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isVerified = profileFormRecord?.isVerifiedByStaff || false; 
@@ -122,53 +123,61 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
   const currentCgpa = pf.graduationStanding === 'PG' ? ((pf as any).pgCgpa || (pf as any).ugCgpa) : (pf as any).finalCgpa;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-[#002D62]/5 flex font-sans text-slate-800">
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-xl">
+      <aside className={`bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-xl transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-6 space-y-8 overflow-y-auto">
-          <div>
-            <h1 className="text-2xl font-black tracking-wider uppercase">Placemate</h1>
-            <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Student Workstation</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-black">P</div>
+              <div className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>
+                <h1 className="text-2xl font-black tracking-wider uppercase">Placemate</h1>
+                <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Student Workstation</p>
+              </div>
+            </div>
+            <button onClick={() => setSidebarCollapsed(prev => !prev)} className="rounded-full p-2 text-slate-200 hover:bg-white/10 transition-colors duration-200">
+              {sidebarCollapsed ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
           </div>
           
           <nav className="space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all border border-white/10">
+            <button className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all border border-white/10`}>
               <LayoutDashboard className="h-4 w-4 stroke-[2.5]" />
-              <span>Overview Dashboard</span>
+              <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Overview Dashboard</span>
             </button>
 
-            <button onClick={onNavigateToBadges} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <button onClick={onNavigateToBadges} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
               <Award className="h-4 w-4 text-amber-400 stroke-[2.5]" />
-              <span>Badges & Certificates</span>
+              <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Badges & Certificates</span>
             </button>
-            <button onClick={onNavigateToPlacement} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <button onClick={onNavigateToPlacement} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
               <CheckCircle className="h-4 w-4 text-emerald-400 stroke-[2.5]" />
-              <span>Placement Readiness</span>
+              <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Placement Readiness</span>
             </button>
 
-            <button onClick={onNavigateToReport} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <button onClick={onNavigateToReport} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
               <FileBarChart className="h-4 w-4 text-emerald-400 stroke-[2.5]" />
-              <span>Formal Report</span>
+              <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Formal Report</span>
             </button>
             
-            <button onClick={handleResetProfile} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+            <button onClick={handleResetProfile} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
               <RotateCcw className="h-4 w-4 text-orange-400 stroke-[2.5]" />
-              <span>Reset Profile Data</span>
+              <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Reset Profile Data</span>
             </button>
           </nav>
         </div>
         
         {/* Profile Settings & Logout Section */}
         <div className="p-4 border-t border-white/10 space-y-2 bg-[#00224D]">
-          <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+          <button onClick={() => setIsSettingsOpen(true)} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
             <Settings className="h-4 w-4 stroke-[2.5]" />
-            <span>Profile Settings</span>
+            <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Profile Settings</span>
           </button>
 
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-[13px] font-bold tracking-wide transition-all">
+          <button onClick={onLogout} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-[13px] font-bold tracking-wide transition-all`}>
             <LogOut className="h-4 w-4 stroke-[2.5]" />
-            <span>Logout Account</span>
+            <span className={`${sidebarCollapsed ? 'hidden' : 'block'}`}>Logout Account</span>
           </button>
         </div>
       </aside>
@@ -228,7 +237,6 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
               <h2 className="text-xl font-bold text-slate-800 tracking-tight">Welcome to your Dashboard, {(pf.name as string)?.split(' ')[0] || user.fullName.split(' ')[0]}!</h2>
               <p className="text-sm text-slate-500 font-medium mt-1">Keep track of your pending campus application metrics and profile status updates.</p>
             </div>
-            <div className="w-16 h-[3px] sm:w-[3px] sm:h-12 bg-orange-500 rounded-full shrink-0"></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -293,24 +301,6 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
             </div>
 
             <div className="space-y-4">
-              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors duration-200">
-                <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Active Track Semesters</p>
-                  <p className="text-3xl font-black text-slate-800 mt-1">{totalSemFieldsCount} <span className="text-lg text-slate-300">/ 8</span></p>
-                </div>
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><Briefcase className="h-6 w-6" /></div>
-              </div>
-              
-              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-300 transition-colors duration-200">
-                <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
-                    {pf.graduationStanding === 'PG' ? 'PG Current CGPA' : 'Current Eligibility (CGPA)'}
-                  </p>
-                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
-                </div>
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><CheckCircle2 className="h-6 w-6" /></div>
-              </div>
-
               <div className={`p-6 rounded-2xl border-2 shadow-sm text-center flex flex-col items-center justify-center relative overflow-hidden min-h-[140px] transition-all duration-300 ${
                 placementStatus === 'Placed' 
                   ? 'bg-emerald-50 border-emerald-500/30' 
@@ -330,10 +320,28 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
                   Verified by Staff Administration
                 </p>
               </div>
+
+              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-300 transition-colors duration-200">
+                <div>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
+                    {pf.graduationStanding === 'PG' ? 'PG Current CGPA' : 'Current Eligibility (CGPA)'}
+                  </p>
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
+                </div>
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><CheckCircle2 className="h-6 w-6" /></div>
+              </div>
+
+              <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors duration-200">
+                <div>
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Active Track Semesters</p>
+                  <p className="text-3xl font-black text-slate-800 mt-1">{totalSemFieldsCount} <span className="text-lg text-slate-300">/ 8</span></p>
+                </div>
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-200"><Briefcase className="h-6 w-6" /></div>
+              </div>
             </div>
           </div>
 
-            <div className="bg-white border border-slate-200 rounded-[24px] shadow-lg p-6">
+          <div className="bg-white border border-slate-200 rounded-[24px] shadow-lg p-6">
             <div className="flex justify-between items-end border-b border-slate-100 pb-3 mb-5">
               <h3 className="text-sm font-bold text-slate-800">Historical Semester Matrix Scores</h3>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Max Scale: 10.00</span>
