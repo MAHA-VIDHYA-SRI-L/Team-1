@@ -19,8 +19,11 @@ import {
   Unlock,
   X,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Upload
 } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import logoUrl from '../assets/logo.jpg';
 
 interface Certificate {
   id: string;
@@ -55,6 +58,8 @@ export default function Badges({
     cgpa: '8.75'
   } 
 }: BadgesProps) {
+  
+  const { addToast } = useToast();
   
   const [categories, setCategories] = useState<string[]>([
     'Hackathon',
@@ -154,7 +159,7 @@ export default function Badges({
     if (!cleanName) return;
     
     if (categories.map(c => c.toLowerCase()).includes(cleanName.toLowerCase())) {
-      alert("This category already exists!");
+      addToast("This category already exists!", "error");
       return;
     }
 
@@ -162,6 +167,7 @@ export default function Badges({
     setActiveTab(cleanName);
     setNewCategoryName('');
     setIsCustomCategoryModalOpen(false);
+    addToast(`Category "${cleanName}" created successfully!`, "success");
   };
 
   
@@ -179,6 +185,7 @@ export default function Badges({
   const executeConfirmAction = () => {
     if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
       setCertificates(certificates.filter(c => c.id !== confirmModal.targetId));
+      addToast("Certificate deleted successfully.", "info");
     }
     setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_cert' });
   };
@@ -244,6 +251,7 @@ export default function Badges({
         }
         return c;
       }));
+      addToast("Record updated successfully.", "success");
     } else {
       const newCert: Certificate = {
         id: `cert-${Date.now()}`,
@@ -258,6 +266,7 @@ export default function Badges({
       };
       setCertificates([newCert, ...certificates]);
       setActiveTab(formCategory); 
+      addToast("Awesome! Certificate uploaded successfully! 🎉", "success");
     }
     closeFormModal();
   };
@@ -283,14 +292,18 @@ export default function Badges({
   }, [certificates, activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       
-      {}
-      <aside className="w-64 bg-[#002D62] text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-2xl">
+      <aside className="w-64 bg-[#002D62] dark:bg-slate-900 text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-2xl border-r border-transparent dark:border-slate-800">
         <div className="p-5 space-y-6 overflow-y-auto flex-1">
-          <div className="border-b border-white/10 pb-4">
-            <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
-            <p className="text-[10px] font-bold text-blue-300/80 tracking-widest uppercase mt-0.5">Credentials Hub</p>
+          <div className="border-b border-white/10 dark:border-slate-800 pb-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-white/20">
+              <img src={logoUrl} alt="Placemate Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
+              <p className="text-[10px] font-bold text-blue-300/80 dark:text-blue-400/80 tracking-widest uppercase mt-0.5">Credentials Hub</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/10 shadow-sm">
@@ -350,7 +363,7 @@ export default function Badges({
           {onBackToDashboard && (
             <button 
               onClick={onBackToDashboard}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-br from-[#0b63ff] to-[#06b6d4] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
             >
               <ArrowLeft className="h-4 w-4 stroke-[2.5]" />
               <span>Back to Dashboard</span>
@@ -363,15 +376,15 @@ export default function Badges({
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         
         {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0 transition-colors duration-300">
           <div>
-            <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Badges & Scholastic Certificates</h1>
+            <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight leading-none">Badges & Scholastic Certificates</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Upload and secure your credentials</p>
           </div>
 
           <button
             onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#001c3d] shadow-md transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#002D62] dark:bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#001c3d] dark:hover:bg-blue-700 shadow-md transition-all active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
             Upload Certificate
@@ -386,19 +399,19 @@ export default function Badges({
           {}
           <div>
             {filteredCertificates.length === 0 ? (
-              <div className="bg-white rounded-[24px] border border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 mb-4">
-                  {getCategoryIcon(activeTab, "h-8 w-8 stroke-[1.5]")}
+              <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center flex flex-col items-center justify-center shadow-sm transition-colors duration-300">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-full text-blue-500 mb-6 animate-pulse">
+                  {getCategoryIcon(activeTab, "h-10 w-10 stroke-[2]")}
                 </div>
-                <h3 className="text-sm font-bold text-slate-700">No records for "{activeTab}" yet</h3>
-                <p className="text-xs text-slate-400 max-w-xs mt-1 mb-6">
-                  You haven't uploaded soft copies or data logs to this category block yet.
+                <h3 className="text-lg font-black text-slate-800 dark:text-white">Start Building Your "{activeTab}" Portfolio</h3>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 max-w-sm mt-2 mb-8">
+                  Upload your certificates, achievement badges, and event proofs here. Our AI will analyze them for your placement readiness report.
                 </p>
                 <button
                   onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-[#002D62] text-white font-bold text-sm rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
-                  Upload First Attachment
+                  <Upload className="h-4 w-4" /> Upload First Achievement
                 </button>
               </div>
             ) : (
@@ -409,8 +422,8 @@ export default function Badges({
                   return (
                     <div 
                       key={cert.id} 
-                      className={`bg-white rounded-[24px] border transition-all overflow-hidden flex flex-col shadow-sm group hover:shadow-md ${
-                        isApproved ? 'border-emerald-100' : 'border-slate-200'
+                      className={`bg-white rounded-[24px] border transition-all duration-300 overflow-hidden flex flex-col shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 group ${
+                        isApproved ? 'border-emerald-100 hover:border-emerald-300' : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       {/* Visual paper-miniature preview thumbnail wrapper */}
@@ -456,18 +469,18 @@ export default function Badges({
                         <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEditOpen(cert)}
-                            className="p-1.5 bg-white hover:bg-slate-50 text-[#002D62] rounded-lg shadow border border-slate-200 transition-all"
+                            className="p-2 bg-white hover:bg-slate-50 text-[#002D62] rounded-xl shadow-md border border-slate-200 transition-all hover:scale-110"
                             title="Edit Submission"
                           >
-                            <Edit2 className="h-3.5 w-3.5" />
+                            <Edit2 className="h-4 w-4" />
                           </button>
                           
                           <button 
                             onClick={() => triggerCertificateDeleteConfirm(cert.id)}
-                            className="p-1.5 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg shadow border border-slate-200 transition-all"
+                            className="p-2 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl shadow-md border border-slate-200 transition-all hover:scale-110"
                             title="Delete Submission"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
