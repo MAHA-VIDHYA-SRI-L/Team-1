@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -20,10 +20,18 @@ import {
   X,
   Download,
   AlertTriangle,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import logoUrl from '../assets/logo.jpg';
+import {
+  fetchCertifications,
+  addCertification,
+  editCertification,
+  removeCertification,
+  uploadCertificateFile,
+} from '../services/api';
 
 interface Certificate {
   id: string;
@@ -33,6 +41,7 @@ interface Certificate {
   startDate: string;
   endDate: string;
   fileName: string;
+  certificateUrl?: string;
   status: 'Approved' | 'Pending Review';
   description?: string;
 }
@@ -65,8 +74,10 @@ export default function Badges({
     'Hackathon',
     'Workshop',
     'Paper Presentation',
-    'Internship'
+    'Internship',
+    'Other'
   ]);
+  const [uploadingFile, setUploadingFile] = useState(false);
   
   const [activeTab, setActiveTab] = useState<string>('Hackathon');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -99,6 +110,7 @@ export default function Badges({
   const [previewDocument, setPreviewDocument] = useState<{
     title: string;
     fileName: string;
+    certificateUrl?: string;
     type: 'certificate' | 'resume';
     issuingOrganization?: string;
     startDate?: string;
@@ -107,30 +119,37 @@ export default function Badges({
     status?: 'Approved' | 'Pending Review';
   } | null>(null);
 
-  const [certificates, setCertificates] = useState<Certificate[]>([
-    {
-      id: 'cert-1',
-      title: 'Smart India Hackathon Internal Tier',
-      issuingOrganization: 'K.S.R. College of Engineering',
-      category: 'Hackathon',
-      startDate: '2026-02-12',
-      endDate: '2026-02-13',
-      fileName: 'sih_internal_2026.pdf',
-      status: 'Approved',
-      description: 'Developed an automated water conservation platform tracking consumption matrices.'
-    },
-    {
-      id: 'cert-2',
-      title: 'LLM Workshop in Generative AI',
-      issuingOrganization: 'VIT Vellore',
-      category: 'Workshop',
-      startDate: '2026-03-05',
-      endDate: '2026-03-06',
-      fileName: 'vit_llm_workshop.png',
-      status: 'Pending Review',
-      description: 'Hands-on training building RAG models and context pipelines using Python framework tools.'
-    }
-  ]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [certsLoading, setCertsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCertifications()
+      .then((res) => {
+        const raw = Array.isArray(res) ? res : res?.certifications ?? [];
+        const mapped: Certificate[] = raw.map((c: any) => ({
+          id: c.id,
+          title: c.certification_name,
+          issuingOrganization: c.issuer,
+          category: c.category || 'Hackathon',
+          startDate: c.start_date || '',
+          endDate: c.end_date || '',
+          fileName: c.certificate_url ? c.certificate_url.split('/').pop() : '',
+          certificateUrl: c.certificate_url || '',
+          status: (c.status === 'Approved' ? 'Approved' : 'Pending Review') as 'Approved' | 'Pending Review',
+          description: c.description || '',
+        }));
+        setCertificates(mapped);
+        // auto-add any new categories from DB that aren't in the default list
+        const dbCats = [...new Set(mapped.map(c => c.category))];
+        setCategories(prev => {
+          const merged = [...prev];
+          dbCats.forEach(cat => { if (!merged.includes(cat)) merged.push(cat); });
+          return merged;
+        });
+      })
+      .catch(() => {})
+      .finally(() => setCertsLoading(false));
+  }, []);
 
   // --- Form Input States for Upload / Edit Modal ---
   const [formTitle, setFormTitle] = useState('');
@@ -182,10 +201,15 @@ export default function Badges({
     });
   };
 
-  const executeConfirmAction = () => {
+  const executeConfirmAction = async () => {
     if (confirmModal.actionType === 'delete_cert' && confirmModal.targetId) {
-      setCertificates(certificates.filter(c => c.id !== confirmModal.targetId));
-      addToast("Certificate deleted successfully.", "info");
+      try {
+        await removeCertification(confirmModal.targetId);
+        setCertificates(certificates.filter(c => c.id !== confirmModal.targetId));
+        addToast('Certificate deleted successfully.', 'info');
+      } catch {
+        addToast('Failed to delete certificate.', 'error');
+      }
     }
     setConfirmModal({ isOpen: false, title: '', message: '', actionType: 'delete_cert' });
   };
@@ -194,6 +218,7 @@ export default function Badges({
     setPreviewDocument({
       title: cert.title,
       fileName: cert.fileName,
+      certificateUrl: cert.certificateUrl,
       type: 'certificate',
       issuingOrganization: cert.issuingOrganization,
       startDate: cert.startDate,
@@ -218,7 +243,7 @@ export default function Badges({
     setIsModalOpen(false);
   };
 
-  const handleCertificateUpload = (e: React.FormEvent) => {
+  const handleCertificateUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -226,47 +251,72 @@ export default function Badges({
       setFormError('Please fulfill all mandatory text fields.');
       return;
     }
-
     if (!editingCertId && !formFile && !formFileName) {
       setFormError('Please upload the certificate soft copy file.');
       return;
     }
 
-    const finalFileName = formFile ? formFile.name : (formFileName || 'uploaded_doc.pdf');
+    try {
+      let fileUrl = formFileName;
+      let fileName = formFileName;
 
-    if (editingCertId) {
-      setCertificates(prev => prev.map(c => {
-        if (c.id === editingCertId) {
-          return {
-            ...c,
-            title: formTitle,
-            issuingOrganization: formOrg,
-            category: formCategory,
-            startDate: formStart,
-            endDate: formEnd,
-            fileName: finalFileName,
-            status: 'Pending Review',
-            description: formDesc
-          };
+      // Upload file to storage if a new file was selected
+      if (formFile) {
+        setUploadingFile(true);
+        try {
+          fileUrl = await uploadCertificateFile(formFile);
+          fileName = formFile.name;
+        } finally {
+          setUploadingFile(false);
         }
-        return c;
-      }));
-      addToast("Record updated successfully.", "success");
-    } else {
-      const newCert: Certificate = {
-        id: `cert-${Date.now()}`,
-        title: formTitle,
-        issuingOrganization: formOrg,
+      }
+
+      const body: Record<string, string> = {
+        certification_name: formTitle,
+        issuer: formOrg,
         category: formCategory,
-        startDate: formStart,
-        endDate: formEnd,
-        fileName: finalFileName,
-        status: 'Pending Review',
-        description: formDesc
+        start_date: formStart,
+        end_date: formEnd,
+        description: formDesc,
+        certificate_url: fileUrl || '',
       };
-      setCertificates([newCert, ...certificates]);
-      setActiveTab(formCategory); 
-      addToast("Awesome! Certificate uploaded successfully! 🎉", "success");
+
+      if (editingCertId) {
+        await editCertification(editingCertId, body);
+        setCertificates(prev => prev.map(c => c.id === editingCertId ? {
+          ...c,
+          title: formTitle,
+          issuingOrganization: formOrg,
+          category: formCategory,
+          startDate: formStart,
+          endDate: formEnd,
+          fileName: fileName || c.fileName,
+          certificateUrl: fileUrl || c.certificateUrl,
+          status: 'Pending Review',
+          description: formDesc,
+        } : c));
+        addToast('Record updated successfully.', 'success');
+      } else {
+        const res = await addCertification(body);
+        const newCert: Certificate = {
+          id: res.id || `cert-${Date.now()}`,
+          title: formTitle,
+          issuingOrganization: formOrg,
+          category: formCategory,
+          startDate: formStart,
+          endDate: formEnd,
+          fileName: fileName || '',
+          certificateUrl: fileUrl || '',
+          status: 'Pending Review',
+          description: formDesc,
+        };
+        setCertificates(prev => [newCert, ...prev]);
+        setActiveTab(formCategory);
+        addToast('Certificate uploaded successfully! 🎉', 'success');
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to save certificate.');
+      return;
     }
     closeFormModal();
   };
@@ -624,12 +674,12 @@ export default function Badges({
                 </label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 cursor-pointer transition-all">
                   <input 
-                    type="file" accept=".pdf,.png,.jpg,.jpeg" required={!editingCertId && !formFileName} className="hidden" 
+                    type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required={!editingCertId && !formFileName} className="hidden" 
                     onChange={(e) => { if (e.target.files?.[0]) setFormFile(e.target.files[0]); }}
                   />
                   <FileUp className="h-5 w-5 text-slate-400 mb-1" />
                   <span className="text-xs font-bold text-slate-600 text-center truncate max-w-full px-2">
-                    {formFile ? formFile.name : (formFileName ? `Retained: ${formFileName}` : "Click to select local file")}
+                    {formFile ? formFile.name : (formFileName ? `Current: ${formFileName.split('/').pop()}` : "Click to select local file")}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Supports PDF, PNG, JPEG up to 5MB</span>
                 </label>
@@ -644,9 +694,11 @@ export default function Badges({
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all"
+                  disabled={uploadingFile}
+                  className="px-5 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all disabled:opacity-60 flex items-center gap-2"
                 >
-                  {editingCertId ? 'Update Record' : 'Save Certificate'}
+                  {uploadingFile && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {uploadingFile ? 'Uploading...' : editingCertId ? 'Update Record' : 'Save Certificate'}
                 </button>
               </div>
             </form>
@@ -746,127 +798,38 @@ export default function Badges({
             </div>
 
             {/* Document Content View Area */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/50 flex flex-col items-center">
-              
-              {previewDocument.type === 'resume' ? (
-                /* HIGHLY ELEGANT RESUME LAYOUT FRAME (to avoid dummy certificate layout) */
-                <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-left space-y-6 select-none relative my-auto">
-                  <div className="border-b-4 border-[#002D62] pb-4 flex justify-between items-end">
-                    <div>
-                      <h1 className="text-2xl font-black text-slate-800 tracking-tight">{user.fullName.toUpperCase()}</h1>
-                      <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">{user.department} Student Workstation Profile</p>
+            <div className="flex-1 overflow-hidden bg-slate-100/50 flex flex-col">
+              {previewDocument.certificateUrl ? (
+                /* Render actual uploaded file */
+                (() => {
+                  const url = previewDocument.certificateUrl!;
+                  const isPdf = url.toLowerCase().includes('.pdf') || url.includes('application/pdf');
+                  return isPdf ? (
+                    <iframe
+                      src={url}
+                      className="w-full flex-1 min-h-[500px] border-0"
+                      title="Certificate PDF"
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                      <img
+                        src={url}
+                        alt="Certificate"
+                        className="max-w-full max-h-[500px] rounded-xl shadow-md object-contain"
+                      />
                     </div>
-                    <div className="text-right text-[10px] font-bold text-slate-400 space-y-1">
-                      <p>{user.email}</p>
-                      <p>{user.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Professional Summary</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                      Motivated undergraduate engineer from K.S.R. College of Engineering pursuing academic aggregates in technology tracks. Strong foundations in analytical modeling, system workflows, and programmatic solutions.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Education</h3>
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-slate-800">K.S.R. College of Engineering</p>
-                        <p className="text-[11px] font-medium text-slate-500">B.E. Computer Science — CGPA: {user.cgpa || '8.75'} / 10</p>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Verified Credentials</h3>
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-slate-800">Scholastic Records Aggregate</p>
-                        <p className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" /> Fully Verified by College Portal
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-1">Academic Projects</h3>
-                    {certificates.length > 0 ? (
-                      <div className="space-y-2">
-                        {certificates.map((c, i) => (
-                          <div key={i} className="text-xs p-2 bg-slate-50 rounded-lg border border-slate-100">
-                            <p className="font-bold text-slate-800">{c.title}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{c.issuingOrganization} | {c.startDate}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No certificates linked as projects yet.</p>
-                    )}
-                  </div>
-                </div>
+                  );
+                })()
               ) : (
-                /* CERTIFICATE LAYOUT CANVAS */
-                <div className="w-full max-w-xl aspect-[1.414/1] bg-white rounded-2xl shadow-md border-4 border-slate-200/80 p-8 relative flex flex-col justify-between select-none overflow-hidden my-auto">
-                  {/* Background grid watermark */}
-                  <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#002d62_1.5px,transparent_1px)] [background-size:16px_12px]"></div>
-                  {/* Decorative vintage border frame line */}
-                  <div className="absolute inset-2 border border-slate-100 pointer-events-none"></div>
-
-                  <div className="text-center space-y-2 mt-4 relative z-10">
-                    <h2 className="text-[#002D62] text-[10px] font-black uppercase tracking-widest leading-none">
-                      K.S.R. College of Engineering
-                    </h2>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-                      Verification Ledger & Student Credentials Portal
-                    </p>
-                    <div className="w-24 h-[1px] bg-slate-200 mx-auto mt-2"></div>
-                  </div>
-
-                  <div className="text-center space-y-3 my-6 relative z-10">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">This is to certify that</span>
-                    <h1 className="text-lg font-black text-slate-800 leading-none font-serif tracking-tight">
-                      {user.fullName}
-                    </h1>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">has successfully submitted valid scholastic records for</span>
-                    <p className="text-sm font-black text-[#002D62] px-6 leading-tight line-clamp-2">
-                      {previewDocument.title}
-                    </p>
-                  </div>
-
-                  {/* Footer Signatures */}
-                  <div className="flex items-end justify-between border-t border-slate-100 pt-4 relative z-10 text-[9px] font-bold text-slate-400">
-                    <div className="text-left space-y-1">
-                      <span className="block text-slate-600 truncate max-w-[150px]">{previewDocument.issuingOrganization || 'K.S.R. College'}</span>
-                      <span className="block text-[8px] font-semibold text-slate-400">ISSUING INSTITUTION</span>
-                    </div>
-                    
-                    {previewDocument.startDate && (
-                      <div className="text-center space-y-1">
-                        <span className="block text-slate-600">{previewDocument.startDate}</span>
-                        <span className="block text-[8px] font-semibold text-slate-400 font-mono">SUBMISSION DATE</span>
-                      </div>
-                    )}
-
-                    <div className="text-right space-y-1">
-                      <span className={`block px-2 py-0.5 rounded text-[8px] ${
-                        previewDocument.status === 'Approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                      }`}>
-                        {previewDocument.status || 'Verified'}
-                      </span>
-                      <span className="block text-[8px] font-semibold text-slate-400">VERIFICATION MATRIX</span>
-                    </div>
+                /* No file URL — show info card */
+                <div className="flex-1 flex items-center justify-center p-6">
+                  <div className="text-center space-y-3">
+                    <FileText className="h-12 w-12 text-slate-300 mx-auto" />
+                    <p className="text-sm font-bold text-slate-500">No document file available</p>
+                    <p className="text-xs text-slate-400">{previewDocument.description || 'No description provided.'}</p>
                   </div>
                 </div>
               )}
-
-              {/* Extra File Info */}
-              <div className="w-full max-w-xl bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm text-xs font-semibold text-slate-600 space-y-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Summary Description</p>
-                <p className="text-slate-500 font-medium leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                  {previewDocument.description || 'No descriptive summary was logged for this scholastic record submission. File name stored in verified storage matrix.'}
-                </p>
-              </div>
-
             </div>
 
             {/* Actions Footer */}
@@ -878,7 +841,18 @@ export default function Badges({
                 Close Viewer
               </button>
               <button 
-                onClick={() => alert(`Simulated Download Completed: ${previewDocument.fileName}`)}
+                onClick={() => {
+                  if (previewDocument.certificateUrl) {
+                    const a = document.createElement('a');
+                    a.href = previewDocument.certificateUrl;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.download = previewDocument.fileName || 'certificate';
+                    a.click();
+                  } else {
+                    addToast('No file URL available for this certificate.', 'error');
+                  }
+                }}
                 className="px-4 py-2 bg-[#002D62] text-white rounded-xl text-xs font-bold hover:bg-[#001c3d] transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <Download className="h-3.5 w-3.5" />

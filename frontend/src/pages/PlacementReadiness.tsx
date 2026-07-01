@@ -30,37 +30,12 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
 
   const { addToast } = useToast();
 
-  const loadPageData = async () => {
-    try {
-      const [analysisRes, profileRes, academicRes] = await Promise.all([
-        fetchAnalysis().catch((e) => {
-          console.error('fetchAnalysis error', e);
-          return { analysis: null };
-        }),
-        fetchStudentProfile().catch((e) => {
-          console.error('fetchStudentProfile error', e);
-          return { profile: {} };
-        }),
-        fetchAcademicDetails().catch((e) => {
-          console.error('fetchAcademicDetails error', e);
-          return { academic: {} };
-        }),
-      ]);
-      setAnalysis(analysisRes?.analysis ?? null);
-      setProfileData({ ...profileRes.profile, ...academicRes.academic });
-    } catch (err) {
-      console.error('PlacementReadiness unexpected error', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRunAnalysis = async () => {
     setAnalysisError(null);
     setAnalysisRunning(true);
     try {
       const result = await runAnalysis();
-      setAnalysis(result?.analysis ?? result ?? null);
+      setAnalysis(result?.analysis ?? (result?.readiness_score ? result : null));
       addToast("AI Analysis completed successfully! Here is your report.", "success");
     } catch (err: any) {
       console.error('runAnalysis error', err);
@@ -79,7 +54,9 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
           fetchStudentProfile().catch(() => ({ profile: {} })),
           fetchAcademicDetails().catch(() => ({ academic: {} })),
         ]);
-        if (analysisRes && analysisRes.analysis) setAnalysis(analysisRes.analysis);
+        if (analysisRes && (analysisRes.analysis || analysisRes.readiness_score)) {
+        setAnalysis(analysisRes.analysis ?? analysisRes);
+      }
         setProfileData({ ...profileRes.profile, ...academicRes.academic });
       } catch {
         // silently handled — individual fetches already have fallbacks
@@ -103,21 +80,23 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
   }
 
   const score = analysis?.readiness_score || 0;
-  const currentCgpa = profileData?.graduationStanding === 'PG' ? profileData.pgCgpa : profileData?.finalCgpa;
+  const currentCgpa = profileData?.graduationStanding === 'PG'
+    ? (profileData?.pgCgpa || profileData?.ugCgpa)
+    : (profileData?.ugCgpa || profileData?.finalCgpa);
 
   const getComponentScores = (analysisObj: any) => {
+    const cs = analysisObj?.component_scores;
+    // component_scores only exists on fresh AI run, not on DB fetch — derive from readiness_score if missing
+    const s = analysisObj?.readiness_score ?? 50;
     const base = [
-      { name: 'Resume', value: analysisObj?.component_scores?.resume ?? 20, color: '#0b63ff' },
-      { name: 'Skills', value: analysisObj?.component_scores?.skills ?? 30, color: '#06b6d4' },
-      { name: 'Experience', value: analysisObj?.component_scores?.experience ?? 20, color: '#10b981' },
-      { name: 'Projects', value: analysisObj?.component_scores?.projects ?? 15, color: '#f59e0b' },
-      { name: 'Interview', value: analysisObj?.component_scores?.interview ?? 15, color: '#ef4444' },
+      { name: 'Resume',     value: cs?.resume     ?? Math.round(s * 0.25), color: '#0b63ff' },
+      { name: 'Skills',     value: cs?.skills     ?? Math.round(s * 0.30), color: '#06b6d4' },
+      { name: 'Experience', value: cs?.experience ?? Math.round(s * 0.20), color: '#10b981' },
+      { name: 'Projects',   value: cs?.projects   ?? Math.round(s * 0.15), color: '#f59e0b' },
+      { name: 'Interview',  value: cs?.interview  ?? Math.round(s * 0.10), color: '#ef4444' },
     ];
-    const sum = base.reduce((s, b) => s + b.value, 0);
-    if (sum !== 100) {
-      return base.map(b => ({ ...b, value: Math.round((b.value / sum) * 100) }));
-    }
-    return base;
+    const sum = base.reduce((acc, b) => acc + b.value, 0);
+    return sum > 0 ? base.map(b => ({ ...b, value: Math.round((b.value / sum) * 100) })) : base;
   };
 
   const getLostPointItems = (analysisObj: any) => {
@@ -130,8 +109,8 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
 
   const recList: string[] = Array.isArray(analysis?.recommendations)
     ? analysis.recommendations
-    : analysis?.recommendations
-    ? [analysis.recommendations]
+    : typeof analysis?.recommendations === 'string' && analysis.recommendations
+    ? analysis.recommendations.split(/\n|(?<=\.)\s+(?=[A-Z0-9])/).map((s: string) => s.trim()).filter(Boolean)
     : [];
 
   return (

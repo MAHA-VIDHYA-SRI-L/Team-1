@@ -273,8 +273,10 @@ export default function StudentProfileWizard({
       const finalData = { 
         ...formData, 
         profileUpdatedDate: new Date().toISOString(),
-        ugCgpa: computedCgpa,
-        finalCgpa: formData.graduationStanding !== 'PG' ? computedCgpa : formData.finalCgpa,
+        ugCgpa: computedCgpa !== '0.00' ? computedCgpa : (formData.ugCgpa || ''),
+        finalCgpa: formData.graduationStanding !== 'PG'
+          ? (computedCgpa !== '0.00' ? computedCgpa : (formData.ugCgpa || ''))
+          : (computedCgpa !== '0.00' ? computedCgpa : (formData.pgCgpa || '')),
         // Clear fields not applicable to chosen secondary education type
         twelfthPercentage: secondaryEducation === 'twelfth' ? formData.twelfthPercentage : '',
         twelfthSchool: secondaryEducation === 'twelfth' ? formData.twelfthSchool : '',
@@ -571,7 +573,25 @@ export default function StudentProfileWizard({
                       {errors.sgpaMatrix && <p className="text-red-500 text-xs mt-2 font-semibold">⚠️ {errors.sgpaMatrix}</p>}
                     </>
                   ) : (
-                    <p className="text-[11px] text-slate-400 text-center py-2">No prior semesters to log for Semester 1 students.</p>
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-slate-400 text-center py-1">No prior semesters to log for Semester 1 students.</p>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500">Current CGPA (optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 8.50"
+                          value={formData.ugCgpa}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === '' || /^\d{0,2}(\.\d{0,2})?$/.test(v)) {
+                              if (!isNaN(parseFloat(v)) && parseFloat(v) > 10) return;
+                              setFormData(prev => ({ ...prev, ugCgpa: v }));
+                            }
+                          }}
+                          className="w-full mt-1 p-2.5 border text-sm rounded-xl focus:outline-none border-slate-200 focus:border-[#002D62]"
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { 
-  LogOut, LayoutDashboard, User, Briefcase, CheckCircle2, 
-  RotateCcw, Award, CalendarDays, Settings, Camera, 
-  X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu, Sun, Moon
+import {
+  LogOut, LayoutDashboard, User, Briefcase, CheckCircle2,
+  RotateCcw, Award, CalendarDays, Settings, Camera,
+  X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { SkeletonCard, SkeletonProfile } from '../components/SkeletonLoader';
@@ -26,50 +26,54 @@ interface StudentDashboardProps {
   onDepartmentLoaded?: (dept: string) => void;
 }
 
-export default function StudentDashboard({ user, onLogout, onNavigateToBadges, onNavigateToPlacement, onNavigateToReport, onDepartmentLoaded }: StudentDashboardProps) {
-  const [isSetupComplete, setIsSetupComplete] = useState<boolean>(false);
-  const [checkingProfile, setCheckingProfile] = useState<boolean>(true);
+const NAV_ITEMS = (
+  onDashboard: () => void,
+  onBadges: () => void,
+  onPlacement: () => void,
+  onReport: () => void,
+  onReset: () => void,
+) => [
+  { label: 'Dashboard',          icon: LayoutDashboard, onClick: onDashboard,  active: true  },
+  { label: 'Badges & Certificates', icon: Award,        onClick: onBadges,     active: false },
+  { label: 'Placement Readiness',   icon: CheckCircle,  onClick: onPlacement,  active: false },
+  { label: 'Formal Report',         icon: FileBarChart, onClick: onReport,     active: false },
+  { label: 'Reset Profile',         icon: RotateCcw,    onClick: onReset,      active: false },
+];
+
+const InfoTile = ({ label, value, span = false }: { label: string; value: string; span?: boolean }) => (
+  <div className={`p-4 bg-slate-50 rounded-xl border border-slate-100 ${span ? 'sm:col-span-2' : ''}`}>
+    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-sm font-bold text-slate-700 break-all">{value || '—'}</p>
+  </div>
+);
+
+export default function StudentDashboard({
+  user, onLogout, onNavigateToBadges, onNavigateToPlacement, onNavigateToReport, onDepartmentLoaded,
+}: StudentDashboardProps) {
+  const [isSetupComplete, setIsSetupComplete] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
   const [profileFormRecord, setProfileFormRecord] = useState<Partial<StudentProfileData> | null>(null);
-  
-  const { addToast } = useToast();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    // Check initial dark mode state from document
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
-  }, []);
-
-  const toggleDarkMode = () => {
-    if (document.documentElement.classList.contains('dark')) {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    }
-  };
-
-  // Profile picture upload and sidebar drawer states
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
 
-  const isVerified = profileFormRecord?.isVerifiedByStaff || false; 
-  const placementStatus = profileFormRecord?.placementStatus || 'Not Placed';
-
-  // Resume state
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchResume().then(d => {
-      // backend returns { resume: { resume_url, uploaded_at } }
-      const url = d?.resume?.resume_url || d?.resume_url || null;
-      if (url) setResumeUrl(url);
-    }).catch(() => {});
+  const isVerified = profileFormRecord?.isVerifiedByStaff || false;
+  const placementStatus = profileFormRecord?.placementStatus || 'Not Placed';
+  const [verifiedBannerDismissed, setVerifiedBannerDismissed] = useState(
+    () => sessionStorage.getItem('_pm_verified_banner_dismissed') === '1'
+  );
+  const showVerifiedBanner = isVerified && !verifiedBannerDismissed;
+
+  const loadProfile = (silent = false) => {
+    if (!silent) setCheckingProfile(true);
     Promise.all([
       fetchStudentProfile(),
       fetchAcademicDetails().catch(() => ({ academic: {} })),
@@ -79,17 +83,25 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
         if (merged.name) {
           setProfileFormRecord(merged);
           setIsSetupComplete(true);
-          if (merged.department && onDepartmentLoaded) {
-            onDepartmentLoaded(merged.department as string);
-          }
-        } else {
+          if (merged.department && onDepartmentLoaded) onDepartmentLoaded(merged.department as string);
+        } else if (!silent) {
           setIsSetupComplete(false);
         }
       })
-      .catch(() => {
-        setIsSetupComplete(false);
-      })
-      .finally(() => setCheckingProfile(false));
+      .catch(() => { if (!silent) setIsSetupComplete(false); })
+      .finally(() => { if (!silent) setCheckingProfile(false); });
+  };
+
+  useEffect(() => {
+    fetchResume().then(d => {
+      const url = d?.resume?.resume_url || d?.resume_url || null;
+      if (url) setResumeUrl(url);
+    }).catch(() => {});
+    loadProfile();
+
+    const onVisible = () => { if (document.visibilityState === 'visible') loadProfile(true); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,41 +122,38 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
   };
 
   const handleResetProfile = () => {
-    if (window.confirm("Are you sure you want to reset your profile details? You will have to fill out the setup form again.")) {
+    if (window.confirm('Are you sure you want to reset your profile? You will need to fill the setup form again.')) {
       sessionStorage.removeItem('studentWizardState');
       setProfileFormRecord(null);
       setIsSetupComplete(false);
-      addToast('Profile reset initiated.', 'info');
+      addToast('Profile reset.', 'info');
     }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfilePic(imageUrl);
-    }
+    if (file) setProfilePic(URL.createObjectURL(file));
   };
 
   if (checkingProfile) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8 flex flex-col gap-6 w-full max-w-6xl mx-auto">
+      <div className="min-h-screen bg-slate-50 p-8 flex flex-col gap-6 w-full max-w-6xl mx-auto">
         <SkeletonProfile />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
+          <div className="md:col-span-2 space-y-6"><SkeletonCard /><SkeletonCard /></div>
           <SkeletonCard />
         </div>
       </div>
     );
-  } else if (!isSetupComplete || !profileFormRecord) {
+  }
+
+  if (!isSetupComplete || !profileFormRecord) {
     return (
-      <StudentProfileWizard 
+      <StudentProfileWizard
         initialEmail={user.email}
         initialName={user.fullName}
         initialRegsNumber={user.idNumber}
+        initialPhone={profileFormRecord?.phone as string | undefined}
         onComplete={async (completedForm) => {
           setProfileFormRecord(completedForm as Partial<StudentProfileData>);
           setIsSetupComplete(true);
@@ -154,333 +163,375 @@ export default function StudentDashboard({ user, onLogout, onNavigateToBadges, o
             const hasExisting = !!(existingAcademic?.academic && Object.keys(existingAcademic.academic).length > 0);
             await saveAcademicDetails(completedForm, hasExisting);
           } catch {}
-        }} 
+        }}
       />
     );
   }
 
-  // safe profile object to avoid null checks during the initial checking phase
   const pf = profileFormRecord || ({} as Partial<StudentProfileData>);
-
   const totalSemFieldsCount = (pf.sgpaSemesterValues || []).filter((v: any) => v !== '').length || 0;
-  // ugCgpa is always set from API (ug_cgpa field). finalCgpa is computed locally by the wizard.
-  // For PG students use pgCgpa, for UG use ugCgpa then fallback to finalCgpa.
-  const currentCgpa =
-    pf.graduationStanding === 'PG'
-      ? ((pf as any).pgCgpa || (pf as any).ugCgpa || '0.00')
-      : ((pf as any).ugCgpa || (pf as any).finalCgpa || '0.00');
+  const currentCgpa = (pf as any).finalCgpa || (pf as any).ugCgpa || (pf as any).pgCgpa || '—';
+
+  const firstName = (pf.name as string)?.split(' ')[0] || user.fullName.split(' ')[0];
+  const displayName = (pf.name as string) || user.fullName;
+  const displayDept = (pf.department as string) || 'Student';
+
+  const navItems = NAV_ITEMS(
+    () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+    onNavigateToBadges,
+    onNavigateToPlacement,
+    onNavigateToReport,
+    handleResetProfile,
+  );
+
+  const SidebarContent = () => (
+    <>
+      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* Brand */}
+        <div className={`px-5 py-5 flex items-center gap-3 border-b border-white/10 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+          <div className="h-9 w-9 rounded-xl bg-white overflow-hidden shrink-0 shadow-sm">
+            <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          {!sidebarCollapsed && (
+            <div>
+              <p className="text-white font-black text-base tracking-widest uppercase leading-none">Placemate</p>
+              <p className="text-blue-300/60 text-[10px] font-semibold tracking-widest uppercase mt-0.5">Student Portal</p>
+            </div>
+          )}
+        </div>
+
+        {/* User chip */}
+        {!sidebarCollapsed && (
+          <div className="mx-4 mt-4 p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-orange-500 text-white font-black text-sm flex items-center justify-center shrink-0">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-xs font-bold truncate leading-none">{displayName}</p>
+              <p className="text-blue-300/60 text-[10px] font-semibold uppercase tracking-wider mt-0.5 truncate">{displayDept}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Nav */}
+        <nav className="px-3 mt-5 space-y-1">
+          {!sidebarCollapsed && (
+            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mb-2">Navigation</p>
+          )}
+          {navItems.map(({ label, icon: Icon, onClick, active }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              title={sidebarCollapsed ? label : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                sidebarCollapsed ? 'justify-center' : ''
+              } ${
+                active
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'text-white/60 hover:text-white hover:bg-white/8'
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {!sidebarCollapsed && <span>{label}</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-white/10 space-y-1">
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          title={sidebarCollapsed ? 'Settings' : undefined}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/8 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}
+        >
+          <Settings className="h-4 w-4 shrink-0" />
+          {!sidebarCollapsed && <span>Settings</span>}
+        </button>
+        <button
+          onClick={onLogout}
+          title={sidebarCollapsed ? 'Sign out' : undefined}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-400/80 hover:text-red-300 hover:bg-red-500/10 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!sidebarCollapsed && <span>Sign out</span>}
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-[#002D62]/5 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/20 flex font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside className={`bg-[#002D62] dark:bg-slate-900 text-white flex flex-col justify-between shrink-0 hidden md:flex h-screen sticky top-0 shadow-xl border-r border-transparent dark:border-slate-800 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'} overflow-hidden`}>
-        <div className="p-6 space-y-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="flex items-center justify-between gap-3">
-            <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarCollapsed ? 'justify-center w-full' : ''}`}>
-              <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-white/20">
-                <img src={logoUrl} alt="Placemate Logo" className="w-full h-full object-cover" />
-              </div>
-              <div className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-32'}`}>
-                <h1 className="text-xl font-black tracking-wider uppercase">Placemate</h1>
-                <p className="text-[10px] font-bold text-blue-300/80 dark:text-blue-400/80 tracking-widest uppercase mt-0.5">Student</p>
-              </div>
-            </div>
-            <button onClick={() => setSidebarCollapsed(prev => !prev)} className={`rounded-full p-2 text-slate-200 hover:bg-white/10 transition-colors duration-200 shrink-0 ${sidebarCollapsed ? 'absolute right-6' : ''}`}>
-              <Menu className="h-4 w-4" />
-            </button>
-          </div>
-          
-          <nav className="space-y-2">
-            <button title="Overview Dashboard" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 bg-orange-500 hover:bg-orange-600 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 border border-orange-500 text-white group`}>
-              <LayoutDashboard className="h-4 w-4 stroke-[2.5] shrink-0 transition-transform group-hover:scale-110" />
-              <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Overview Dashboard</span>
-            </button>
+    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
 
-            <button title="Badges & Certificates" onClick={onNavigateToBadges} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-              <Award className="h-4 w-4 text-amber-400 stroke-[2.5] shrink-0 transition-transform group-hover:scale-110" />
-              <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Badges & Certificates</span>
-            </button>
-            <button title="Placement Readiness" onClick={onNavigateToPlacement} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-              <CheckCircle className="h-4 w-4 text-emerald-400 stroke-[2.5] shrink-0 transition-transform group-hover:scale-110" />
-              <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Placement Readiness</span>
-            </button>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
 
-            <button title="Formal Report" onClick={onNavigateToReport} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-              <FileBarChart className="h-4 w-4 text-emerald-400 stroke-[2.5] shrink-0 transition-transform group-hover:scale-110" />
-              <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Formal Report</span>
-            </button>
-            
-            <button title="Reset Profile Data" onClick={handleResetProfile} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-              <RotateCcw className="h-4 w-4 text-orange-400 stroke-[2.5] shrink-0 transition-transform group-hover:scale-110" />
-              <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Reset Profile Data</span>
-            </button>
-          </nav>
-        </div>
-        
-        {/* Profile Settings & Logout Section */}
-        <div className="p-4 border-t border-white/10 dark:border-slate-800 space-y-2 bg-[#00224D] dark:bg-slate-950">
-          <button title="Profile Settings" onClick={() => setIsSettingsOpen(true)} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-            <Settings className="h-4 w-4 stroke-[2.5] shrink-0 transition-transform group-hover:rotate-90" />
-            <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Profile Settings</span>
-          </button>
-
-          <button title="Logout Account" onClick={onLogout} className={`w-full flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''} px-4 py-3 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 group`}>
-            <LogOut className="h-4 w-4 stroke-[2.5] shrink-0 transition-transform group-hover:-translate-x-1" />
-            <span className={`overflow-hidden transition-all duration-300 whitespace-nowrap ${sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>Logout Account</span>
-          </button>
-        </div>
+      {/* Mobile sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#002D62] flex flex-col transition-transform duration-300 md:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <SidebarContent />
       </aside>
 
-      {/* WORKSPACE WINDOW */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        
-        {/* HEADER: Dynamic Circular Avatar and details aligned Left */}
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0 transition-colors duration-300">
-          <div className="flex items-center gap-4">
-              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-black text-lg bg-gradient-to-br from-[#0b63ff] to-[#1db954] overflow-hidden ring-4 transition-all duration-300 ${isVerified ? 'ring-blue-500 shadow-lg' : 'ring-amber-400 shadow-md'}`}>
-                {profilePic ? (
-                  <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-slate-400 dark:text-slate-200">{((pf.name as string) || user.fullName || 'S').charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              
-              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 rounded-full p-0.5 shadow-sm">
-                {isVerified ? (
-                  <BadgeCheck className="h-4 w-4 text-blue-500 fill-blue-50 dark:fill-blue-900/50" />
-                ) : (
-                  <Clock className="h-4 w-4 text-amber-500 fill-amber-50 dark:fill-amber-900/50" />
-                )}
-              </div>
+      {/* Desktop sidebar */}
+      <aside className={`hidden md:flex flex-col bg-[#002D62] h-screen sticky top-0 shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'w-[68px]' : 'w-60'}`}>
+        <SidebarContent />
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setSidebarCollapsed(p => !p)}
+          className="absolute -right-3 top-20 h-6 w-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm text-slate-500 hover:text-slate-800 transition-colors z-10"
+        >
+          <Menu className="h-3 w-3" />
+        </button>
+      </aside>
 
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <Camera className="h-4 w-4 text-white" />
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+
+        {/* Topbar */}
+        <header className="bg-white border-b border-slate-100 px-5 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors md:hidden">
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <p className="text-sm font-bold text-slate-800 leading-none">{displayName}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[11px] font-medium text-slate-400">{displayDept}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span className={`text-[11px] font-semibold ${isVerified ? 'text-blue-600' : 'text-amber-500'}`}>
+                  {isVerified ? 'Verified' : 'Pending verification'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Avatar */}
+            <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+              <div className={`h-9 w-9 rounded-full overflow-hidden ring-2 ${isVerified ? 'ring-blue-400' : 'ring-amber-400'} bg-gradient-to-br from-[#002D62] to-blue-500 flex items-center justify-center text-white font-bold text-sm`}>
+                {profilePic
+                  ? <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
+                  : displayName.charAt(0).toUpperCase()
+                }
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm">
+                {isVerified
+                  ? <BadgeCheck className="h-3.5 w-3.5 text-blue-500" />
+                  : <Clock className="h-3.5 w-3.5 text-amber-500" />
+                }
+              </div>
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="h-3.5 w-3.5 text-white" />
               </div>
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             </div>
-
-            <div>
-              <p className="text-sm font-black text-slate-800 dark:text-white leading-none">{(pf.name as string) || user.fullName}</p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{(pf.department as string) || 'Student'}</p>
-                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                <p className={`text-[9px] font-black uppercase tracking-widest ${isVerified ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  {isVerified ? 'Verified Profile' : 'Pending Verification'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button onClick={toggleDarkMode} className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-full transition-colors">
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-            <div className="md:hidden flex items-center gap-3">
-              <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-slate-400 hover:text-[#002D62] dark:hover:text-blue-400"><Settings className="h-5 w-5" /></button>
-              <button onClick={onLogout} className="p-2 text-slate-400 hover:text-red-500"><LogOut className="h-5 w-5" /></button>
+            {/* Mobile actions */}
+            <div className="md:hidden flex items-center gap-1">
+              <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                <Settings className="h-4 w-4" />
+              </button>
+              <button onClick={onLogout} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </header>
 
-        {/* WORKSPACE VIEWPORT */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">
-          
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Welcome to your Dashboard, {(pf.name as string)?.split(' ')[0] || user.fullName.split(' ')[0]}!</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Keep track of your pending campus application metrics and profile status updates.</p>
-            </div>
+        {/* Content */}
+        <main className="p-5 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">
+
+          {/* Welcome banner */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-800">Good to see you, {firstName}!</h2>
+            <p className="text-sm text-slate-500 mt-1">Track your placement journey, manage certificates, and monitor your readiness score.</p>
           </div>
+
+          {/* Verification notification banner */}
+          {showVerifiedBanner && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                <BadgeCheck className="h-5 w-5 text-blue-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-blue-800">Your profile has been verified!</p>
+                  <p className="text-xs text-blue-600 mt-0.5">A placement officer has reviewed and approved your profile.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setVerifiedBannerDismissed(true);
+                  sessionStorage.setItem('_pm_verified_banner_dismissed', '1');
+                }}
+                className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-100 transition-colors shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[24px] shadow-sm overflow-hidden transition-colors">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-[#002D62] dark:text-blue-400" />
-                    <h3 className="text-sm font-bold text-[#002D62] dark:text-blue-400 tracking-wider uppercase">Verified Profile Credentials</h3>
-                  </div>
-                  <button onClick={() => setIsSettingsOpen(true)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Edit Settings</button>
-                </div>
-                
-                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Register Number</p>
-                    <p className="font-black text-slate-700 dark:text-slate-200 mt-1">{(pf.regsNumber as string) || 'Not provided'}</p>
-                  </div>
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-                      <CalendarDays className="w-3.5 h-3.5" />
-                      <p className="text-[11px] font-bold uppercase tracking-wide">Date of Birth</p>
-                    </div>
-                    <p className="font-black text-slate-700 dark:text-slate-200">{(pf.dob as string) || 'Not provided'}</p>
-                  </div>
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Official Email Address</p>
-                    <p className="font-black text-slate-700 dark:text-slate-200 mt-1 break-all">{(pf.email as string) || user.email}</p>
-                  </div>
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Mobile Phone Contact</p>
-                    <p className="font-black text-slate-700 dark:text-slate-200 mt-1">{(pf.phone as string) || 'Not provided'}</p>
-                  </div>
-                  
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700 sm:col-span-2 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">LinkedIn Profile URL</p>
-                      <p className="font-black text-blue-600 dark:text-blue-400 mt-1 truncate max-w-[200px] sm:max-w-xs">{(pf.linkedinUrl as string) || 'Not linked'}</p>
-                    </div>
-                  </div>
 
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700 sm:col-span-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Current Setup Tracking Term</p>
-                    <p className="font-black text-[#002D62] dark:text-blue-400 mt-1 uppercase">
-                      {(pf.year as string) || 'N/A'} — {pf.semesterTerm ? `${pf.semesterTerm} Semester` : 'N/A'}
-                    </p>
-                  </div>
-                  
-                  {pf.address && (
-                    <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700 sm:col-span-2">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Permanent Home Address</p>
-                      <p className="font-black text-slate-600 dark:text-slate-300 mt-1">
-                        {pf.address}{pf.district ? `, ${pf.district}` : ''}{pf.stateName ? `, ${pf.stateName}` : ''}{pf.pinCode ? ` — ${pf.pinCode}` : ''}
-                      </p>
-                    </div>
-                  )}
+            {/* Profile card */}
+            <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-[#002D62]" />
+                  <h3 className="text-sm font-bold text-slate-800">Profile Details</h3>
                 </div>
+                <button onClick={() => setIsSettingsOpen(true)} className="text-xs font-semibold text-[#002D62] hover:text-orange-500 transition-colors">
+                  Edit
+                </button>
+              </div>
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <InfoTile label="Register Number" value={(pf.regsNumber as string) || ''} />
+                <InfoTile label="Date of Birth" value={(pf.dob as string) || ''} />
+                <InfoTile label="Email" value={(pf.email as string) || user.email} />
+                <InfoTile label="Phone" value={(pf.phone as string) || ''} />
+                <InfoTile label="LinkedIn" value={(pf.linkedinUrl as string) || 'Not linked'} span />
+                <InfoTile
+                  label="Current Term"
+                  value={`${(pf.year as string) || 'N/A'} — ${pf.semesterTerm ? `${pf.semesterTerm} Semester` : 'N/A'}`}
+                  span
+                />
+                {pf.address && (
+                  <InfoTile
+                    label="Address"
+                    value={[pf.address, pf.district, pf.stateName, pf.pinCode ? `— ${pf.pinCode}` : ''].filter(Boolean).join(', ')}
+                    span
+                  />
+                )}
               </div>
             </div>
 
+            {/* Right column stats */}
             <div className="space-y-4">
-              <div className={`p-6 rounded-2xl border-2 shadow-sm text-center flex flex-col items-center justify-center relative overflow-hidden min-h-[140px] transition-all duration-300 ${
-                placementStatus === 'Placed' 
-                  ? 'bg-emerald-50 dark:bg-emerald-950 border-emerald-500/30' 
-                  : 'bg-orange-50 dark:bg-orange-950 border-orange-500/30'
+              {/* Placement status */}
+              <div className={`p-5 rounded-2xl border text-center relative overflow-hidden ${
+                placementStatus === 'Placed'
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : 'bg-orange-50 border-orange-200'
               }`}>
-                <div className={`absolute -right-4 -bottom-4 opacity-5 rotate-[-15deg] transition-all duration-300 ${placementStatus === 'Placed' ? 'text-emerald-900 dark:text-emerald-50' : 'text-orange-900 dark:text-orange-50'}`}>
-                  <CheckCircle className="w-48 h-48" />
+                <div className="absolute -right-4 -bottom-4 opacity-[0.06]">
+                  <CheckCircle className="w-32 h-32" />
                 </div>
-                
-                <p className={`text-[10px] font-black uppercase tracking-widest relative z-10 mb-2 ${placementStatus === 'Placed' ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'}`}>
-                  Official Placement Status
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${placementStatus === 'Placed' ? 'text-emerald-600' : 'text-orange-600'}`}>
+                  Placement Status
                 </p>
-                <h3 className={`text-4xl font-black tracking-tight relative z-10 ${placementStatus === 'Placed' ? 'text-emerald-600 dark:text-emerald-500' : 'text-orange-600 dark:text-orange-500'}`}>
-                  {placementStatus === 'Placed' ? 'PLACED' : 'NOT PLACED'}
-                </h3>
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-3 relative z-10 uppercase tracking-wide">
-                  Verified by Staff Administration
+                <p className={`text-3xl font-black tracking-tight ${placementStatus === 'Placed' ? 'text-emerald-600' : 'text-orange-500'}`}>
+                  {placementStatus === 'Placed' ? 'Placed' : 'Not Placed'}
                 </p>
+                <p className="text-[11px] text-slate-400 mt-2">Verified by placement officer</p>
               </div>
 
-              <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors duration-200">
+              {/* CGPA */}
+              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    {pf.graduationStanding === 'PG' ? 'PG Current CGPA' : 'Current Eligibility (CGPA)'}
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    {pf.graduationStanding === 'PG' ? 'PG CGPA' : 'CGPA'}
                   </p>
-                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-500 mt-1">{currentCgpa || '0.00'}</p>
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
                 </div>
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl group-hover:scale-110 transition-transform duration-200"><CheckCircle2 className="h-6 w-6" /></div>
+                <div className="p-3 bg-emerald-50 rounded-xl">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                </div>
               </div>
 
-              <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-300 dark:hover:border-blue-600 transition-colors duration-200">
+              {/* Semesters */}
+              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Active Track Semesters</p>
-                  <p className="text-3xl font-black text-slate-800 dark:text-slate-100 mt-1">{totalSemFieldsCount} <span className="text-lg text-slate-300 dark:text-slate-600">/ 8</span></p>
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Semesters Tracked</p>
+                  <p className="text-3xl font-black text-slate-800 mt-1">
+                    {totalSemFieldsCount} <span className="text-lg font-semibold text-slate-300">/ 8</span>
+                  </p>
                 </div>
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform duration-200"><Briefcase className="h-6 w-6" /></div>
+                <div className="p-3 bg-blue-50 rounded-xl">
+                  <Briefcase className="h-5 w-5 text-blue-600" />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[24px] shadow-lg p-6 transition-colors">
-            <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-3 mb-5">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Historical Semester Matrix Scores</h3>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Max Scale: 10.00</span>
+          {/* SGPA grid */}
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+              <h3 className="text-sm font-bold text-slate-800">Semester SGPA</h3>
+              <span className="text-[11px] font-medium text-slate-400">Scale: 10.00</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {(pf.sgpaSemesterValues || Array(8).fill('')).map((score, i) => (
-                <div key={i} className={`p-4 border rounded-xl text-center transition-all ${score ? 'bg-blue-50/30 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/50' : 'bg-slate-50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 opacity-60'}`}>
-                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Sem {i + 1}</span>
-                  <span className="text-lg font-black text-[#002D62] dark:text-blue-400 mt-1 block">{score || '—'}</span>
+                <div key={i} className={`p-4 border rounded-xl text-center ${score ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100 opacity-50'}`}>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase block">Sem {i + 1}</span>
+                  <span className="text-lg font-black text-[#002D62] mt-1 block">{score || '—'}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[24px] shadow-sm p-6 transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-5">
+          {/* Resume */}
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#002D62] dark:text-blue-400" />
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Resume</h3>
+                <FileText className="h-4 w-4 text-[#002D62]" />
+                <h3 className="text-sm font-bold text-slate-800">Resume</h3>
               </div>
-              <div className="relative inline-block">
-                {/* Pulsing ring to attract attention */}
-                {!resumeUrl && (
-                  <span className="absolute -inset-1.5 rounded-lg bg-[#002D62] dark:bg-blue-500 opacity-20 animate-ping blur-lg" />
-                )}
+              <div className="relative">
+                {!resumeUrl && <span className="absolute -inset-1 rounded-lg bg-[#002D62] opacity-10 animate-ping" />}
                 <button
                   onClick={() => resumeInputRef.current?.click()}
                   disabled={resumeUploading}
-                  className="relative flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#0b63ff] to-[#06b6d4] text-white text-[12px] font-bold rounded-xl hover:scale-[1.02] disabled:opacity-60 transition-all shadow-md"
+                  className="relative flex items-center gap-2 px-4 py-2 bg-[#002D62] hover:bg-[#001e4d] text-white text-xs font-bold rounded-xl disabled:opacity-60 transition-all shadow-sm"
                 >
-                  {resumeUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  <span>{resumeUploading ? 'Uploading...' : (resumeUrl ? 'Replace Resume' : 'Upload Resume')}</span>
+                  {resumeUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  {resumeUploading ? 'Uploading...' : resumeUrl ? 'Replace' : 'Upload PDF'}
                 </button>
-                {!resumeUrl && (
-                  <div className="absolute -top-3 -right-3 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">New</div>
-                )}
               </div>
               <input ref={resumeInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleResumeUpload} />
             </div>
-
-            {resumeError && <p className="text-xs text-red-500 font-semibold mb-3">{resumeError}</p>}
-
+            {resumeError && <p className="text-xs text-red-500 font-medium mb-3">{resumeError}</p>}
             {resumeUrl ? (
               <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                <FileText className="h-4 w-4" /> View Uploaded Resume
+                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
+                <FileText className="h-4 w-4" /> View uploaded resume
               </a>
             ) : (
-              <p className="text-xs text-slate-400 font-medium">No resume uploaded yet. Upload a PDF to enable AI analysis in the Reports page.</p>
+              <p className="text-sm text-slate-400">No resume uploaded yet. Upload a PDF to enable AI analysis.</p>
             )}
           </div>
+
         </main>
       </div>
 
+      {/* Settings modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[24px] w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] border border-slate-200 dark:border-slate-700">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 rounded-t-[24px]">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-[#002D62] dark:text-blue-400" />
-                <h2 className="text-lg font-bold text-[#002D62] dark:text-white">Profile Settings</h2>
+                <Settings className="h-4 w-4 text-[#002D62]" />
+                <h2 className="text-base font-bold text-slate-800">Profile Settings</h2>
               </div>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400 transition-colors">
-                <X className="h-5 w-5" />
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
-            
-            <div className="p-6 overflow-y-auto space-y-3">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Select a section to edit</p>
-              
-              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-all text-left group">
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-400">Basic & Contact Details</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Phone, Address, LinkedIn, DOB</p>
-                </div>
-              </button>
-              
-              <button onClick={() => { setIsSettingsOpen(false); handleResetProfile(); }} className="w-full flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-all text-left group">
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-400">Academic Records</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">10th, 12th, Current Semesters, SGPA</p>
-                </div>
-              </button>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <p className="text-xs text-slate-400 italic">Note: Making changes will require you to review and confirm the profile setup wizard.</p>
-              </div>
+            <div className="p-5 space-y-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Select a section to edit</p>
+              {[
+                { title: 'Basic & Contact Details', sub: 'Phone, address, LinkedIn, date of birth' },
+                { title: 'Academic Records', sub: '10th, 12th, current semesters, SGPA' },
+              ].map(({ title, sub }) => (
+                <button
+                  key={title}
+                  onClick={() => { setIsSettingsOpen(false); setIsSetupComplete(false); }}
+                  className="w-full text-left p-4 border border-slate-100 rounded-xl hover:border-[#002D62]/30 hover:bg-slate-50 transition-all group"
+                >
+                  <p className="text-sm font-bold text-slate-800 group-hover:text-[#002D62]">{title}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+                </button>
+              ))}
+              <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">
+                You will be taken to the profile wizard to update your details.
+              </p>
             </div>
           </div>
         </div>

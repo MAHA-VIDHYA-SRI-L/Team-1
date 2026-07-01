@@ -1,4 +1,36 @@
 import supabase from "../config/supabase.js";
+import multer from "multer";
+
+export const uploadCertificateFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    const allowed = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
+
+export const uploadCertFile = async (req, res) => {
+  try {
+    const studentId = await getStudentId(req.user.id);
+    if (!studentId) return res.status(404).json({ error: "Student profile not found" });
+    if (!req.file) return res.status(400).json({ error: "File is required" });
+
+    const ext = req.file.originalname.split('.').pop();
+    const fileName = `${studentId}/cert_${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("certificates")
+      .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+
+    if (uploadError) return res.status(400).json({ error: uploadError.message });
+
+    const { data: urlData } = supabase.storage.from("certificates").getPublicUrl(fileName);
+    return res.status(200).json({ url: urlData.publicUrl });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
 const getStudentId = async (authUserId) => {
   const { data, error } = await supabase
@@ -46,7 +78,7 @@ export const addCertification = async (req, res) => {
         start_date: start_date || null,
         end_date: end_date || null,
         description: description || null,
-        status: "Pending Review",
+        status: "pending",
       })
       .select("id")
       .single();
@@ -72,7 +104,7 @@ export const updateCertification = async (req, res) => {
       .update({
         certification_name, issuer, certificate_url,
         category, start_date, end_date, description,
-        status: "Pending Review", // reset to pending on edit
+        status: "pending", // reset to pending on edit
       })
       .eq("id", id)
       .eq("student_id", studentId);
