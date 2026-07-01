@@ -124,12 +124,14 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
     const res = await fetch(`${API}/admin/students`, { headers: adminHeaders() });
     const data = await res.json();
     if (res.ok) setStudents(data);
+    else showToast('Failed to load students: ' + (data.error || res.status));
   };
 
   const fetchStaff = async () => {
     const res = await fetch(`${API}/admin/staff`, { headers: adminHeaders() });
     const data = await res.json();
     if (res.ok) setStaff(data);
+    else showToast('Failed to load staff: ' + (data.error || res.status));
   };
 
   useEffect(() => {
@@ -225,18 +227,24 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       headers: adminHeaders(),
       body: JSON.stringify({ is_blocked: block }),
     });
+    const data = await res.json();
     if (res.ok) {
       showToast(block ? 'Account blocked' : 'Account unblocked');
       type === 'students' ? fetchStudents() : fetchStaff();
+    } else {
+      showToast('Failed: ' + (data.error || res.status));
     }
   };
 
   const handleDelete = async (type: 'students' | 'staff', id: string) => {
     if (!confirm('Are you sure you want to delete this account? This cannot be undone.')) return;
     const res = await fetch(`${API}/admin/${type}/${id}`, { method: 'DELETE', headers: adminHeaders() });
+    const data = await res.json();
     if (res.ok) {
       showToast('Account deleted');
       type === 'students' ? fetchStudents() : fetchStaff();
+    } else {
+      showToast('Failed: ' + (data.error || res.status));
     }
   };
 

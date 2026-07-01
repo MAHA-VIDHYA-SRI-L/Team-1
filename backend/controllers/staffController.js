@@ -64,7 +64,7 @@ export const getStudentById = async (req, res) => {
     ] = await Promise.all([
       supabaseAdmin.from("academic_details").select("*").eq("student_id", id).single(),
       supabaseAdmin.from("skills").select("skill_name, proficiency").eq("student_id", id),
-      supabaseAdmin.from("certifications").select("id, certification_name, issuer, category, start_date, end_date, description, certificate_url").eq("student_id", id),
+      supabaseAdmin.from("certifications").select("id, certification_name, issuer, category, start_date, end_date, description, certificate_url, status").eq("student_id", id),
       supabaseAdmin.from("internships").select("company_name, role, duration, certificate_url").eq("student_id", id),
       supabaseAdmin.from("resumes").select("resume_url, uploaded_at").eq("student_id", id).single(),
       supabaseAdmin.from("placement_analysis").select("readiness_score, readiness_status, strengths, weaknesses, recommendations, consolidated_report, analyzed_at").eq("student_id", id).single(),
@@ -146,12 +146,13 @@ export const updateCertificationStatus = async (req, res) => {
     const { certId } = req.params;
     const { status } = req.body;
 
-    if (!["Approved", "Pending Review"].includes(status))
+    const normalized = status?.toLowerCase();
+    if (!["approved", "rejected", "pending"].includes(normalized))
       return res.status(400).json({ error: "Invalid status" });
 
     const { error } = await supabaseAdmin
       .from("certifications")
-      .update({ status })
+      .update({ status: normalized })
       .eq("id", certId);
 
     if (error) return res.status(400).json({ error: error.message });

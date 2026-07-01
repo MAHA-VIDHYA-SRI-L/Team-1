@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { clearTokens } from './services/api';
+import { useState, useEffect } from 'react';
+import { clearTokens, setUnauthorizedHandler, setTokens } from './services/api';
 import Login from './pages/login';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
@@ -18,27 +18,47 @@ interface UserSessionData {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'student' | 'staff' | 'admin' | null>(null);
-  
-  // Sub-view state management for logged-in student routing
+  // Restore full session from sessionStorage so page reload keeps user logged in
+  const savedSession = (() => {
+    try { return JSON.parse(sessionStorage.getItem('_pm_session') || 'null'); } catch { return null; }
+  })();
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!savedSession);
+  const [userRole, setUserRole] = useState<'student' | 'staff' | 'admin' | null>(savedSession?.role ?? null);
   const [studentSubPage, setStudentSubPage] = useState<'home' | 'badges' | 'placement' | 'report'>('home');
   const [staffSubPage, setStaffSubPage] = useState<'home' | 'report'>('home');
-  const [activeUser, setActiveUser] = useState<UserSessionData | null>(null);
+  const [activeUser, setActiveUser] = useState<UserSessionData | null>(savedSession?.user ?? null);
+
+  useEffect(() => {
+    setUnauthorizedHandler(handleLogout);
+    // Re-hydrate in-memory token from sessionStorage (covers hot reload)
+    const savedToken = sessionStorage.getItem('_pm_token');
+    const savedRefresh = sessionStorage.getItem('_pm_refresh');
+    if (savedToken) setTokens(savedToken, savedRefresh || undefined);
+  }, []);
 
   const handleLoginSuccess = (role: 'student' | 'staff' | 'admin', user: UserSessionData) => {
     setUserRole(role);
     setActiveUser(user);
     setIsAuthenticated(true);
-    setStudentSubPage('home'); 
+    setStudentSubPage('home');
+    sessionStorage.setItem('_pm_session', JSON.stringify({ role, user }));
   };
 
   const handleDepartmentLoaded = (dept: string) => {
-    setActiveUser(prev => prev ? { ...prev, department: dept } : prev);
+    setActiveUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, department: dept };
+      // Keep session in sync with updated department
+      const role = userRole;
+      if (role) sessionStorage.setItem('_pm_session', JSON.stringify({ role, user: updated }));
+      return updated;
+    });
   };
 
   const handleLogout = () => {
     clearTokens();
+    sessionStorage.removeItem('_pm_session');
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);

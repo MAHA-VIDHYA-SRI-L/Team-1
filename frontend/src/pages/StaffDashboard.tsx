@@ -23,7 +23,7 @@ import {
   Clock,
   FileText
 } from 'lucide-react';
-import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent } from '../services/api';
+import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent, updateCertStatus } from '../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -141,14 +141,35 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   // Student profile modal
   const [viewStudent, setViewStudent] = useState<any>(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [certUpdatingId, setCertUpdatingId] = useState<string | null>(null);
+
+  const handleCertStatus = async (certId: string, status: 'approved' | 'rejected') => {
+    setCertUpdatingId(certId);
+    try {
+      await updateCertStatus(certId, status);
+      setViewStudent((prev: any) => ({
+        ...prev,
+        certifications: prev.certifications.map((c: any) =>
+          c.id === certId ? { ...c, status } : c
+        ),
+      }));
+    } catch (e: any) {
+      alert('Failed to update certificate status: ' + e.message);
+    } finally {
+      setCertUpdatingId(null);
+    }
+  };
 
   const handleViewStudent = async (id: string) => {
     setViewLoading(true);
     try {
       const data = await fetchStaffStudentById(id);
       setViewStudent(data);
-    } catch {}
-    setViewLoading(false);
+    } catch (e: any) {
+      alert('Failed to load student profile: ' + e.message);
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   const totalStudents = students.length;
@@ -706,8 +727,32 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
                           <p className="font-bold text-slate-700 text-xs">{c.certification_name}</p>
                           <p className="text-[11px] text-slate-500">{c.issuer}{c.category ? ` · ${c.category}` : ''}</p>
                           {c.certificate_url && (
-                            <a href={c.certificate_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 font-bold">View Certificate</a>
+                            <a href={c.certificate_url.startsWith('http') ? c.certificate_url : `${import.meta.env.VITE_SUPABASE_URL || ''}${c.certificate_url}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 font-bold">View Certificate</a>
                           )}
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {c.status?.toLowerCase() === 'approved' ? (
+                              <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Approved</span>
+                            ) : c.status?.toLowerCase() === 'rejected' ? (
+                              <span className="text-[10px] font-black text-red-500 flex items-center gap-1"><XCircle className="h-3 w-3" /> Rejected</span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleCertStatus(c.id, 'approved')}
+                                  disabled={certUpdatingId === c.id}
+                                  className="px-2 py-0.5 text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                >
+                                  {certUpdatingId === c.id ? <Loader2 className="h-3 w-3 animate-spin inline" /> : 'Approve'}
+                                </button>
+                                <button
+                                  onClick={() => handleCertStatus(c.id, 'rejected')}
+                                  disabled={certUpdatingId === c.id}
+                                  className="px-2 py-0.5 text-[10px] font-black bg-red-50 text-red-500 border border-red-100 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

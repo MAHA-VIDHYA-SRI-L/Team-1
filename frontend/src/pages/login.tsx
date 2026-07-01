@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, WifiOff, Phone, ArrowLeft } from 'lucide-react';
 import { setTokens } from '../services/api';
 import AuthBackground from '../components/ui/AuthBackground';
-import collegeLogo from '../assets/logo.jpg';
 
 interface UserData {
   fullName: string;
@@ -14,6 +13,82 @@ interface UserData {
 interface LoginProps {
   onLoginSuccess: (role: 'student' | 'staff' | 'admin', user: UserData) => void;
 }
+
+const Field = ({
+  id, label, icon: Icon, type = 'text', value, onChange, placeholder, error, right,
+}: {
+  id: string; label: string; icon: React.ElementType; type?: string;
+  value: string; onChange: (v: string) => void; placeholder?: string;
+  error?: string; right?: React.ReactNode;
+}) => (
+  <div className="space-y-1.5">
+    <div className="flex items-center justify-between">
+      <label htmlFor={id} className="text-xs font-semibold text-slate-600">{label}</label>
+      {right}
+    </div>
+    <div className="relative group">
+      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#002D62] transition-colors">
+        <Icon className="h-4 w-4" />
+      </span>
+      <input
+        id={id} type={type} value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-slate-50 border outline-none transition-all ${
+          error ? 'border-red-400 focus:border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-[#002D62] focus:bg-white'
+        }`}
+      />
+    </div>
+    {error && (
+      <p className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+      </p>
+    )}
+  </div>
+);
+
+const PasswordField = ({
+  id, label, value, onChange, placeholder, error, show, onToggle, right,
+}: {
+  id: string; label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; error?: string; show: boolean; onToggle: () => void;
+  right?: React.ReactNode;
+}) => (
+  <div className="space-y-1.5">
+    <div className="flex items-center justify-between">
+      <label htmlFor={id} className="text-xs font-semibold text-slate-600">{label}</label>
+      {right}
+    </div>
+    <div className="relative group">
+      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#002D62] transition-colors">
+        <Lock className="h-4 w-4" />
+      </span>
+      <input
+        id={id} type={show ? 'text' : 'password'} value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full pl-10 pr-11 py-2.5 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-slate-50 border outline-none transition-all ${
+          error ? 'border-red-400 focus:border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-[#002D62] focus:bg-white'
+        }`}
+      />
+      <button type="button" onClick={onToggle} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+    {error && (
+      <p className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+      </p>
+    )}
+  </div>
+);
+
+const Spinner = () => (
+  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+  </svg>
+);
 
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [view, setView] = useState<'login' | 'forgot'>('login');
@@ -34,7 +109,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loginError, setLoginError] = useState('');
-  
+
   const [recoveryEmailError, setRecoveryEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [newPasswordError, setNewPasswordError] = useState('');
@@ -47,132 +122,74 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   useEffect(() => {
     const goOnline = () => setIsOffline(false);
     const goOffline = () => setIsOffline(true);
-
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
   }, []);
 
   useEffect(() => {
     if (showToast) {
-      const timer = setTimeout(() => setShowToast(false), 4000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowToast(false), 4000);
+      return () => clearTimeout(t);
     }
   }, [showToast]);
 
   const validateEmailText = (text: string): boolean => {
     const trimmed = text.trim();
-    if (!trimmed) {
-      setEmailError('Email ID is required');
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
-      setEmailError('Please enter a valid email address');
-      return false;
-    }
-    const lower = trimmed.toLowerCase();
-    if (!lower.endsWith('@gmail.com') && !lower.endsWith('@ksrce.ac.in')) {
-      setEmailError('Access restricted to @ksrce.ac.in or @gmail.com domains');
-      return false;
-    }
-    setEmailError('');
-    return true;
+    if (!trimmed) { setEmailError('Email is required'); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setEmailError('Enter a valid email address'); return false; }
+    setEmailError(''); return true;
   };
 
   const validatePasswordText = (text: string): boolean => {
-    if (!text) {
-      setPasswordError('Password security is required');
-      return false;
-    }
-    setPasswordError('');
-    return true;
+    if (!text) { setPasswordError('Password is required'); return false; }
+    setPasswordError(''); return true;
   };
 
   const validateRecoveryEmail = (text: string): boolean => {
     const trimmed = text.trim();
-    if (!trimmed) {
-      setRecoveryEmailError('Registered email is required');
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
-      setRecoveryEmailError('Enter a valid email address');
-      return false;
-    }
-    setRecoveryEmailError('');
-    return true;
+    if (!trimmed) { setRecoveryEmailError('Email is required'); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setRecoveryEmailError('Enter a valid email address'); return false; }
+    setRecoveryEmailError(''); return true;
   };
 
   const handlePhoneInput = (val: string) => {
-    const numbersOnly = val.replace(/\D/g, '');
-    setLastFivePhone(numbersOnly);
-
-    if (numbersOnly.length === 0) {
-      setPhoneError('Last 5 digits of your phone are required');
-      return false;
-    } else if (numbersOnly.length !== 5) {
-      setPhoneError('Must be exactly the last 5 digits');
-      return false;
-    } else {
-      setPhoneError('');
-      return true;
-    }
+    const nums = val.replace(/\D/g, '');
+    setLastFivePhone(nums);
+    if (!nums) { setPhoneError('Last 5 digits of your phone are required'); return false; }
+    if (nums.length !== 5) { setPhoneError('Must be exactly 5 digits'); return false; }
+    setPhoneError(''); return true;
   };
 
   const handleNewPasswordValidation = (val: string) => {
     setNewPassword(val);
-    if (val.length === 0) {
-      setNewPasswordError('New password is required');
-      return false;
-    }
-
-    const requirements = [];
-    if (val.length < 8) requirements.push('minimum 8 characters');
-    if (!/[A-Z]/.test(val)) requirements.push('an uppercase letter');
-    if (!/[a-z]/.test(val)) requirements.push('a lowercase letter');
-    if (!/\d/.test(val)) requirements.push('a digit');
-    if (!/[!@#$%^&*(),.?":{}|<>_]/.test(val)) requirements.push('a special symbol');
-
-    if (requirements.length > 0) {
-      setNewPasswordError(`Requires: ${requirements.join(', ')}`);
-      return false;
-    } else {
-      setNewPasswordError('');
-    }
-
-    if (confirmNewPassword && val !== confirmNewPassword) {
-      setConfirmNewPasswordError('Passwords do not match');
-    } else {
-      setConfirmNewPasswordError('');
-    }
+    if (!val) { setNewPasswordError('New password is required'); return false; }
+    const reqs = [];
+    if (val.length < 8) reqs.push('8+ characters');
+    if (!/[A-Z]/.test(val)) reqs.push('uppercase letter');
+    if (!/[a-z]/.test(val)) reqs.push('lowercase letter');
+    if (!/\d/.test(val)) reqs.push('number');
+    if (!/[!@#$%^&*(),.?":{}|<>_]/.test(val)) reqs.push('special character');
+    if (reqs.length) { setNewPasswordError(`Needs: ${reqs.join(', ')}`); return false; }
+    setNewPasswordError('');
+    if (confirmNewPassword && val !== confirmNewPassword) setConfirmNewPasswordError('Passwords do not match');
+    else setConfirmNewPasswordError('');
     return true;
   };
 
   const handleConfirmNewPasswordValidation = (val: string) => {
     setConfirmNewPassword(val);
-    if (val.length === 0) {
-      setConfirmNewPasswordError('Please confirm your new password');
-      return false;
-    }
-    if (val !== newPassword) {
-      setConfirmNewPasswordError('Passwords do not match');
-      return false;
-    } else {
-      setConfirmNewPasswordError('');
-      return true;
-    }
+    if (!val) { setConfirmNewPasswordError('Please confirm your password'); return false; }
+    if (val !== newPassword) { setConfirmNewPasswordError('Passwords do not match'); return false; }
+    setConfirmNewPasswordError(''); return true;
   };
 
   const applyDomainExtension = (domain: string) => {
-    let currentPrefix = email.split('@')[0];
-    if (!currentPrefix.trim()) return;
-    const computedString = `${currentPrefix.trim()}${domain}`;
-    setEmail(computedString);
-    validateEmailText(computedString);
+    const prefix = email.split('@')[0];
+    if (!prefix.trim()) return;
+    const computed = `${prefix.trim()}${domain}`;
+    setEmail(computed);
+    validateEmailText(computed);
   };
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -180,17 +197,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleAuthSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-
-    const emailStatus = validateEmailText(email);
-    const passwordStatus = validatePasswordText(password);
-
-    if (!emailStatus || !passwordStatus) return;
-
-    if (!navigator.onLine) {
-      setLoginError('Connection down. Verify physical connection configurations.');
-      return;
-    }
-
+    if (!validateEmailText(email) || !validatePasswordText(password)) return;
+    if (!navigator.onLine) { setLoginError('You are offline. Please check your internet connection.'); return; }
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
@@ -198,26 +206,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
-        setLoginError(result.error || 'Server validation failed. Verify your credentials.');
-        return;
-      }
-
-      if (result.token) {
-        setTokens(result.token);
-      }
-      setToastMessage('Session Logged in Successfully');
+      if (!response.ok) { setLoginError(result.error || 'Invalid email or password. Please try again.'); return; }
+      if (result.token) setTokens(result.token, result.refreshToken);
+      setToastMessage('Logged in successfully');
       setShowToast(true);
       setTimeout(() => onLoginSuccess(result.role, result.user), 1000);
     } catch {
-      if (!navigator.onLine) {
-        setLoginError('Global system disconnected. Re-examine routing switches.');
-      } else {
-        setLoginError('Unable to connect to service terminal. Confirm server is running at localhost:3000.');
-      }
+      setLoginError(!navigator.onLine
+        ? 'You are offline. Please check your internet connection.'
+        : 'Unable to reach the server. Please try again in a moment.');
     } finally {
       setIsLoading(false);
     }
@@ -226,383 +224,183 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleRecoverySubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecoveryGeneralError('');
-
-    const isEmailValid = validateRecoveryEmail(recoveryEmail);
-    const isPhoneValid = handlePhoneInput(lastFivePhone);
-    const isPassValid = handleNewPasswordValidation(newPassword);
-    const isConfirmValid = handleConfirmNewPasswordValidation(confirmNewPassword);
-
-    if (!isEmailValid || !isPhoneValid || !isPassValid || !isConfirmValid) return;
-
+    const ok = validateRecoveryEmail(recoveryEmail)
+      & (handlePhoneInput(lastFivePhone) as unknown as boolean)
+      & (handleNewPasswordValidation(newPassword) as unknown as boolean)
+      & (handleConfirmNewPasswordValidation(confirmNewPassword) as unknown as boolean);
+    if (!ok) return;
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: recoveryEmail.trim(),
-          phoneDigits: lastFivePhone,
-          newPassword,
-        }),
+        body: JSON.stringify({ email: recoveryEmail.trim(), phoneDigits: lastFivePhone, newPassword }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
-        setRecoveryGeneralError(result.error || 'Verification failed. Double check details.');
-        return;
-      }
-
-      setToastMessage('Password reset updated successfully');
+      if (!response.ok) { setRecoveryGeneralError(result.error || 'Verification failed. Please check your details.'); return; }
+      setToastMessage('Password reset successfully');
       setShowToast(true);
-      
-      setRecoveryEmail('');
-      setLastFivePhone('');
-      setNewPassword('');
-      setConfirmNewPassword('');
+      setRecoveryEmail(''); setLastFivePhone(''); setNewPassword(''); setConfirmNewPassword('');
       setView('login');
     } catch {
-      setRecoveryGeneralError('Network interface breakdown. Check host channel connection configuration.');
+      setRecoveryGeneralError('Unable to reach the server. Please try again in a moment.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSwitchToRecovery = () => {
-    setEmailError('');
-    setPasswordError('');
-    setLoginError('');
+    setEmailError(''); setPasswordError(''); setLoginError('');
     setView('forgot');
   };
 
   const handleSwitchToLogin = () => {
-    setRecoveryEmailError('');
-    setPhoneError('');
-    setNewPasswordError('');
-    setConfirmNewPasswordError('');
-    setRecoveryGeneralError('');
+    setRecoveryEmailError(''); setPhoneError(''); setNewPasswordError('');
+    setConfirmNewPasswordError(''); setRecoveryGeneralError('');
     setView('login');
   };
 
   return (
     <AuthBackground>
-      <div 
-        className={`fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500 text-white font-bold text-xs px-4 py-3 rounded-full shadow-lg border border-emerald-400/20 transition-all duration-300 transform ${
-          showToast ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
-        }`}
-      >
+      {/* Toast */}
+      <div className={`fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-500 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-lg transition-all duration-300 ${
+        showToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
+      }`}>
         <CheckCircle2 className="h-4 w-4 shrink-0" />
-        <span>{toastMessage}</span>
+        {toastMessage}
       </div>
 
+      {/* Offline banner */}
       {isOffline && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white font-black text-[11px] uppercase tracking-wider px-4 py-2 rounded-full shadow-md animate-pulse">
-          <WifiOff className="h-3.5 w-3.5" />
-          <span>Offline Pipeline Trapped</span>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-md">
+          <WifiOff className="h-3.5 w-3.5" /> No internet connection
         </div>
       )}
 
-      <div className="w-full max-w-[420px] mx-auto my-4 flex flex-col items-center text-center p-6 sm:p-7 rounded-[24px] bg-white border border-slate-100 shadow-xl relative max-h-[92vh] overflow-y-auto scrollbar-thin">
-        
-        <div className="flex flex-col items-center space-y-2">
-          <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm ring-4 ring-slate-100 overflow-hidden">
-            <img 
-              src={collegeLogo} 
-              alt="Institution Logo" 
-              className="w-full h-full object-contain rounded-full select-none"
-            />
+      {view === 'login' ? (
+        <div className="w-full space-y-6">
+          {/* Heading */}
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Welcome back</h2>
+            <p className="text-sm text-slate-500 mt-1">Sign in to your Placemate account</p>
           </div>
-          <div className="space-y-0.5">
-            <h2 className="text-base font-black text-[#002D62] tracking-wider uppercase leading-none">Placemate</h2>
-            <p className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Student Placement Tracker</p>
-          </div>
-        </div>
 
-        {view === 'login' ? (
-          <>
-            <div className="w-full flex flex-col items-center space-y-0.5 pt-4">
-              <h1 className="text-lg font-bold text-slate-800 tracking-tight">Welcome Back!</h1>
-              <p className="text-xs text-slate-400 font-medium">Login to your workstation account</p>
-              <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
+          <form onSubmit={handleAuthSubmission} className="space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="email-input" className="text-xs font-semibold text-slate-600">Email address</label>
+                {email && !email.includes('@') && (
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => applyDomainExtension('@ksrce.ac.in')}
+                      className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-lg border border-orange-100 hover:bg-orange-100 transition-colors">
+                      @ksrce
+                    </button>
+                    <button type="button" onClick={() => applyDomainExtension('@gmail.com')}
+                      className="text-[10px] font-bold bg-slate-50 text-slate-500 px-2 py-0.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                      @gmail
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="relative group">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#002D62] transition-colors">
+                  <Mail className="h-4 w-4" />
+                </span>
+                <input
+                  id="email-input" name="email" type="text" value={email}
+                  onChange={e => { setEmail(e.target.value); validateEmailText(e.target.value); }}
+                  placeholder="you@ksrce.ac.in"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-slate-50 border outline-none transition-all ${
+                    emailError ? 'border-red-400 bg-red-50/30' : 'border-slate-200 focus:border-[#002D62] focus:bg-white'
+                  }`}
+                />
+              </div>
+              {emailError && <p className="flex items-center gap-1.5 text-xs text-red-500 font-medium"><AlertCircle className="h-3.5 w-3.5 shrink-0" />{emailError}</p>}
             </div>
 
-            <form onSubmit={handleAuthSubmission} className="w-full text-left space-y-3.5 pt-3">
-              
-              <div className="space-y-1">
-                <div className="flex justify-between items-center px-0.5">
-                  <label htmlFor="email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
-                    Email Identity
-                  </label>
-                  {email && !email.includes('@') && (
-                    <div className="flex gap-1.5">
-                      <button 
-                        type="button" 
-                        onClick={() => applyDomainExtension('@ksrce.ac.in')}
-                        className="text-[9px] font-extrabold bg-orange-50 text-orange-600 px-2 py-0.5 rounded border border-orange-100 hover:bg-orange-100 transition-colors"
-                      >
-                        + ksrce
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => applyDomainExtension('@gmail.com')}
-                        className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-100 transition-colors"
-                      >
-                        + gmail
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Mail className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="email-input"
-                    name="email"
-                    type="text" 
-                    value={email} 
-                    onChange={(e) => { setEmail(e.target.value); validateEmailText(e.target.value); }}
-                    placeholder="username@ksrce.ac.in" 
-                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      emailError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
-                    }`}
-                  />
-                </div>
-                {emailError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5 pt-0.5">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{emailError}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">
-                  Secure Password
-                </label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="password-input"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'} 
-                    value={password} 
-                    onChange={(e) => { setPassword(e.target.value); validatePasswordText(e.target.value); }}
-                    placeholder="••••••••" 
-                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      passwordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
-                    }`}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPassword(!showPassword)} 
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                
-                <div className="flex justify-end px-0.5 pt-0.5">
-                  <button type="button" onClick={handleSwitchToRecovery} className="text-[11px] font-bold text-[#002D62] hover:text-orange-500 transition-colors">
-                    Recover Password?
-                  </button>
-                </div>
-
-                {passwordError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5 pt-0.5">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{passwordError}</span>
-                  </div>
-                )}
-              </div>
-
-              {loginError && (
-                <div className="text-[11px] font-semibold text-red-500 flex items-start gap-1.5 px-0.5 py-1 bg-red-50 rounded-lg border border-red-100">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-3 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[13px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    <span>Logging in...</span>
-                  </>
-                ) : (
-                  <span>Login</span>
-                )}
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            <div className="w-full flex flex-col items-center space-y-0.5 pt-4">
-              <div className="w-full flex items-center justify-start">
-                <button type="button" onClick={handleSwitchToLogin} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors">
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
+            <PasswordField
+              id="password-input" label="Password" value={password}
+              onChange={v => { setPassword(v); validatePasswordText(v); }}
+              placeholder="••••••••" error={passwordError}
+              show={showPassword} onToggle={() => setShowPassword(p => !p)}
+              right={
+                <button type="button" onClick={handleSwitchToRecovery}
+                  className="text-xs font-semibold text-[#002D62] hover:text-orange-500 transition-colors">
+                  Forgot password?
                 </button>
+              }
+            />
+
+            {loginError && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />{loginError}
               </div>
-              <h1 className="text-lg font-bold text-slate-800 tracking-tight pt-2">Recover Password</h1>
-              <p className="text-xs text-slate-400 font-medium">Verify your profile metrics to reset passcode</p>
-              <div className="w-10 h-[2px] bg-orange-500 rounded-full mt-1.5"></div>
-            </div>
+            )}
 
-            <form onSubmit={handleRecoverySubmission} className="w-full text-left space-y-3 pt-3">
-              
-              <div className="space-y-1">
-                <label htmlFor="recovery-email-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Registered Email</label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Mail className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="recovery-email-input"
-                    type="text"
-                    value={recoveryEmail}
-                    onChange={(e) => { setRecoveryEmail(e.target.value); validateRecoveryEmail(e.target.value); }}
-                    placeholder="name@ksrce.ac.in"
-                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      recoveryEmailError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-[#002D62]'
-                    }`}
-                  />
-                </div>
-                {recoveryEmailError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5 pt-0.5">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{recoveryEmailError}</span>
-                  </div>
-                )}
+            <button type="submit" disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-[#002D62] hover:bg-[#001e4d] disabled:opacity-60 text-white font-bold text-sm rounded-xl transition-all shadow-sm active:scale-[0.98]">
+              {isLoading ? <><Spinner /><span>Signing in...</span></> : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-slate-400">
+            Having trouble? Contact your placement officer.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full space-y-6">
+          {/* Heading */}
+          <div>
+            <button type="button" onClick={handleSwitchToLogin}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-4">
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+            </button>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Reset password</h2>
+            <p className="text-sm text-slate-500 mt-1">Verify your identity to set a new password</p>
+          </div>
+
+          <form onSubmit={handleRecoverySubmission} className="space-y-4">
+            <Field
+              id="recovery-email-input" label="Registered email" icon={Mail}
+              value={recoveryEmail}
+              onChange={v => { setRecoveryEmail(v); validateRecoveryEmail(v); }}
+              placeholder="you@ksrce.ac.in" error={recoveryEmailError}
+            />
+
+            <Field
+              id="phone-digits-input" label="Last 5 digits of your phone" icon={Phone}
+              value={lastFivePhone}
+              onChange={handlePhoneInput}
+              placeholder="e.g. 54321" error={phoneError}
+            />
+
+            <PasswordField
+              id="new-password-input" label="New password" value={newPassword}
+              onChange={handleNewPasswordValidation}
+              placeholder="••••••••" error={newPasswordError}
+              show={showRecoveryPass} onToggle={() => setShowRecoveryPass(p => !p)}
+            />
+
+            <PasswordField
+              id="confirm-new-password-input" label="Confirm new password" value={confirmNewPassword}
+              onChange={handleConfirmNewPasswordValidation}
+              placeholder="••••••••" error={confirmNewPasswordError}
+              show={showRecoveryConfirmPass} onToggle={() => setShowRecoveryConfirmPass(p => !p)}
+            />
+
+            {recoveryGeneralError && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />{recoveryGeneralError}
               </div>
+            )}
 
-              <div className="space-y-1">
-                <label htmlFor="phone-digits-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Last 5 Digits of Phone Number</label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Phone className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="phone-digits-input"
-                    type="text"
-                    maxLength={5}
-                    value={lastFivePhone}
-                    onChange={(e) => handlePhoneInput(e.target.value)}
-                    placeholder="e.g., 54321"
-                    className={`w-full pl-11 pr-4 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      phoneError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
-                    }`}
-                  />
-                </div>
-                {phoneError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5 pt-0.5">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{phoneError}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">New Password</label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="new-password-input"
-                    type={showRecoveryPass ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => handleNewPasswordValidation(e.target.value)}
-                    placeholder="••••••••"
-                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      newPasswordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-orange-500'
-                    }`}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowRecoveryPass(!showRecoveryPass)} 
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                  >
-                    {showRecoveryPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                {newPasswordError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-start gap-1.5 px-0.5 pt-0.5 leading-tight">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>{newPasswordError}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="confirm-new-password-input" className="text-[10px] font-bold text-slate-700 tracking-wide uppercase px-0.5">Confirm New Password</label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors">
-                    <Lock className="h-[14px] w-[14px]" />
-                  </span>
-                  <input 
-                    id="confirm-new-password-input"
-                    type={showRecoveryConfirmPass ? 'text' : 'password'}
-                    value={confirmNewPassword}
-                    onChange={(e) => handleConfirmNewPasswordValidation(e.target.value)}
-                    placeholder="••••••••"
-                    className={`w-full pl-11 pr-11 py-2 rounded-xl text-slate-900 placeholder-slate-400/80 text-[13px] bg-slate-50/40 border shadow-sm outline-none transition-all ${
-                      confirmNewPasswordError ? 'border-red-400 focus:border-red-500' : 'border-slate-300 focus:border-[#002D62]'
-                    }`}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowRecoveryConfirmPass(!showRecoveryConfirmPass)} 
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                  >
-                    {showRecoveryConfirmPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                {confirmNewPasswordError && (
-                  <div className="text-[11px] font-semibold text-red-500 flex items-center gap-1.5 px-0.5 pt-0.5">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{confirmNewPasswordError}</span>
-                  </div>
-                )}
-              </div>
-
-              {recoveryGeneralError && (
-                <div className="text-[11px] font-semibold text-red-500 flex items-start gap-1.5 px-0.5 py-1 bg-red-50 rounded-lg border border-red-100">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                  <span>{recoveryGeneralError}</span>
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-3 px-4 bg-[#002D62] hover:bg-[#052349] disabled:opacity-60 text-white font-bold text-[13px] rounded-xl transition-all tracking-wider shadow-md active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    <span>Updating Security...</span>
-                  </>
-                ) : (
-                  <span>Reset Password</span>
-                )}
-              </button>
-            </form>
-          </>
-        )}
-
-      </div>
+            <button type="submit" disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-[#002D62] hover:bg-[#001e4d] disabled:opacity-60 text-white font-bold text-sm rounded-xl transition-all shadow-sm active:scale-[0.98]">
+              {isLoading ? <><Spinner /><span>Resetting...</span></> : 'Reset password'}
+            </button>
+          </form>
+        </div>
+      )}
     </AuthBackground>
   );
 }

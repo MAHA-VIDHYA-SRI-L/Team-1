@@ -1,112 +1,110 @@
 import { type ReactNode } from 'react';
 import campusImg from '../../assets/campus.jpg';
+import collegeLogo from '../../assets/logo.jpg';
+import { GraduationCap, BarChart2, ShieldCheck } from 'lucide-react';
 
 interface AuthBackgroundProps {
   children: ReactNode;
-  layout?: 'split' | 'centered';
 }
 
-export default function AuthBackground({ children, layout = 'split' }: AuthBackgroundProps) {
-  const totalLines = 40;
-  const lines = Array.from({ length: totalLines }, (_, i) => {
-    const baseHeight = (900 / (totalLines + 1)) * (i + 1);
-    const offsetA = i % 2 === 0 ? 80 : -80;
-    const offsetB = i % 3 === 0 ? 120 : -60;
-    const offsetC = i % 4 === 0 ? -90 : 70;
-    
-    return {
-      id: i,
-      path: `M -50,${baseHeight} 
-             C 300,${baseHeight + offsetA} 
-               550,${baseHeight + offsetB} 
-               900,${baseHeight + offsetC} 
-             C 1150,${baseHeight - offsetA} 
-               1300,${baseHeight + offsetB} 
-               1500,${baseHeight}`,
-      duration: `${16 + (i % 5) * 3}s`,
-      delay: `${i * -0.7}s`,
-      opacity: i % 2 === 0 ? '0.06' : '0.10'
-    };
-  });
+const features = [
+  {
+    icon: GraduationCap,
+    title: 'Academic Tracking',
+    desc: 'Monitor CGPA, SGPA, and academic milestones in one place.',
+  },
+  {
+    icon: BarChart2,
+    title: 'AI Readiness Score',
+    desc: 'Get an AI-powered placement readiness score with actionable insights.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Staff Verified',
+    desc: 'Profiles and placements verified directly by placement officers.',
+  },
+];
 
+export default function AuthBackground({ children }: AuthBackgroundProps) {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-100 via-slate-50 to-[#002D62]/5 flex items-center justify-center font-sans antialiased selection:bg-[#002D62]/10 selection:text-[#002D62] overflow-x-hidden relative">
-      
-      <style>{`
-        @keyframes subtleWave {
-          0%, 100% { transform: translateY(0px) scaleY(1); }
-          50% { transform: translateY(-14px) scaleY(1.02); }
-        }
-        .topo-wave-line { 
-          animation: subtleWave ease-in-out infinite; 
-          transform-origin: center center;
-        }
-      `}</style>
+    <div className="min-h-screen w-full flex font-sans antialiased bg-slate-100">
 
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#002D62]/5 to-transparent rounded-full blur-[140px] pointer-events-none z-0"></div>
-      
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 bg-transparent">
-        <svg 
-          className="w-full h-full text-[#002D62]" 
-          viewBox="0 0 1440 900" 
-          preserveAspectRatio="none" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {lines.map((line) => (
-            <path 
-              key={line.id}
-              className="topo-wave-line" 
-              opacity={line.opacity}
-              stroke="currentColor" 
-              strokeWidth="0.75" 
-              d={line.path}
-              style={{
-                animationDuration: line.duration,
-                animationDelay: line.delay
-              }}
-            />
-          ))}
-        </svg>
+      {/* ── Left branded panel ── */}
+      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative flex-col overflow-hidden">
+        {/* Campus photo */}
+        <img
+          src={campusImg}
+          alt="Campus"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#001433]/95 via-[#002D62]/90 to-[#001433]/80" />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col h-full px-12 py-10">
+          {/* Logo + brand */}
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white overflow-hidden shadow-lg shrink-0">
+              <img src={collegeLogo} alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <p className="text-white font-black text-lg tracking-widest uppercase leading-none">Placemate</p>
+              <p className="text-blue-300/70 text-[10px] font-bold tracking-widest uppercase mt-0.5">K.S.R. College of Engineering</p>
+            </div>
+          </div>
+
+          {/* Hero text */}
+          <div className="mt-auto mb-12">
+            <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+              Your placement<br />
+              <span className="text-orange-400">journey starts</span><br />
+              here.
+            </h1>
+            <p className="mt-4 text-blue-200/80 text-sm font-medium leading-relaxed max-w-sm">
+              Track academics, upload certificates, run AI analysis, and get placed — all from one unified platform.
+            </p>
+
+            {/* Feature list */}
+            <div className="mt-8 space-y-4">
+              {features.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="h-4 w-4 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-bold leading-none">{title}</p>
+                    <p className="text-blue-200/60 text-xs font-medium mt-0.5 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <p className="text-blue-300/40 text-[11px] font-medium">
+            © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
+          </p>
+        </div>
       </div>
 
-      {layout === 'split' ? (
-        <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-[55fr_50fr] relative z-10 p-3 md:p-5 gap-6 box-border bg-transparent">
-          
-          <div className="hidden md:block w-full h-[calc(100vh-40px)] relative sticky top-5 rounded-[24px] overflow-hidden bg-white/40 backdrop-blur-[6px] p-2 border border-white/80 shadow-[0_12px_40px_rgba(0,45,98,0.04)]">
-            <div className="w-full h-full rounded-[18px] overflow-hidden relative shadow-inner group">
-              <img 
-                src={campusImg} 
-                alt="Institutional Campus Hub" 
-                className="w-full h-full object-cover select-none transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-black/5"></div>
-            </div>
+      {/* ── Right form panel ── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 bg-white min-h-screen">
+        {/* Mobile logo */}
+        <div className="lg:hidden flex items-center gap-2 mb-8">
+          <div className="h-9 w-9 rounded-xl bg-[#002D62] overflow-hidden">
+            <img src={collegeLogo} alt="Logo" className="w-full h-full object-contain" />
           </div>
-
-          <div className="w-full flex flex-col justify-between items-center px-4 sm:px-6 py-6 min-h-[calc(100vh-40px)] relative bg-transparent">
-            <div className="hidden md:block h-2"></div>
-
-            <div className="w-full max-w-[420px] my-auto relative z-10">
-              {children}
-            </div>
-
-            <div className="text-[11px] font-bold text-slate-400 tracking-wider z-10 hidden sm:block relative pt-6 select-none uppercase font-mono">
-              © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
-            </div>
-          </div>
+          <p className="text-[#002D62] font-black text-base tracking-widest uppercase">Placemate</p>
         </div>
-      ) : (
-        <div className="w-full relative z-10 p-4 flex flex-col items-center justify-center min-h-screen">
-          <div className="w-full flex justify-center">
-            {children}
-          </div>
-          
-          <div className="text-[11px] font-bold text-slate-400 tracking-wider mt-8 z-10 select-none uppercase font-mono">
-            © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
-          </div>
+
+        <div className="w-full max-w-[400px]">
+          {children}
         </div>
-      )}
+
+        <p className="lg:hidden mt-8 text-[11px] text-slate-400 font-medium text-center">
+          © {new Date().getFullYear()} K.S.R. College of Engineering
+        </p>
+      </div>
 
     </div>
   );

@@ -1,4 +1,5 @@
 import supabase from "../config/supabase.js";
+import { analyzeStudent } from "./analysisController.js";
 import pdfParse from "pdf-parse";
 
 const getStudentId = async (authUserId) => {
@@ -33,6 +34,9 @@ export const uploadResume = async (req, res) => {
       .from("resumes")
       .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText, uploaded_at: new Date().toISOString() }, { onConflict: "student_id" });
     if (dbError) return res.status(400).json({ error: dbError.message });
+
+    // Auto-trigger analysis after resume upload (fire-and-forget)
+    analyzeStudent(req, { status: () => ({ json: () => {} }) }).catch(() => {});
 
     return res.status(201).json({ message: "Resume uploaded successfully", resume_url: resumeUrl, resume_text: resumeText });
   } catch (err) {
