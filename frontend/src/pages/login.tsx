@@ -234,20 +234,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleRecoverySubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setRecoveryGeneralError('');
-<<<<<<< HEAD
-    const ok = validateRecoveryEmail(recoveryEmail)
-      && (handlePhoneInput(lastFivePhone) as unknown as boolean)
-      && (handleNewPasswordValidation(newPassword) as unknown as boolean)
-      && (handleConfirmNewPasswordValidation(confirmNewPassword) as unknown as boolean);
-    if (!ok) return;
-    if (!navigator.onLine) { setRecoveryGeneralError('You are offline. Please check your internet connection.'); return; }
-=======
     const v1 = validateRecoveryEmail(recoveryEmail);
     const v2 = handlePhoneInput(lastFivePhone);
     const v3 = handleNewPasswordValidation(newPassword);
     const v4 = handleConfirmNewPasswordValidation(confirmNewPassword);
     if (!v1 || !v2 || !v3 || !v4) return;
->>>>>>> f33446df387cff230311d5aa8eab6967f63c0bfb
+    if (!navigator.onLine) { setRecoveryGeneralError('You are offline. Please check your internet connection.'); return; }
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/reset-password`, {
