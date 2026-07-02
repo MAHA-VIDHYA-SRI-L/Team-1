@@ -5,6 +5,8 @@ import { GraduationCap, BarChart2, ShieldCheck } from 'lucide-react';
 
 interface AuthBackgroundProps {
   children: ReactNode;
+  layout?: 'split' | 'centered';
+  pattern?: 'none' | 'waves';
 }
 
 const features = [
@@ -25,9 +27,67 @@ const features = [
   },
 ];
 
-export default function AuthBackground({ children }: AuthBackgroundProps) {
+const WavesSVG = () => (
+  <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-80">
+    <svg className="absolute w-full h-full object-cover" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      {/* Primary wave series */}
+      <path d="M-100 50 C 200 -50, 600 150, 1500 0" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="6 6" fill="none" />
+      <path d="M-100 100 C 300 0, 700 200, 1500 50" stroke="#94A3B8" strokeWidth="1" opacity="0.5" fill="none" />
+      <path d="M-100 150 C 400 50, 800 250, 1500 100" stroke="#E2E8F0" strokeWidth="2" fill="none" />
+      <path d="M-100 200 C 350 100, 750 300, 1500 150" stroke="#CBD5E1" strokeWidth="1.5" fill="none" />
+      <path d="M-100 250 C 450 150, 850 350, 1500 200" stroke="#64748B" strokeWidth="1" opacity="0.4" fill="none" />
+      <path d="M-100 300 C 300 200, 700 400, 1500 250" stroke="#CBD5E1" strokeWidth="1.5" fill="none" />
+      <path d="M-100 350 C 500 250, 900 450, 1500 300" stroke="#E2E8F0" strokeWidth="1.5" fill="none" />
+      <path d="M-100 400 C 400 300, 800 500, 1500 350" stroke="#94A3B8" strokeWidth="1" opacity="0.6" strokeDasharray="4 8" fill="none" />
+      <path d="M-100 450 C 550 350, 950 550, 1500 400" stroke="#CBD5E1" strokeWidth="2" fill="none" />
+      <path d="M-100 500 C 350 400, 750 600, 1500 450" stroke="#E2E8F0" strokeWidth="1" fill="none" />
+      <path d="M-100 550 C 450 450, 850 650, 1500 500" stroke="#64748B" strokeWidth="1.5" opacity="0.3" fill="none" />
+      <path d="M-100 600 C 300 500, 700 700, 1500 550" stroke="#CBD5E1" strokeWidth="1.5" fill="none" />
+      <path d="M-100 650 C 500 550, 900 750, 1500 600" stroke="#E2E8F0" strokeWidth="2" fill="none" />
+      <path d="M-100 700 C 400 600, 800 800, 1500 650" stroke="#CBD5E1" strokeWidth="1" opacity="0.7" fill="none" />
+      <path d="M-100 750 C 550 650, 950 850, 1500 700" stroke="#94A3B8" strokeWidth="1.5" opacity="0.5" fill="none" />
+      <path d="M-100 800 C 350 700, 750 900, 1500 750" stroke="#E2E8F0" strokeWidth="1" fill="none" />
+      <path d="M-100 850 C 450 750, 850 950, 1500 800" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="8 4" fill="none" />
+      <path d="M-100 900 C 300 800, 700 1000, 1500 850" stroke="#E2E8F0" strokeWidth="1.5" fill="none" />
+      
+      {/* Intersecting & crossing waves for density and dynamic texture */}
+      <path d="M-100 80 C 500 280, 900 -70, 1500 230" stroke="#CBD5E1" strokeWidth="1.5" opacity="0.7" fill="none" />
+      <path d="M-100 180 C 600 380, 1000 30, 1500 330" stroke="#94A3B8" strokeWidth="1" opacity="0.4" fill="none" />
+      <path d="M-100 280 C 450 480, 850 130, 1500 430" stroke="#E2E8F0" strokeWidth="1.5" fill="none" />
+      <path d="M-100 380 C 550 580, 950 230, 1500 530" stroke="#CBD5E1" strokeWidth="2" opacity="0.6" fill="none" />
+      <path d="M-100 480 C 400 680, 800 330, 1500 630" stroke="#64748B" strokeWidth="1" opacity="0.3" strokeDasharray="5 5" fill="none" />
+      <path d="M-100 580 C 650 780, 1050 430, 1500 730" stroke="#E2E8F0" strokeWidth="1.5" fill="none" />
+      <path d="M-100 680 C 500 880, 900 530, 1500 830" stroke="#CBD5E1" strokeWidth="1" opacity="0.8" fill="none" />
+      <path d="M-100 780 C 600 980, 1000 630, 1500 930" stroke="#94A3B8" strokeWidth="1.5" opacity="0.5" fill="none" />
+    </svg>
+  </div>
+);
+
+export default function AuthBackground({ children, layout = 'split', pattern = 'none' }: AuthBackgroundProps) {
+  if (layout === 'centered') {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-between font-sans antialiased bg-[#F8FAFC] dark:bg-[#0F172A] relative overflow-hidden p-4 sm:p-6 transition-colors duration-300">
+        {/* Background waves pattern */}
+        {pattern === 'waves' && <WavesSVG />}
+
+        {/* Top Spacer for vertical balance */}
+        <div className="w-full h-2 sm:h-4" />
+
+        {/* Main Content Area */}
+        <div className="w-full flex-1 flex flex-col items-center justify-center relative z-10 my-4 sm:my-8">
+          {children}
+        </div>
+
+        {/* Footer */}
+        <p className="relative z-10 text-slate-400 dark:text-slate-500 text-xs font-medium text-center py-4">
+          © {new Date().getFullYear()} K.S.R. College of Engineering. All rights reserved.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen w-full flex font-sans antialiased bg-slate-100">
+    <div className="min-h-screen w-full flex font-sans antialiased bg-slate-100 dark:bg-[#0F172A] transition-colors duration-300">
 
       {/* ── Left branded panel ── */}
       <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative flex-col overflow-hidden">
@@ -88,24 +148,28 @@ export default function AuthBackground({ children }: AuthBackgroundProps) {
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 bg-white min-h-screen">
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-10 min-h-screen relative overflow-hidden transition-colors duration-300 ${
+        pattern === 'waves' ? 'bg-[#F8FAFC] dark:bg-[#0F172A]' : 'bg-white dark:bg-[#0F172A]'
+      }`}>
+        {/* Background waves pattern for right panel */}
+        {pattern === 'waves' && <WavesSVG />}
+
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 mb-8">
+        <div className="lg:hidden flex items-center gap-2 mb-8 relative z-10">
           <div className="h-9 w-9 rounded-xl bg-[#002D62] overflow-hidden">
             <img src={collegeLogo} alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <p className="text-[#002D62] font-black text-base tracking-widest uppercase">Placemate</p>
+          <p className="text-[#002D62] dark:text-blue-400 font-black text-base tracking-widest uppercase">Placemate</p>
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[520px] relative z-10">
           {children}
         </div>
 
-        <p className="lg:hidden mt-8 text-[11px] text-slate-400 font-medium text-center">
+        <p className="lg:hidden mt-8 text-[11px] text-slate-400 dark:text-slate-500 font-medium text-center relative z-10">
           © {new Date().getFullYear()} K.S.R. College of Engineering
         </p>
       </div>
-
     </div>
   );
 }

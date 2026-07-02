@@ -11,6 +11,7 @@ import { fetchAnalysis, fetchStudentProfile, fetchAcademicDetails, runAnalysis }
 import { useToast } from '../contexts/ToastContext';
 import { SkeletonCard, SkeletonProfile } from '../components/SkeletonLoader';
 import logoUrl from '../assets/logo.jpg';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface PlacementReadinessProps {
   user: {
@@ -185,6 +186,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button
               onClick={handleRunAnalysis}
               disabled={analysisRunning}
@@ -406,7 +408,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
             )}
 
             {/* Disclaimer Footer */}
-            <div className="mt-12 pt-6 border-t-2 border-slate-100 text-center relative print:pt-4">
+            <div className="mt-12 pt-6 border-t-2 border-slate-100 dark:border-slate-800 text-center relative print:pt-4">
               <p className="text-xs font-bold text-slate-400 italic">
                 Disclaimer: Placemate is a supporting tool for your career — use insights to guide decisions alongside mentors. Do not blindly follow this.
               </p>
