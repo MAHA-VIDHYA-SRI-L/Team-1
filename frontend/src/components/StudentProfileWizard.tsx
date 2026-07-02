@@ -72,8 +72,8 @@ export default function StudentProfileWizard({
       ugCollegeName: '',
       ugCgpa: '',
       pgCollegeName: '',
-      pgCgpa: '0.00',
-      finalCgpa: '0.00',
+      pgCgpa: '',
+      finalCgpa: '',
       sgpaSemesterValues: Array(8).fill(''),
       profileCreatedDate: new Date().toISOString(),
       profileUpdatedDate: new Date().toISOString()
@@ -158,7 +158,7 @@ export default function StudentProfileWizard({
   const strokeDashoffset = circumference - (dynamicPercentage / 100) * circumference;
 
   const computedCgpa = useMemo(() => {
-    const validScores = formData.sgpaSemesterValues.slice(0, completedSemsCount).map(v => parseFloat(v)).filter(num => !isNaN(num) && num <= 10 && num > 0);
+    const validScores = formData.sgpaSemesterValues.slice(0, completedSemsCount).map(v => parseFloat(v)).filter(num => !isNaN(num) && num >= 0 && num <= 10);
     return validScores.length === 0 ? '0.00' : (validScores.reduce((acc, curr) => acc + curr, 0) / validScores.length).toFixed(2);
   }, [formData.sgpaSemesterValues, completedSemsCount]);
 
@@ -285,7 +285,7 @@ export default function StudentProfileWizard({
       };
       if (finalData.graduationStanding !== 'PG') {
         finalData.pgCollegeName = '';
-        finalData.pgCgpa = '0.00';
+        finalData.pgCgpa = '';
       }
       onComplete(finalData);
     }

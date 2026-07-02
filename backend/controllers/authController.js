@@ -47,14 +47,18 @@ export const registerStudent = async (req, res) => {
   try {
     const { full_name, register_no, phone, email } = req.body;
 
-    if (!full_name || !register_no || !phone || !email)
+    if (!full_name?.trim() || !register_no || !phone || !email)
       return res.status(400).json({ error: "All fields are required" });
-    if (!NAME_REGEX.test(full_name))
+    if (!NAME_REGEX.test(full_name.trim()))
       return res.status(400).json({ error: "Name must contain letters only" });
+    if (full_name.trim().length < 3)
+      return res.status(400).json({ error: "Name must be at least 3 characters" });
     if (!EMAIL_REGEX.test(email.trim().toLowerCase()))
       return res.status(400).json({ error: "Email must end with @gmail.com or @ksrce.ac.in" });
     if (!REG_NO_REGEX.test(register_no))
       return res.status(400).json({ error: "Register number must contain digits only" });
+    if (register_no.length < 5 || register_no.length > 15)
+      return res.status(400).json({ error: "Register number must be 5–15 digits" });
     if (!/^\d{10}$/.test(phone.replace(/\s/g, '')))
       return res.status(400).json({ error: "Phone must be a 10-digit number" });
 
@@ -92,10 +96,12 @@ export const registerStaff = async (req, res) => {
   try {
     const { full_name, faculty_id, phone, email } = req.body;
 
-    if (!full_name || !faculty_id || !phone || !email)
+    if (!full_name?.trim() || !faculty_id || !phone || !email)
       return res.status(400).json({ error: "All fields are required" });
-    if (!NAME_REGEX.test(full_name))
+    if (!NAME_REGEX.test(full_name.trim()))
       return res.status(400).json({ error: "Name must contain letters only" });
+    if (full_name.trim().length < 3)
+      return res.status(400).json({ error: "Name must be at least 3 characters" });
     if (!EMAIL_REGEX.test(email.trim().toLowerCase()))
       return res.status(400).json({ error: "Email must end with @gmail.com or @ksrce.ac.in" });
     if (!/^\d{10}$/.test(phone.replace(/\s/g, '')))
@@ -105,6 +111,9 @@ export const registerStaff = async (req, res) => {
 
     const { data: existingProfile } = await supabaseAdmin.from("staff_profiles").select("id").eq("email", cleanEmail).single();
     if (existingProfile) return res.status(400).json({ error: "A staff member with this email is already registered" });
+
+    const { data: existingStudentEmail } = await supabaseAdmin.from("student_profiles").select("id").eq("email", cleanEmail).single();
+    if (existingStudentEmail) return res.status(400).json({ error: "This email is already registered as a student account" });
 
     const { data: existingFaculty } = await supabaseAdmin.from("staff_profiles").select("id").eq("faculty_id", faculty_id).single();
     if (existingFaculty) return res.status(400).json({ error: "This staff ID is already assigned to another member" });
@@ -139,14 +148,21 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     if (!/^\d{5}$/.test(phoneDigits))
       return res.status(400).json({ error: "phoneDigits must be exactly 5 digits" });
+    if (newPassword.length < 8 || newPassword.length > 128)
+      return res.status(400).json({ error: "New password must be 8–128 characters" });
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword))
+      return res.status(400).json({ error: "Password must contain uppercase, lowercase, and a number" });
+    if (!/[!@#$%^&*(),.?":{}|<>_]/.test(newPassword))
+      return res.status(400).json({ error: "Password must contain at least one special character" });
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const { data: student } = await supabaseAdmin.from("student_profiles").select("auth_user_id, phone").eq("email", cleanEmail).single();
-    const { data: staff } = !student ? await supabaseAdmin.from("staff_profiles").select("auth_user_id, phone").eq("email", cleanEmail).single() : { data: null };
+    const { data: student } = await supabaseAdmin.from("student_profiles").select("auth_user_id, phone, is_blocked").eq("email", cleanEmail).single();
+    const { data: staff } = !student ? await supabaseAdmin.from("staff_profiles").select("auth_user_id, phone, is_blocked").eq("email", cleanEmail).single() : { data: null };
     const profile = student || staff;
 
     if (!profile) return res.status(404).json({ error: "No account found with that email" });
+    if (profile.is_blocked) return res.status(403).json({ error: "This account has been blocked. Contact admin." });
 
     const storedLast5 = (profile.phone || '').replace(/\D/g, '').slice(-5);
     const storedBuf = Buffer.from(storedLast5.padEnd(5, '\0'));

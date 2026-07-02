@@ -92,8 +92,17 @@ export const updatePlacementStatus = async (req, res) => {
     if (!["Placed", "Not Placed"].includes(placement_status))
       return res.status(400).json({ error: "placement_status must be 'Placed' or 'Not Placed'" });
 
-    const updates = { placement_status, placement_verified: true };
-    if (company_name !== undefined) updates.company_name = company_name;
+    const updates = { placement_status, placement_verified: placement_status === 'Placed' };
+    if (company_name !== undefined) updates.company_name = placement_status === 'Placed' ? company_name : null;
+
+    // Check academic_details row exists first
+    const { data: existing } = await supabaseAdmin
+      .from("academic_details")
+      .select("student_id")
+      .eq("student_id", id)
+      .single();
+
+    if (!existing) return res.status(404).json({ error: "Student has no academic record. Ask student to complete their profile first." });
 
     const { error } = await supabaseAdmin
       .from("academic_details")

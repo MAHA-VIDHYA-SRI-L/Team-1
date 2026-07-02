@@ -34,11 +34,17 @@ export const addInternship = async (req, res) => {
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { company_name, role, duration, certificate_url } = req.body;
-    if (!company_name || !role) return res.status(400).json({ error: "company_name and role are required" });
+    if (!company_name || !company_name.trim()) return res.status(400).json({ error: "company_name is required" });
+    if (!role || !role.trim()) return res.status(400).json({ error: "role is required" });
+    if (company_name.trim().length > 150) return res.status(400).json({ error: "company_name must be 150 characters or fewer" });
+    if (role.trim().length > 100) return res.status(400).json({ error: "role must be 100 characters or fewer" });
+    if (duration && duration.trim().length > 50) return res.status(400).json({ error: "duration must be 50 characters or fewer" });
+    if (certificate_url && !/^https?:\/\/.+/.test(certificate_url))
+      return res.status(400).json({ error: "certificate_url must be a valid URL" });
 
     const { error } = await supabase
       .from("internships")
-      .insert({ student_id: studentId, company_name, role, duration, certificate_url });
+      .insert({ student_id: studentId, company_name: company_name.trim(), role: role.trim(), duration: duration?.trim() || null, certificate_url: certificate_url || null });
 
     if (error) return res.status(400).json({ error: error.message });
 

@@ -69,6 +69,10 @@ export default function Registration({ onNavigateToLogin }: RegistrationProps) {
       setNameError('Full Name is required (letters only)');
       return false;
     }
+    if (alphabeticOnly.trim().length < 3) {
+      setNameError('Full Name must be at least 3 characters');
+      return false;
+    }
     setNameError('');
     return true;
   };
@@ -195,9 +199,10 @@ export default function Registration({ onNavigateToLogin }: RegistrationProps) {
 
     setIsLoading(true);
 
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const endpoint = role === 'student'
-      ? 'http://localhost:3000/api/auth/register/student'
-      : 'http://localhost:3000/api/auth/register/staff';
+      ? `${API_BASE}/auth/register/student`
+      : `${API_BASE}/auth/register/staff`;
 
     const normalizedEmail = email.trim().toLowerCase();
 
