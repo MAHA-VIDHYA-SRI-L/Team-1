@@ -364,46 +364,100 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
                   </div>
                 </div>
 
-                {/* Strengths & Weaknesses */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-emerald-100 dark:border-emerald-900/50 shadow-sm relative overflow-hidden break-inside-avoid">
-                    <div className="absolute -top-4 -right-4 p-4 opacity-[0.03]"><TrendingUp size={100} className="text-emerald-600" /></div>
-                    <h4 className="flex items-center gap-2 font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wide mb-4 relative z-10">
-                      <TrendingUp size={18}/> Core Strengths
-                    </h4>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium relative z-10 whitespace-pre-line">{analysis.strengths}</p>
-                  </div>
+                {/* Consolidated Report Sections */}
+                <div className="space-y-6 mb-10">
                   
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-amber-100 dark:border-amber-900/50 shadow-sm relative overflow-hidden break-inside-avoid">
-                    <div className="absolute -top-4 -right-4 p-4 opacity-[0.03]"><AlertTriangle size={100} className="text-amber-600" /></div>
-                    <h4 className="flex items-center gap-2 font-black text-amber-800 dark:text-amber-400 uppercase tracking-wide mb-4 relative z-10">
-                      <AlertTriangle size={18}/> Key Weaknesses
-                    </h4>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium relative z-10 whitespace-pre-line">{analysis.weaknesses}</p>
-                  </div>
-                </div>
+                  {/* Overall Summary */}
+                  {analysis.overall_summary && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                      <h4 className="flex items-center gap-2 font-black text-blue-800 dark:text-blue-400 uppercase tracking-wide mb-3">
+                        <TrendingUp size={18} /> Overall Summary
+                      </h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.overall_summary}</p>
+                    </div>
+                  )}
 
-                {/* Recommendations + Lost Points */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                  <div className="bg-[#002D62]/5 dark:bg-blue-900/10 p-6 rounded-2xl border border-[#002D62]/10 dark:border-blue-800/30 shadow-sm break-inside-avoid">
-                    <h4 className="flex items-center gap-2 font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wide mb-4"><Lightbulb size={18}/> How to Improve</h4>
-                    <ul className="list-decimal pl-5 text-sm space-y-3 font-medium text-slate-700 dark:text-slate-300">
-                      {recList.map((r: string, i: number) => (<li key={i} className="leading-relaxed">{r}</li>))}
-                    </ul>
+                  {/* Academic Analysis */}
+                  {analysis.academic_analysis && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">📚 Academic Analysis</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.academic_analysis}</p>
+                    </div>
+                  )}
+
+                  {/* Resume Analysis */}
+                  {analysis.resume_analysis && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">📄 Resume Analysis</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.resume_analysis}</p>
+                    </div>
+                  )}
+
+                  {/* Technical Analysis */}
+                  {analysis.technical_analysis && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">⚙️ Technical Analysis</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.technical_analysis}</p>
+                    </div>
+                  )}
+
+                  {/* Project & Experience Analysis */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {analysis.project_analysis && (
+                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">🎯 Project Analysis</h4>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.project_analysis}</p>
+                      </div>
+                    )}
+
+                    {analysis.internship_analysis && (
+                      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">💼 Internship Analysis</h4>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.internship_analysis}</p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm break-inside-avoid">
-                    <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide text-sm mb-3">Where you lost points</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-medium">Pinpoint causes that reduced your readiness score and suggested fixes.</p>
-                    <ul className="space-y-3">
-                      {getLostPointItems(analysis).map((it: any, idx: number) => (
-                        <li key={idx} className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed">
-                          <strong className="block text-xs uppercase text-slate-400 dark:text-slate-500 mb-1">{it.area}</strong>
-                          <span className="font-medium">{it.reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* Certifications */}
+                  {analysis.certification_analysis && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-3 text-sm">🏆 Certification Analysis</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.certification_analysis}</p>
+                    </div>
+                  )}
+
+                  {/* Recruiter Impression */}
+                  {analysis.recruiter_impression && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
+                      <h4 className="flex items-center gap-2 font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wide mb-3">
+                        <CheckCircle size={18} /> Recruiter Impression
+                      </h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.recruiter_impression}</p>
+                    </div>
+                  )}
+
+                  {/* Career Fit */}
+                  {analysis.career_fit && Array.isArray(analysis.career_fit) && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-4 text-sm">🎓 Suitable Career Paths</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {analysis.career_fit.map((role: string, idx: number) => (
+                          <div key={idx} className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/50">
+                            <div className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 flex-shrink-0"></div>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{role}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Final Verdict */}
+                  {analysis.final_verdict && (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-2xl border-2 border-purple-100 dark:border-purple-800/50 shadow-sm">
+                      <h4 className="font-black text-purple-800 dark:text-purple-400 uppercase tracking-wide mb-3 text-sm">📋 Final Verdict</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{analysis.final_verdict}</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
