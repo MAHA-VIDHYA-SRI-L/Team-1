@@ -230,6 +230,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       && (handleConfirmNewPasswordValidation(confirmNewPassword) as unknown as boolean);
     if (!ok) return;
     if (!navigator.onLine) { setRecoveryGeneralError('You are offline. Please check your internet connection.'); return; }
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
