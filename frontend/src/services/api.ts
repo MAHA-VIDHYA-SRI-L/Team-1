@@ -270,7 +270,7 @@ export const runAnalysis = async () => {
 };
 
 export const fetchStudentProfile = async (): Promise<{ profile: Partial<StudentProfileData> }> => {
-  const res = await apiFetch(`${BASE_URL}/student/profile`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/api/student/profile`, { headers: authHeaders() });
   if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
   if (!res.ok) return { profile: {} };
   const { profile: p } = await res.json();
@@ -317,7 +317,7 @@ export const saveStudentProfile = async (data: StudentProfileData) => {
     semester_term: data.semesterTerm,
     linkedin_url: data.linkedinUrl,
   };
-  const res = await apiFetch(`${BASE_URL}/student/profile`, {
+  const res = await apiFetch(`${BASE_URL}/api/student/profile`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(body),
@@ -327,7 +327,7 @@ export const saveStudentProfile = async (data: StudentProfileData) => {
 };
 
 export const fetchAcademicDetails = async (): Promise<{ academic: Partial<StudentProfileData> }> => {
-  const res = await apiFetch(`${BASE_URL}/student/academic`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/apistudent/academic`, { headers: authHeaders() });
   if (res.status === 404) return { academic: {} };
   if (!res.ok) throw new Error((await res.json()).error);
   const { academic: a } = await res.json();
@@ -429,7 +429,7 @@ export const saveAcademicDetails = async (data: StudentProfileData) => {
     sgpa_values: (data.sgpaSemesterValues || []).map(v => (v != null ? String(v) : '')),
     placement_status: data.placementStatus || 'Not Placed',
   };
-  const res = await apiFetch(`${BASE_URL}/student/academic`, {
+  const res = await apiFetch(`${BASE_URL}/api/student/academic`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(body),
