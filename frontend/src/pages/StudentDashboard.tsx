@@ -67,7 +67,8 @@ export default function StudentDashboard({
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const isVerified = profileFormRecord?.isVerifiedByStaff || false;
-  const placementStatus = profileFormRecord?.placementStatus || 'Not Placed';
+  const placementStatus = (profileFormRecord as any)?.placementStatus || 'Not Placed';
+  const placementVerified = (profileFormRecord as any)?.placementVerified || false;
   const [verifiedBannerDismissed, setVerifiedBannerDismissed] = useState(
     () => sessionStorage.getItem('_pm_verified_banner_dismissed') === '1'
   );
@@ -112,12 +113,15 @@ export default function StudentDashboard({
 
     const onVisible = () => { if (document.visibilityState === 'visible') loadProfile(true); };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (profilePic) URL.revokeObjectURL(profilePic);
+    };
   }, []);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || resumeUploading) return;
     setResumeUploading(true);
     setResumeError(null);
     try {
@@ -144,7 +148,10 @@ export default function StudentDashboard({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setProfilePic(URL.createObjectURL(file));
+    if (file) {
+      if (profilePic) URL.revokeObjectURL(profilePic);
+      setProfilePic(URL.createObjectURL(file));
+    }
   };
 
   if (checkingProfile) {
@@ -171,10 +178,10 @@ export default function StudentDashboard({
           setIsSetupComplete(true);
           try {
             await saveStudentProfile(completedForm);
-            const existingAcademic = await fetchAcademicDetails().catch(() => null);
-            const hasExisting = !!(existingAcademic?.academic && Object.keys(existingAcademic.academic).length > 0);
-            await saveAcademicDetails(completedForm, hasExisting);
-          } catch {}
+            await saveAcademicDetails(completedForm);
+          } catch (err: any) {
+            addToast(err?.message || 'Failed to save profile. Please try again.', 'error');
+          }
         }}
       />
     );
@@ -182,7 +189,13 @@ export default function StudentDashboard({
 
   const pf = profileFormRecord || ({} as Partial<StudentProfileData>);
   const totalSemFieldsCount = (pf.sgpaSemesterValues || []).filter((v: any) => v !== '').length || 0;
-  const currentCgpa = (pf as any).finalCgpa || (pf as any).ugCgpa || (pf as any).pgCgpa || '—';
+  const _ug = (pf as any).ugCgpa;
+  const _pg = (pf as any).pgCgpa;
+  const _hasVal = (v: any) => v !== '' && v != null;
+  const currentCgpa =
+    pf.graduationStanding === 'PG'
+      ? (_hasVal(_pg) ? _pg : _hasVal(_ug) ? _ug : '—')
+      : (_hasVal(_ug) ? _ug : _hasVal(_pg) ? _pg : '—');
 
   const firstName = (pf.name as string)?.split(' ')[0] || user.fullName.split(' ')[0];
   const displayName = (pf.name as string) || user.fullName;
@@ -433,7 +446,7 @@ export default function StudentDashboard({
                 <p className={`text-3xl font-black tracking-tight ${placementStatus === 'Placed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-500 dark:text-orange-400'}`}>
                   {placementStatus === 'Placed' ? 'Placed' : 'Not Placed'}
                 </p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-2">Verified by placement officer</p>
+                <p className="text-[11px] text-slate-400 mt-2">Verified by placement officer</p>
               </div>
 
               {/* CGPA */}
@@ -442,7 +455,7 @@ export default function StudentDashboard({
                   <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wide">
                     {pf.graduationStanding === 'PG' ? 'PG CGPA' : 'CGPA'}
                   </p>
-                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{currentCgpa || '0.00'}</p>
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
                 </div>
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />

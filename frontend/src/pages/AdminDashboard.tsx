@@ -101,7 +101,7 @@ interface Staff {
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const adminHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'Admin@123',
+  'x-admin-key': import.meta.env.VITE_ADMIN_KEY || '',
 });
 
 const BLANK_STUDENT = { full_name: '', register_no: '', email: '', phone: '' };

@@ -250,6 +250,10 @@ export default function Badges({
       setFormError('Please fulfill all mandatory text fields.');
       return;
     }
+    if (formEnd < formStart) {
+      setFormError('End date cannot be before start date.');
+      return;
+    }
     if (!editingCertId && !formFile && !formFileName) {
       setFormError('Please upload the certificate soft copy file.');
       return;

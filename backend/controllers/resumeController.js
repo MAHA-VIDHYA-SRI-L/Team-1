@@ -24,15 +24,19 @@ export const uploadResume = async (req, res) => {
 
     if (uploadError) return res.status(400).json({ error: uploadError.message });
 
-    const { data: urlData } = supabase.storage.from("resumes").getPublicUrl(fileName);
-    const resumeUrl = urlData.publicUrl;
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("resumes")
+      .createSignedUrl(fileName, 60 * 60);
+    if (signedError) return res.status(400).json({ error: signedError.message });
+    const resumeUrl = signedData.signedUrl;
 
     const parsed = await pdfParse(req.file.buffer);
     const resumeText = parsed.text;
 
+    // Store the file path (not signed URL) so we can re-sign on each fetch
     const { error: dbError } = await supabase
       .from("resumes")
-      .upsert({ student_id: studentId, resume_url: resumeUrl, resume_text: resumeText, uploaded_at: new Date().toISOString() }, { onConflict: "student_id" });
+      .upsert({ student_id: studentId, resume_url: fileName, resume_text: resumeText, uploaded_at: new Date().toISOString() }, { onConflict: "student_id" });
     if (dbError) return res.status(400).json({ error: dbError.message });
 
     // Auto-trigger analysis after resume upload (fire-and-forget)
@@ -57,7 +61,13 @@ export const getResume = async (req, res) => {
 
     if (error || !data) return res.status(404).json({ error: "No resume found" });
 
-    return res.status(200).json({ resume: data });
+    // Re-sign the stored file path on every fetch (1 hour expiry)
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("resumes")
+      .createSignedUrl(data.resume_url, 60 * 60);
+    if (signErr) return res.status(400).json({ error: signErr.message });
+
+    return res.status(200).json({ resume: { resume_url: signed.signedUrl, uploaded_at: data.uploaded_at } });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

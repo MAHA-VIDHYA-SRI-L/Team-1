@@ -17,8 +17,12 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
+<<<<<<< HEAD
+import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../services/api';
+=======
 import { fetchStaffStudents } from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
+>>>>>>> f33446df387cff230311d5aa8eab6967f63c0bfb
 
 interface StaffReportProps {
   user: {
@@ -26,20 +30,6 @@ interface StaffReportProps {
     email: string;
   };
   onBack: () => void;
-}
-
-interface StudentRecord {
-  id: string;
-  regNo: string;
-  name: string;
-  dept: string;
-  readinessScore: number;
-  status: 'Placed' | 'Not Placed';
-  placementVerified: boolean;
-  company?: string;
-  email: string;
-  isBlocked: boolean;
-  isVerified: boolean;
 }
 
 const DEPARTMENTS = [
@@ -75,21 +65,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
   useEffect(() => {
     fetchStaffStudents()
       .then(({ students: raw }) => {
-        setStudents(
-          (raw || []).map((s: any) => ({
-            id: s.id,
-            regNo: s.register_no ?? '',
-            name: s.full_name ?? '',
-            dept: (s.branch ?? '').trim().toUpperCase(),
-            readinessScore: s.readiness_score ?? 0,
-            status: s.placement_status === 'Placed' ? 'Placed' : 'Not Placed',
-            placementVerified: s.placement_verified ?? false,
-            company: s.company_name ?? undefined,
-            email: s.email ?? '',
-            isBlocked: s.is_blocked ?? false,
-            isVerified: s.is_verified ?? false,
-          }))
-        );
+        setStudents((raw || []).map(mapStudentRecord));
       })
       .catch((err) => setFetchError(err.message))
       .finally(() => setLoading(false));
@@ -151,8 +127,13 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
       s.isBlocked ? 'Yes' : 'No',
     ]);
 
+    const sanitize = (val: string) => {
+      const s = String(val).replace(/"/g, '""');
+      // Prevent CSV formula injection
+      return /^[=+\-@|]/.test(s) ? `'${s}` : s;
+    };
     const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .map((row) => row.map((cell) => `"${sanitize(String(cell))}"`).join(','))
       .join('\n');
 
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });

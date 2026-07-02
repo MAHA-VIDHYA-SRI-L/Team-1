@@ -4,7 +4,37 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 let _authToken = sessionStorage.getItem('_pm_token') || '';
 let _refreshToken = sessionStorage.getItem('_pm_refresh') || '';
+let _refreshInProgress = false;
 let _onUnauthorized: (() => void) | null = null;
+
+// Shared data mapping function for student records from API
+export interface StudentRecord {
+  id: string;
+  regNo: string;
+  name: string;
+  dept: string;
+  readinessScore: number;
+  status: 'Placed' | 'Not Placed';
+  placementVerified: boolean;
+  company?: string;
+  email: string;
+  isBlocked: boolean;
+  isVerified: boolean;
+}
+
+export const mapStudentRecord = (s: any): StudentRecord => ({
+  id: s.id,
+  regNo: s.register_no ?? '',
+  name: s.full_name ?? '',
+  dept: (s.branch ?? '').trim().toUpperCase(),
+  readinessScore: s.readiness_score ?? 0,
+  status: s.placement_status === 'Placed' ? 'Placed' : 'Not Placed',
+  placementVerified: s.placement_verified ?? false,
+  company: s.company_name ?? undefined,
+  email: s.email ?? '',
+  isBlocked: s.is_blocked ?? false,
+  isVerified: s.is_verified ?? false,
+});
 
 const getToken = (): string => _authToken;
 
@@ -40,6 +70,12 @@ export const setUnauthorizedHandler = (handler: () => void) => {
 // Attempts to refresh the session; returns true if successful
 const tryRefresh = async (): Promise<boolean> => {
   if (!_refreshToken) return false;
+  if (_refreshInProgress) {
+    // Wait for existing refresh to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return _authToken !== '';
+  }
+  _refreshInProgress = true;
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: 'POST',
@@ -52,27 +88,42 @@ const tryRefresh = async (): Promise<boolean> => {
     return true;
   } catch {
     return false;
+  } finally {
+    _refreshInProgress = false;
   }
 };
 
 // Fetch wrapper that auto-retries once after token refresh on 401
 const apiFetch = async (input: string, init?: RequestInit): Promise<Response> => {
-  let res = await fetch(input, init);
-  if (res.status === 401 && _refreshToken) {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
-      // Rebuild auth header with new token
-      const newInit: RequestInit = {
-        ...init,
-        headers: { ...(init?.headers as Record<string, string> || {}), Authorization: `Bearer ${_authToken}` },
-      };
-      res = await fetch(input, newInit);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    let res = await fetch(input, { ...init, signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.status === 401 && _refreshToken) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        // Rebuild auth header with new token
+        const newInit: RequestInit = {
+          ...init,
+          headers: { ...(init?.headers as Record<string, string> || {}), Authorization: `Bearer ${_authToken}` },
+        };
+        res = await fetch(input, newInit);
+      }
     }
+    if (res.status === 401) {
+      _onUnauthorized?.();
+    }
+    return res;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
   }
-  if (res.status === 401) {
-    _onUnauthorized?.();
-  }
-  return res;
 };
 
 export const updateSelfPlacement = async (placement_status: string, company_name?: string) => {
@@ -299,7 +350,7 @@ export const fetchAcademicDetails = async (): Promise<{ academic: Partial<Studen
       pgCgpa,
       finalCgpa: isPG ? pgCgpa : ugCgpa,
       sgpaSemesterValues: Array.isArray(a.sgpa_values)
-        ? a.sgpa_values.map((v: any) => (v != null ? String(v) : ''))
+        ? a.sgpa_values.map((v: any) => (v != null && v !== '' ? String(v) : ''))
         : Array(8).fill(''),
       placementStatus: a.placement_status ?? 'Not Placed',
       placementVerified: a.placement_verified ?? false,
@@ -358,28 +409,34 @@ export const deleteInternship = async (id: string) => {
   return res.json();
 };
 
-export const saveAcademicDetails = async (data: StudentProfileData, isUpdate: boolean) => {
+export const saveAcademicDetails = async (data: StudentProfileData) => {
+  const toNum = (v: string | undefined | null) =>
+    v !== '' && v != null && !isNaN(parseFloat(v as string)) ? parseFloat(v as string) : null;
+
   const body = {
     board_of_study: data.boardOfStudy,
     graduation_standing: data.graduationStanding,
     tenth_school: data.tenthSchool,
-    tenth_percentage: parseFloat(data.tenthPercentage) || null,
+    tenth_percentage: toNum(data.tenthPercentage),
     twelfth_school: data.twelfthSchool,
-    twelfth_percentage: parseFloat(data.twelfthPercentage) || null,
-    diploma_percentage: parseFloat(data.diplomaPercentage) || null,
+    twelfth_percentage: toNum(data.twelfthPercentage),
+    diploma_percentage: toNum(data.diplomaPercentage),
     diploma_institution: data.diplomaInstitution || null,
     ug_college: data.ugCollegeName,
-    ug_cgpa: data.ugCgpa !== '' && data.ugCgpa != null ? parseFloat(data.ugCgpa) : null,
+    ug_cgpa: toNum(data.ugCgpa),
     pg_college: data.graduationStanding === 'PG' ? (data.pgCollegeName || null) : null,
-    pg_cgpa: data.graduationStanding === 'PG' && data.pgCgpa !== '' && data.pgCgpa != null ? parseFloat(data.pgCgpa) : null,
-    sgpa_values: data.sgpaSemesterValues,
-    ...(!isUpdate && { placement_status: data.placementStatus || 'Not Placed' }),
+    pg_cgpa: data.graduationStanding === 'PG' ? toNum(data.pgCgpa) : null,
+    sgpa_values: (data.sgpaSemesterValues || []).map(v => (v != null ? String(v) : '')),
+    placement_status: data.placementStatus || 'Not Placed',
   };
   const res = await apiFetch(`${BASE_URL}/student/academic`, {
-    method: isUpdate ? 'PUT' : 'POST',
+    method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error((await res.json()).error);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
   return res.json();
 };

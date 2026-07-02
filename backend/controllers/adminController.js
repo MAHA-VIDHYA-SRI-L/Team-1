@@ -25,6 +25,15 @@ export const updateStudent = async (req, res) => {
   const { full_name, register_no, phone, email } = req.body;
   const id = req.params.id;
 
+  if (!full_name && !register_no && !phone && !email)
+    return res.status(400).json({ error: "At least one field is required to update" });
+  if (full_name && full_name.trim().length < 2)
+    return res.status(400).json({ error: "full_name must be at least 2 characters" });
+  if (phone && !/^[6-9]\d{9}$/.test(phone))
+    return res.status(400).json({ error: "phone must be a valid 10-digit Indian number" });
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ error: "Invalid email format" });
+
   if (email) {
     const { data: dup } = await supabaseAdmin.from("student_profiles").select("id").eq("email", email).neq("id", id).single();
     if (dup) return res.status(400).json({ error: "This email is already used by another student" });
@@ -47,6 +56,8 @@ export const updateStudent = async (req, res) => {
 
 export const toggleBlockStudent = async (req, res) => {
   const { is_blocked } = req.body;
+  if (typeof is_blocked !== 'boolean')
+    return res.status(400).json({ error: "is_blocked must be a boolean" });
   const { data, error } = await supabaseAdmin
     .from("student_profiles")
     .update({ is_blocked })
@@ -98,6 +109,15 @@ export const updateStaff = async (req, res) => {
   const { full_name, faculty_id, phone, email } = req.body;
   const id = req.params.id;
 
+  if (!full_name && !faculty_id && !phone && !email)
+    return res.status(400).json({ error: "At least one field is required to update" });
+  if (full_name && full_name.trim().length < 2)
+    return res.status(400).json({ error: "full_name must be at least 2 characters" });
+  if (phone && !/^[6-9]\d{9}$/.test(phone))
+    return res.status(400).json({ error: "phone must be a valid 10-digit Indian number" });
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ error: "Invalid email format" });
+
   if (email) {
     const { data: dup } = await supabaseAdmin.from("staff_profiles").select("id").eq("email", email).neq("id", id).single();
     if (dup) return res.status(400).json({ error: "This email is already used by another staff member" });
@@ -120,6 +140,8 @@ export const updateStaff = async (req, res) => {
 
 export const toggleBlockStaff = async (req, res) => {
   const { is_blocked } = req.body;
+  if (typeof is_blocked !== 'boolean')
+    return res.status(400).json({ error: "is_blocked must be a boolean" });
   const { data, error } = await supabaseAdmin
     .from("staff_profiles")
     .update({ is_blocked })
