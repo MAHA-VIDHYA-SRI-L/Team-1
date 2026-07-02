@@ -142,7 +142,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   const validatePasswordText = (text: string): boolean => {
-    if (!text) { setPasswordError('Password is required'); return false; }
+    if (!text || !text.trim()) { setPasswordError('Password is required'); return false; }
     setPasswordError(''); return true;
   };
 
@@ -225,11 +225,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     e.preventDefault();
     setRecoveryGeneralError('');
     const ok = validateRecoveryEmail(recoveryEmail)
-      & (handlePhoneInput(lastFivePhone) as unknown as boolean)
-      & (handleNewPasswordValidation(newPassword) as unknown as boolean)
-      & (handleConfirmNewPasswordValidation(confirmNewPassword) as unknown as boolean);
+      && (handlePhoneInput(lastFivePhone) as unknown as boolean)
+      && (handleNewPasswordValidation(newPassword) as unknown as boolean)
+      && (handleConfirmNewPasswordValidation(confirmNewPassword) as unknown as boolean);
     if (!ok) return;
-    setIsLoading(true);
+    if (!navigator.onLine) { setRecoveryGeneralError('You are offline. Please check your internet connection.'); return; }
     try {
       const response = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',

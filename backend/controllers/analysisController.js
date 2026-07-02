@@ -126,25 +126,37 @@ Here is the student's complete profile:
 
 ${studentData}`;
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.5,
-    });
+    const completion = await Promise.race([
+      groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.5,
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("AI analysis timeout")), 120000)), // 2 minute timeout
+    ]);
 
     const raw = completion.choices[0].message.content.trim();
 
     // Extract the JSON block at the end
     const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```\s*$/);
     let result;
-    if (jsonMatch) {
-      result = JSON.parse(jsonMatch[1]);
-    } else {
-      // Fallback: try to find any JSON object
-      const fallback = raw.match(/\{[\s\S]*\}/);
-      if (!fallback) return res.status(500).json({ error: "AI response parsing failed" });
-      result = JSON.parse(fallback[0]);
+    try {
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[1]);
+      } else {
+        const fallback = raw.match(/\{[\s\S]*\}/);
+        if (!fallback) return res.status(500).json({ error: "AI response parsing failed — no JSON block found" });
+        result = JSON.parse(fallback[0]);
+      }
+    } catch (parseErr) {
+      return res.status(500).json({ error: "AI response JSON parse error: " + parseErr.message });
     }
+
+    // Validate required fields
+    if (typeof result.readiness_score !== 'number' || result.readiness_score < 0 || result.readiness_score > 100)
+      return res.status(500).json({ error: "AI returned invalid readiness_score" });
+    if (!result.readiness_status || !result.strengths || !result.weaknesses || !result.recommendations)
+      return res.status(500).json({ error: "AI response missing required fields" });
 
     // The consolidated report is everything before the json block
     const consolidated_report = raw.replace(/```json[\s\S]*?```\s*$/, "").trim();
