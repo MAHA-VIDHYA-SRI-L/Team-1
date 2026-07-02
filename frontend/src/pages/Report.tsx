@@ -12,6 +12,7 @@ import {
   fetchSkills,
   fetchInternships,
 } from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface ReportProps {
   user: { fullName: string; email: string; department?: string };
@@ -107,19 +108,19 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center gap-2">
-        <Loader2 className="h-5 w-5 animate-spin text-[#002D62]" />
-        <span className="text-sm font-semibold text-slate-500">Building report...</span>
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center gap-2 transition-colors duration-300">
+        <Loader2 className="h-5 w-5 animate-spin text-[#002D62] dark:text-blue-400" />
+        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Building report...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
         <AlertCircle className="h-8 w-8 text-red-400" />
-        <p className="text-sm text-slate-600">{error}</p>
-        <button onClick={onBackToDashboard} className="text-xs font-bold text-[#002D62] underline">Back</button>
+        <p className="text-sm text-slate-600 dark:text-slate-400">{error}</p>
+        <button onClick={onBackToDashboard} className="text-xs font-bold text-[#002D62] dark:text-blue-400 underline">Back</button>
       </div>
     );
   }
@@ -172,45 +173,33 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#e5e7eb', fontFamily: 'Arial, sans-serif' }}>
+    <div className="min-h-screen bg-slate-200 dark:bg-slate-950 font-sans transition-colors duration-300">
 
       {/* ── Toolbar (not captured in PDF) ── */}
-      <div style={{
-        background: '#fff', borderBottom: '1px solid #e2e8f0',
-        padding: '12px 24px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm transition-colors duration-300">
+        <div className="flex items-center gap-3">
           <button
             onClick={onBackToDashboard}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', border: '1px solid #e2e8f0',
-              borderRadius: 10, background: '#f8fafc', cursor: 'pointer',
-              fontSize: 12, fontWeight: 700, color: '#475569',
-            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
           >
             <ArrowLeft size={13} /> Back
           </button>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: '#002D62', letterSpacing: 1 }}>PLACEMATE</div>
-            <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, letterSpacing: 1 }}>PLACEMENT READINESS REPORT</div>
+            <div className="text-sm font-black text-[#002D62] dark:text-blue-400 tracking-wider">PLACEMATE</div>
+            <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">PLACEMENT READINESS REPORT</div>
           </div>
         </div>
-        <button
-          onClick={downloadPdf}
-          disabled={downloading}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 18px', background: downloading ? '#64748b' : '#002D62',
-            color: '#fff', border: 'none', borderRadius: 10,
-            fontSize: 12, fontWeight: 700, cursor: downloading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          {downloading ? 'Generating PDF...' : 'Download PDF'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button
+            onClick={downloadPdf}
+            disabled={downloading}
+            className={`flex items-center gap-2 px-4 py-2 ${downloading ? 'bg-slate-500' : 'bg-[#002D62] dark:bg-blue-600 hover:bg-[#001c3d] dark:hover:bg-blue-500'} text-white rounded-xl text-xs font-bold transition-all shadow-sm disabled:cursor-not-allowed`}
+          >
+            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            {downloading ? 'Generating PDF...' : 'Download PDF'}
+          </button>
+        </div>
       </div>
 
       {/* ── A4 Paper ── */}
