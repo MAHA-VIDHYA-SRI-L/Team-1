@@ -23,7 +23,7 @@ import {
   Clock,
   FileText
 } from 'lucide-react';
-import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent, updateCertStatus } from '../services/api';
+import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent, updateCertStatus, mapStudentRecord, type StudentRecord } from '../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -36,20 +36,6 @@ interface StaffDashboardProps {
   };
   onLogout: () => void;
   onNavigateToReport?: () => void;
-}
-
-interface StudentRecord {
-  id: string;
-  regNo: string;
-  name: string;
-  dept: string;
-  readinessScore: number;
-  status: 'Placed' | 'Not Placed';
-  placementVerified: boolean;
-  company?: string;
-  email: string;
-  isBlocked: boolean;
-  isVerified: boolean;
 }
 
 export default function StaffDashboard({ user, onLogout, onNavigateToReport }: StaffDashboardProps) {
@@ -71,19 +57,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   const loadStudents = () => {
     fetchStaffStudents()
       .then(({ students: raw }) => {
-        setStudents((raw || []).map((s: any) => ({
-          id: s.id,
-          regNo: s.register_no ?? '',
-          name: s.full_name ?? '',
-          dept: (s.branch ?? '').trim().toUpperCase(),
-          readinessScore: s.readiness_score ?? 0,
-          status: s.placement_status === 'Placed' ? 'Placed' : 'Not Placed',
-          placementVerified: s.placement_verified ?? false,
-          company: s.company_name ?? undefined,
-          email: s.email ?? '',
-          isBlocked: s.is_blocked ?? false,
-          isVerified: s.is_verified ?? false,
-        })));
+        setStudents((raw || []).map(mapStudentRecord));
       })
       .catch((err) => setFetchError(err.message))
       .finally(() => setLoading(false));
@@ -92,6 +66,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   useEffect(() => { loadStudents(); }, []);
 
   const handleBlockToggle = async (id: string, block: boolean) => {
+    if (!window.confirm(`Are you sure you want to ${block ? 'block' : 'unblock'} this student?`)) return;
     try {
       await blockStudent(id, block);
       setStudents(prev => prev.map(s => s.id === id ? { ...s, isBlocked: block } : s));
@@ -103,6 +78,10 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   const handleVerifyPlacement = async () => {
     if (!placementModal) return;
     const { id } = placementModal;
+    if (placementForm.status === 'Placed' && !placementForm.company.trim()) {
+      alert('Company name is required when marking as Placed.');
+      return;
+    }
     setVerifyingId(id);
     try {
       await updatePlacementStatus(id, placementForm.status as 'Placed' | 'Not Placed', placementForm.company || undefined);
@@ -161,6 +140,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   };
 
   const handleViewStudent = async (id: string) => {
+    setViewStudent(null);
     setViewLoading(true);
     try {
       const data = await fetchStaffStudentById(id);
@@ -727,7 +707,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
                           <p className="font-bold text-slate-700 text-xs">{c.certification_name}</p>
                           <p className="text-[11px] text-slate-500">{c.issuer}{c.category ? ` · ${c.category}` : ''}</p>
                           {c.certificate_url && (
-                            <a href={c.certificate_url.startsWith('http') ? c.certificate_url : `${import.meta.env.VITE_SUPABASE_URL || ''}${c.certificate_url}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 font-bold">View Certificate</a>
+                            <a href={c.certificate_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 font-bold">View Certificate</a>
                           )}
                           <div className="flex items-center gap-2 mt-1.5">
                             {c.status?.toLowerCase() === 'approved' ? (

@@ -7,6 +7,35 @@ let _refreshToken = sessionStorage.getItem('_pm_refresh') || '';
 let _refreshInProgress = false;
 let _onUnauthorized: (() => void) | null = null;
 
+// Shared data mapping function for student records from API
+export interface StudentRecord {
+  id: string;
+  regNo: string;
+  name: string;
+  dept: string;
+  readinessScore: number;
+  status: 'Placed' | 'Not Placed';
+  placementVerified: boolean;
+  company?: string;
+  email: string;
+  isBlocked: boolean;
+  isVerified: boolean;
+}
+
+export const mapStudentRecord = (s: any): StudentRecord => ({
+  id: s.id,
+  regNo: s.register_no ?? '',
+  name: s.full_name ?? '',
+  dept: (s.branch ?? '').trim().toUpperCase(),
+  readinessScore: s.readiness_score ?? 0,
+  status: s.placement_status === 'Placed' ? 'Placed' : 'Not Placed',
+  placementVerified: s.placement_verified ?? false,
+  company: s.company_name ?? undefined,
+  email: s.email ?? '',
+  isBlocked: s.is_blocked ?? false,
+  isVerified: s.is_verified ?? false,
+});
+
 const getToken = (): string => _authToken;
 
 const buildHeaders = (): Record<string, string> => {
