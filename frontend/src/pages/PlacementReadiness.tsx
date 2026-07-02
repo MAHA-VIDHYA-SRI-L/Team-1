@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, TrendingUp, AlertTriangle, Lightbulb, 
+  ArrowLeft, TrendingUp, 
   CheckCircle, Loader2, Clock
 } from 'lucide-react';
 import {
@@ -101,19 +101,19 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
     return sum > 0 ? base.map(b => ({ ...b, value: Math.round((b.value / sum) * 100) })) : base;
   };
 
-  const getLostPointItems = (analysisObj: any) => {
-    const weaknesses = Array.isArray(analysisObj?.weaknesses) ? analysisObj.weaknesses : (typeof analysisObj?.weaknesses === 'string' ? analysisObj.weaknesses.split('\n').filter(Boolean) : []);
-    if (weaknesses.length) return weaknesses.map((w: any) => ({ area: w.split(':')[0] || 'Area', reason: w }));
-    const recs = Array.isArray(analysisObj?.recommendations) ? analysisObj.recommendations : (analysisObj?.recommendations ? [analysisObj.recommendations] : []);
-    if (recs.length) return [{ area: 'Recommendations', reason: recs.join('; ') }];
-    return [{ area: 'General', reason: 'Lower ATS keywords and fewer quantified achievements.' }];
-  };
+  //const getLostPointItems = (analysisObj: any) => {
+   // const weaknesses = Array.isArray(analysisObj?.weaknesses) ? analysisObj.weaknesses : (typeof analysisObj?.weaknesses === 'string' ? analysisObj.weaknesses.split('\n').filter(Boolean) : []);
+   // if (weaknesses.length) return weaknesses.map((w: any) => ({ area: w.split(':')[0] || 'Area', reason: w }));
+   // const recs = Array.isArray(analysisObj?.recommendations) ? analysisObj.recommendations : (analysisObj?.recommendations ? [analysisObj.recommendations] : []);
+   // if (recs.length) return [{ area: 'Recommendations', reason: recs.join('; ') }];
+   // return [{ area: 'General', reason: 'Lower ATS keywords and fewer quantified achievements.' }];
+  //};
 
-  const recList: string[] = Array.isArray(analysis?.recommendations)
-    ? analysis.recommendations
-    : typeof analysis?.recommendations === 'string' && analysis.recommendations
-    ? analysis.recommendations.split(/\n|(?<=\.)\s+(?=[A-Z0-9])/).map((s: string) => s.trim()).filter(Boolean)
-    : [];
+ // const recList: string[] = Array.isArray(analysis?.recommendations)
+   // ? analysis.recommendations
+  //  : typeof analysis?.recommendations === 'string' && analysis.recommendations
+   // ? analysis.recommendations.split(/\n|(?<=\.)\s+(?=[A-Z0-9])/).map((s: string) => s.trim()).filter(Boolean)
+   // : [];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
