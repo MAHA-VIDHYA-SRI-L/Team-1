@@ -68,7 +68,8 @@ export default function StudentDashboard({
 
   const isVerified = profileFormRecord?.isVerifiedByStaff || false;
   const placementStatus = (profileFormRecord as any)?.placementStatus || 'Not Placed';
-  const placementVerified = (profileFormRecord as any)?.placementVerified || false;
+  const _placementVerified = (profileFormRecord as any)?.placementVerified || false;
+  void _placementVerified; // prevent unused variable warning
   const [verifiedBannerDismissed, setVerifiedBannerDismissed] = useState(
     () => sessionStorage.getItem('_pm_verified_banner_dismissed') === '1'
   );

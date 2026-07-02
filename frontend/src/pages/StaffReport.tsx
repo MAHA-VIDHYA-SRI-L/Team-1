@@ -17,12 +17,8 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-<<<<<<< HEAD
 import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../services/api';
-=======
-import { fetchStaffStudents } from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
->>>>>>> f33446df387cff230311d5aa8eab6967f63c0bfb
 
 interface StaffReportProps {
   user: {

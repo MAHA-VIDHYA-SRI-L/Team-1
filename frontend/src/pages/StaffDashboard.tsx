@@ -762,13 +762,8 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
                       {viewStudent.certifications.map((c: any) => (
                         <div key={c.id} className="border-b border-slate-100 dark:border-slate-700/80 pb-2 last:border-0 last:pb-0">
                           <p className="font-bold text-slate-700 dark:text-slate-200 text-xs">{c.certification_name}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{c.issuer}{c.category ? ` · ${c.category}` : ''}</p>
                           {c.certificate_url && (
-<<<<<<< HEAD
-                            <a href={c.certificate_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 font-bold">View Certificate</a>
-=======
                             <a href={c.certificate_url.startsWith('http') ? c.certificate_url : `${import.meta.env.VITE_SUPABASE_URL || ''}${c.certificate_url}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">View Certificate</a>
->>>>>>> f33446df387cff230311d5aa8eab6967f63c0bfb
                           )}
                           <div className="flex items-center gap-2 mt-1.5">
                             {c.status?.toLowerCase() === 'approved' ? (
