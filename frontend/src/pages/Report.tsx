@@ -35,8 +35,8 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     Promise.all([
       fetchStudentProfile(),
       fetchAcademicDetails(),
-      fetchAnalysis(),
-      fetchCertifications(),
+      fetchAnalysis().catch(() => null),
+      fetchCertifications().catch(() => ({ certifications: [] })),
       fetchSkills().catch(() => ({ skills: [] })),
       fetchInternships().catch(() => ({ internships: [] })),
     ])
@@ -49,15 +49,16 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
         setInternships(Array.isArray(internRes) ? internRes : internRes?.internships ?? []);
       })
       .catch((err) => {
-        if (err.message === 'unauthorized') onBackToDashboard();
-        else setError(err.message);
+        if (err?.message === 'unauthorized') onBackToDashboard();
+        else setError(err?.message || 'Failed to load report data');
       })
       .finally(() => setLoading(false));
   }, []);
 
   const downloadPdf = async () => {
-    if (!reportRef.current) return;
+    if (!reportRef.current || downloading) return;
     setDownloading(true);
+    let objectUrl: string | null = null;
     try {
       // Temporarily make the report visible at full width for capture
       const el = reportRef.current;
@@ -97,6 +98,9 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     } catch (e) {
       console.error(e);
     } finally {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
       setDownloading(false);
     }
   };
@@ -474,8 +478,8 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                             display: 'inline-block', marginTop: 3,
                             padding: '1px 6px', borderRadius: 3, fontSize: 8,
                             fontWeight: 700, textTransform: 'uppercase',
-                            background: cert.status === 'Approved' ? '#d1fae5' : '#fff7ed',
-                            color: cert.status === 'Approved' ? '#065f46' : '#c2410c',
+                            background: cert.status?.toLowerCase() === 'approved' ? '#d1fae5' : '#fff7ed',
+                            color: cert.status?.toLowerCase() === 'approved' ? '#065f46' : '#c2410c',
                           }}>
                             {cert.status || 'Pending'}
                           </span>

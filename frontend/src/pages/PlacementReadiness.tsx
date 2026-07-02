@@ -31,6 +31,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
   const { addToast } = useToast();
 
   const handleRunAnalysis = async () => {
+    if (analysisRunning) return;
     setAnalysisError(null);
     setAnalysisRunning(true);
     try {
@@ -230,7 +231,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
               </div>
               <div>
                 <p className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400">Current CGPA</p>
-                <p className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{currentCgpa || '0.00'}</p>
+                <p className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{currentCgpa || '—'}</p>
               </div>
             </div>
 
