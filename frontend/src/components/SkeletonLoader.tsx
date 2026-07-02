@@ -16,15 +16,6 @@ export function SkeletonCard() {
   );
 }
 
-export function SkeletonChart() {
-  return (
-    <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 animate-pulse">
-      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-6"></div>
-      <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
-    </div>
-  );
-}
-
 export function SkeletonProfile() {
   return (
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[24px] overflow-hidden animate-pulse">

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   LogOut, LayoutDashboard, User, Briefcase, CheckCircle2,
-  RotateCcw, Award, CalendarDays, Settings, Camera,
+  RotateCcw, Award, Settings, Camera,
   X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';

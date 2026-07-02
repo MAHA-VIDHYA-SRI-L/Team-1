@@ -1,4 +1,4 @@
-import supabase from "../config/supabase.js";
+import { supabaseAdmin } from "../config/supabase.js";
 import multer from "multer";
 
 export const uploadCertificateFile = multer({
@@ -19,14 +19,17 @@ export const uploadCertFile = async (req, res) => {
     const ext = req.file.originalname.split('.').pop();
     const fileName = `${studentId}/cert_${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("certificates")
       .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
 
     if (uploadError) return res.status(400).json({ error: uploadError.message });
 
-    const { data: urlData } = supabase.storage.from("certificates").getPublicUrl(fileName);
-    return res.status(200).json({ url: urlData.publicUrl });
+    const { data: signedData, error: signedError } = await supabaseAdmin.storage
+      .from("certificates")
+      .createSignedUrl(fileName, 60 * 60); // 1 hour expiry
+    if (signedError) return res.status(400).json({ error: signedError.message });
+    return res.status(200).json({ url: signedData.signedUrl });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
