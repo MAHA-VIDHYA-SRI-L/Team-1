@@ -4,6 +4,7 @@ import {
   Settings, LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
 import logoUrl from '../assets/logo.jpg';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavItem {
   label: string;
@@ -166,17 +167,17 @@ export default function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] flex font-sans text-slate-800 dark:text-slate-100 transition-colors">
 
       {/* ── Desktop Sidebar ── */}
       <aside
-        className={`hidden md:flex flex-col bg-[#001e4d] shrink-0 h-screen sticky top-0 shadow-xl transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-60'}`}
+        className={`hidden md:flex flex-col bg-[#001e4d] dark:bg-[#090D16] border-r border-transparent dark:border-slate-800/80 shrink-0 h-screen sticky top-0 shadow-xl transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-60'}`}
       >
         <SidebarContent />
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(p => !p)}
-          className="absolute -right-3 top-20 bg-white border border-slate-200 rounded-full p-1 shadow-md text-slate-500 hover:text-[#001e4d] transition-colors z-10"
+          className="absolute -right-3 top-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 shadow-md text-slate-500 dark:text-slate-400 hover:text-[#001e4d] dark:hover:text-white transition-colors z-10"
         >
           <Menu className="h-3.5 w-3.5" />
         </button>
@@ -186,7 +187,7 @@ export default function AppShell({
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-[#001e4d] flex flex-col shadow-2xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-[#001e4d] dark:bg-[#090D16] flex flex-col shadow-2xl">
             <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
               <X className="h-5 w-5" />
             </button>
@@ -199,20 +200,23 @@ export default function AppShell({
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
 
         {/* Topbar */}
-        <header className="bg-white border-b border-slate-200 px-5 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm shrink-0">
+        <header className="bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-5 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm shrink-0 transition-colors">
           <div className="flex items-center gap-3">
             {/* Mobile menu button */}
-            <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
               <Menu className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-[15px] font-black text-slate-800 leading-none">{pageTitle}</h1>
+              <h1 className="text-[15px] font-black text-slate-800 dark:text-slate-100 leading-none">{pageTitle}</h1>
               {pageSubtitle && (
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{pageSubtitle}</p>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mt-0.5">{pageSubtitle}</p>
               )}
             </div>
           </div>
-          {topbarActions && <div className="flex items-center gap-2">{topbarActions}</div>}
+          <div className="flex items-center gap-3">
+            <ThemeToggle variant="button" />
+            {topbarActions && <div className="flex items-center gap-2">{topbarActions}</div>}
+          </div>
         </header>
 
         {/* Content */}

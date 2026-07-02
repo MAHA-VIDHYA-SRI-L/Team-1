@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   LogOut, LayoutDashboard, User, Briefcase, CheckCircle2,
-  RotateCcw, Award, CalendarDays, Settings, Camera,
+  RotateCcw, Award, Settings, Camera,
   X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -10,6 +10,7 @@ import logoUrl from '../assets/logo.jpg';
 import { uploadResume, fetchResume, fetchStudentProfile, fetchAcademicDetails, saveStudentProfile, saveAcademicDetails } from '../services/api';
 import StudentProfileWizard from '../components/StudentProfileWizard';
 import type { StudentProfileData } from '../types/profile';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface StudentDashboardProps {
   user: {
@@ -41,9 +42,9 @@ const NAV_ITEMS = (
 ];
 
 const InfoTile = ({ label, value, span = false }: { label: string; value: string; span?: boolean }) => (
-  <div className={`p-4 bg-slate-50 rounded-xl border border-slate-100 ${span ? 'sm:col-span-2' : ''}`}>
-    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
-    <p className="text-sm font-bold text-slate-700 break-all">{value || '—'}</p>
+  <div className={`p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 ${span ? 'sm:col-span-2' : ''}`}>
+    <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 break-all">{value || '—'}</p>
   </div>
 );
 
@@ -82,7 +83,17 @@ export default function StudentDashboard({
         const merged: Partial<StudentProfileData> = { ...profileRes.profile, ...academicRes.academic };
         if (merged.name) {
           setProfileFormRecord(merged);
-          setIsSetupComplete(true);
+          const isWizardDone = Boolean(
+            merged.department ||
+            merged.year ||
+            merged.graduationStanding ||
+            merged.address ||
+            merged.dob ||
+            merged.ugCollegeName ||
+            merged.tenthPercentage ||
+            localStorage.getItem(`_pm_wizard_done_${user.email}`)
+          );
+          setIsSetupComplete(isWizardDone);
           if (merged.department && onDepartmentLoaded) onDepartmentLoaded(merged.department as string);
         } else if (!silent) {
           setIsSetupComplete(false);
@@ -124,6 +135,7 @@ export default function StudentDashboard({
   const handleResetProfile = () => {
     if (window.confirm('Are you sure you want to reset your profile? You will need to fill the setup form again.')) {
       sessionStorage.removeItem('studentWizardState');
+      localStorage.removeItem(`_pm_wizard_done_${user.email}`);
       setProfileFormRecord(null);
       setIsSetupComplete(false);
       addToast('Profile reset.', 'info');
@@ -261,7 +273,7 @@ export default function StudentDashboard({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] flex font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -269,17 +281,17 @@ export default function StudentDashboard({
       )}
 
       {/* Mobile sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#002D62] flex flex-col transition-transform duration-300 md:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#002D62] dark:bg-slate-950 flex flex-col transition-transform duration-300 md:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent />
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className={`hidden md:flex flex-col bg-[#002D62] h-screen sticky top-0 shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'w-[68px]' : 'w-60'}`}>
+      <aside className={`hidden md:flex flex-col bg-[#002D62] dark:bg-slate-950 h-screen sticky top-0 shrink-0 transition-all duration-300 border-r border-transparent dark:border-slate-800 ${sidebarCollapsed ? 'w-[68px]' : 'w-60'}`}>
         <SidebarContent />
         {/* Collapse toggle */}
         <button
           onClick={() => setSidebarCollapsed(p => !p)}
-          className="absolute -right-3 top-20 h-6 w-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm text-slate-500 hover:text-slate-800 transition-colors z-10"
+          className="absolute -right-3 top-20 h-6 w-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors z-10"
         >
           <Menu className="h-3 w-3" />
         </button>
@@ -289,36 +301,37 @@ export default function StudentDashboard({
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
 
         {/* Topbar */}
-        <header className="bg-white border-b border-slate-100 px-5 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-5 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-sm shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors md:hidden">
+            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors md:hidden">
               <Menu className="h-5 w-5" />
             </button>
             <div>
-              <p className="text-sm font-bold text-slate-800 leading-none">{displayName}</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-white leading-none">{displayName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[11px] font-medium text-slate-400">{displayDept}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span className={`text-[11px] font-semibold ${isVerified ? 'text-blue-600' : 'text-amber-500'}`}>
+                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-400">{displayDept}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                <span className={`text-[11px] font-semibold ${isVerified ? 'text-blue-600 dark:text-blue-400' : 'text-amber-500 dark:text-amber-400'}`}>
                   {isVerified ? 'Verified' : 'Pending verification'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             {/* Avatar */}
             <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-              <div className={`h-9 w-9 rounded-full overflow-hidden ring-2 ${isVerified ? 'ring-blue-400' : 'ring-amber-400'} bg-gradient-to-br from-[#002D62] to-blue-500 flex items-center justify-center text-white font-bold text-sm`}>
+              <div className={`h-9 w-9 rounded-full overflow-hidden ring-2 ${isVerified ? 'ring-blue-400 dark:ring-blue-500' : 'ring-amber-400 dark:ring-amber-500'} bg-gradient-to-br from-[#002D62] to-blue-500 flex items-center justify-center text-white font-bold text-sm`}>
                 {profilePic
                   ? <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
                   : displayName.charAt(0).toUpperCase()
                 }
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm">
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-800 rounded-full p-0.5 shadow-sm">
                 {isVerified
-                  ? <BadgeCheck className="h-3.5 w-3.5 text-blue-500" />
-                  : <Clock className="h-3.5 w-3.5 text-amber-500" />
+                  ? <BadgeCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                  : <Clock className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                 }
               </div>
               <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -328,10 +341,10 @@ export default function StudentDashboard({
             </div>
             {/* Mobile actions */}
             <div className="md:hidden flex items-center gap-1">
-              <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+              <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <Settings className="h-4 w-4" />
               </button>
-              <button onClick={onLogout} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+              <button onClick={onLogout} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
@@ -342,19 +355,19 @@ export default function StudentDashboard({
         <main className="p-5 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">
 
           {/* Welcome banner */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800">Good to see you, {firstName}!</h2>
-            <p className="text-sm text-slate-500 mt-1">Track your placement journey, manage certificates, and monitor your readiness score.</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Good to see you, {firstName}!</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Track your placement journey, manage certificates, and monitor your readiness score.</p>
           </div>
 
           {/* Verification notification banner */}
           {showVerifiedBanner && (
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
-                <BadgeCheck className="h-5 w-5 text-blue-600 shrink-0" />
+                <BadgeCheck className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-blue-800">Your profile has been verified!</p>
-                  <p className="text-xs text-blue-600 mt-0.5">A placement officer has reviewed and approved your profile.</p>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-200">Your profile has been verified!</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">A placement officer has reviewed and approved your profile.</p>
                 </div>
               </div>
               <button
@@ -362,7 +375,7 @@ export default function StudentDashboard({
                   setVerifiedBannerDismissed(true);
                   sessionStorage.setItem('_pm_verified_banner_dismissed', '1');
                 }}
-                className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-100 transition-colors shrink-0"
+                className="p-1.5 rounded-lg text-blue-400 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors shrink-0"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -372,13 +385,13 @@ export default function StudentDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Profile card */}
-            <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-[#002D62]" />
-                  <h3 className="text-sm font-bold text-slate-800">Profile Details</h3>
+                  <User className="h-4 w-4 text-[#002D62] dark:text-blue-400" />
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-white">Profile Details</h3>
                 </div>
-                <button onClick={() => setIsSettingsOpen(true)} className="text-xs font-semibold text-[#002D62] hover:text-orange-500 transition-colors">
+                <button onClick={() => setIsSettingsOpen(true)} className="text-xs font-semibold text-[#002D62] dark:text-blue-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
                   Edit
                 </button>
               </div>
@@ -406,80 +419,80 @@ export default function StudentDashboard({
             {/* Right column stats */}
             <div className="space-y-4">
               {/* Placement status */}
-              <div className={`p-5 rounded-2xl border text-center relative overflow-hidden ${
+              <div className={`p-5 rounded-2xl border text-center relative overflow-hidden transition-colors duration-300 ${
                 placementStatus === 'Placed'
-                  ? 'bg-emerald-50 border-emerald-200'
-                  : 'bg-orange-50 border-orange-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40'
+                  : 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900/40'
               }`}>
                 <div className="absolute -right-4 -bottom-4 opacity-[0.06]">
                   <CheckCircle className="w-32 h-32" />
                 </div>
-                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${placementStatus === 'Placed' ? 'text-emerald-600' : 'text-orange-600'}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${placementStatus === 'Placed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
                   Placement Status
                 </p>
-                <p className={`text-3xl font-black tracking-tight ${placementStatus === 'Placed' ? 'text-emerald-600' : 'text-orange-500'}`}>
+                <p className={`text-3xl font-black tracking-tight ${placementStatus === 'Placed' ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-500 dark:text-orange-400'}`}>
                   {placementStatus === 'Placed' ? 'Placed' : 'Not Placed'}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-2">Verified by placement officer</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-2">Verified by placement officer</p>
               </div>
 
               {/* CGPA */}
-              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-between">
+              <div className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between transition-colors duration-300">
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wide">
                     {pf.graduationStanding === 'PG' ? 'PG CGPA' : 'CGPA'}
                   </p>
-                  <p className="text-3xl font-black text-emerald-600 mt-1">{currentCgpa || '0.00'}</p>
+                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{currentCgpa || '0.00'}</p>
                 </div>
-                <div className="p-3 bg-emerald-50 rounded-xl">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
 
               {/* Semesters */}
-              <div className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-between">
+              <div className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between transition-colors duration-300">
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Semesters Tracked</p>
-                  <p className="text-3xl font-black text-slate-800 mt-1">
-                    {totalSemFieldsCount} <span className="text-lg font-semibold text-slate-300">/ 8</span>
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wide">Semesters Tracked</p>
+                  <p className="text-3xl font-black text-slate-800 dark:text-white mt-1">
+                    {totalSemFieldsCount} <span className="text-lg font-semibold text-slate-300 dark:text-slate-600">/ 8</span>
                   </p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-xl">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl">
+                  <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* SGPA grid */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-              <h3 className="text-sm font-bold text-slate-800">Semester SGPA</h3>
-              <span className="text-[11px] font-medium text-slate-400">Scale: 10.00</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 transition-colors duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">Semester SGPA</h3>
+              <span className="text-[11px] font-medium text-slate-400 dark:text-slate-400">Scale: 10.00</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {(pf.sgpaSemesterValues || Array(8).fill('')).map((score, i) => (
-                <div key={i} className={`p-4 border rounded-xl text-center ${score ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100 opacity-50'}`}>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase block">Sem {i + 1}</span>
-                  <span className="text-lg font-black text-[#002D62] mt-1 block">{score || '—'}</span>
+                <div key={i} className={`p-4 border rounded-xl text-center transition-all ${score ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/50' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 opacity-50'}`}>
+                  <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400 uppercase block">Sem {i + 1}</span>
+                  <span className="text-lg font-black text-[#002D62] dark:text-blue-400 mt-1 block">{score || '—'}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Resume */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 transition-colors duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#002D62]" />
-                <h3 className="text-sm font-bold text-slate-800">Resume</h3>
+                <FileText className="h-4 w-4 text-[#002D62] dark:text-blue-400" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white">Resume</h3>
               </div>
               <div className="relative">
-                {!resumeUrl && <span className="absolute -inset-1 rounded-lg bg-[#002D62] opacity-10 animate-ping" />}
+                {!resumeUrl && <span className="absolute -inset-1 rounded-lg bg-[#002D62] dark:bg-blue-500 opacity-10 animate-ping" />}
                 <button
                   onClick={() => resumeInputRef.current?.click()}
                   disabled={resumeUploading}
-                  className="relative flex items-center gap-2 px-4 py-2 bg-[#002D62] hover:bg-[#001e4d] text-white text-xs font-bold rounded-xl disabled:opacity-60 transition-all shadow-sm"
+                  className="relative flex items-center gap-2 px-4 py-2 bg-[#002D62] dark:bg-blue-600 hover:bg-[#001e4d] dark:hover:bg-blue-500 text-white text-xs font-bold rounded-xl disabled:opacity-60 transition-all shadow-sm"
                 >
                   {resumeUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                   {resumeUploading ? 'Uploading...' : resumeUrl ? 'Replace' : 'Upload PDF'}
@@ -487,14 +500,14 @@ export default function StudentDashboard({
               </div>
               <input ref={resumeInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleResumeUpload} />
             </div>
-            {resumeError && <p className="text-xs text-red-500 font-medium mb-3">{resumeError}</p>}
+            {resumeError && <p className="text-xs text-red-500 dark:text-red-400 font-medium mb-3">{resumeError}</p>}
             {resumeUrl ? (
               <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
+                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
                 <FileText className="h-4 w-4" /> View uploaded resume
               </a>
             ) : (
-              <p className="text-sm text-slate-400">No resume uploaded yet. Upload a PDF to enable AI analysis.</p>
+              <p className="text-sm text-slate-400 dark:text-slate-400">No resume uploaded yet. Upload a PDF to enable AI analysis.</p>
             )}
           </div>
 
@@ -504,18 +517,18 @@ export default function StudentDashboard({
       {/* Settings modal */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 dark:border-slate-800 transition-colors duration-300">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-[#002D62]" />
-                <h2 className="text-base font-bold text-slate-800">Profile Settings</h2>
+                <Settings className="h-4 w-4 text-[#002D62] dark:text-blue-400" />
+                <h2 className="text-base font-bold text-slate-800 dark:text-white">Profile Settings</h2>
               </div>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="p-5 space-y-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Select a section to edit</p>
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Select a section to edit</p>
               {[
                 { title: 'Basic & Contact Details', sub: 'Phone, address, LinkedIn, date of birth' },
                 { title: 'Academic Records', sub: '10th, 12th, current semesters, SGPA' },
@@ -523,13 +536,13 @@ export default function StudentDashboard({
                 <button
                   key={title}
                   onClick={() => { setIsSettingsOpen(false); setIsSetupComplete(false); }}
-                  className="w-full text-left p-4 border border-slate-100 rounded-xl hover:border-[#002D62]/30 hover:bg-slate-50 transition-all group"
+                  className="w-full text-left p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-[#002D62]/30 dark:hover:border-blue-500/30 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
                 >
-                  <p className="text-sm font-bold text-slate-800 group-hover:text-[#002D62]">{title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white group-hover:text-[#002D62] dark:group-hover:text-blue-400">{title}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">{sub}</p>
                 </button>
               ))}
-              <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">
+              <p className="text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800">
                 You will be taken to the profile wizard to update your details.
               </p>
             </div>
