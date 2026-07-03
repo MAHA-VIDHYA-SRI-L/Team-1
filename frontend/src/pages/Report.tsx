@@ -175,6 +175,35 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   const formatReportText = (text?: string) => {
     if (!text) return null;
+    try {
+      if (text.trim().startsWith('{')) {
+        const obj = JSON.parse(text);
+        const sections = [
+          { title: 'Overall Summary', body: obj.overall_summary },
+          { title: 'Academic Analysis', body: obj.academic_analysis },
+          { title: 'Technical & Projects', body: `${obj.technical_analysis || ''} ${obj.project_analysis || ''}`.trim() },
+          { title: 'Recruiter Impression', body: obj.recruiter_impression },
+          { title: 'Final Verdict', body: obj.final_verdict }
+        ].filter(s => s.body && s.body !== 'Analysis unavailable.');
+
+        if (sections.length > 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {sections.map((sec, idx) => (
+                <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                  <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                    • {sec.title}
+                  </strong>
+                  <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{sec.body}</span>
+                </div>
+              ))}
+            </div>
+          );
+        }
+      }
+    } catch (e) {
+      // fallback to text parsing
+    }
     const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
     if (cleaned.includes('##')) {
       const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
