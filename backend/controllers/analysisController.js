@@ -89,29 +89,18 @@ Rules:
 - Do not invent information.
 - If information is unavailable, explicitly mention it.
 - Use professional placement-oriented language.
-- Keep the report between 700 and 1200 words.
+- Keep the report concise, executive-level, and impactful (between 150 and 250 words total).
+- Avoid verbose paragraphs; use crisp sentences and focus only on critical placement insights.
 - Make the report personalized for the student.
 - Do not use emojis.
-- Format the response cleanly using Markdown headings.
+- Do NOT use Markdown header tags (# or ##) in the report text.
 
-The report must contain these sections in order:
-# Placement Analysis & Consolidated Report
-## Student Overview
-## Overall Placement Readiness
-## Academic Evaluation
-## Technical Skills Analysis
-## Soft Skills Evaluation
-## Resume Analysis
-## Projects Analysis
-## Internship Analysis
-## Certifications Analysis
-## Profile Completeness
-## Strengths
-## Areas for Improvement
-## Personalized Recommendations
-## Final Verdict
+The consolidated report must provide a clean executive summary in 3 concise paragraphs covering:
+1. Student Profile & Academic Standing
+2. Key Competencies & Industry Readiness
+3. Priority Action Items for Placement Success
 
-After the full markdown report, append a JSON block at the very end in this exact format (no extra text after it):
+After the report, append a JSON block at the very end in this exact format (no extra text after it):
 \`\`\`json
 {
   "readiness_score": <integer 0-100>,

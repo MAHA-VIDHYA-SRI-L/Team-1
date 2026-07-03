@@ -36,7 +36,7 @@ const Field = ({
         id={id} type={type} value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
+        className={`w-full pl-10 pr-4 py-3 rounded-xl text-base sm:text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
           error ? 'border-red-400 dark:border-red-900/60 focus:border-red-500 bg-red-50/30 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-700 focus:border-[#002D62] dark:focus:border-blue-400 focus:ring-2 focus:ring-[#002D62]/10 dark:focus:ring-blue-500/20'
         }`}
       />
@@ -69,7 +69,7 @@ const PasswordField = ({
         id={id} type={show ? 'text' : 'password'} value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
+        className={`w-full pl-10 pr-11 py-3 rounded-xl text-base sm:text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
           error ? 'border-red-400 dark:border-red-900/60 focus:border-red-500 bg-red-50/30 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-700 focus:border-[#002D62] dark:focus:border-blue-400 focus:ring-2 focus:ring-[#002D62]/10 dark:focus:ring-blue-500/20'
         }`}
       />
@@ -95,7 +95,7 @@ const Spinner = () => (
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [view, setView] = useState<'login' | 'forgot'>('login');
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('_pm_remembered_email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -129,12 +129,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
   }, []);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('_pm_remembered_email');
-    if (savedEmail) {
-      setEmail(savedEmail);
-    }
-  }, []);
 
   useEffect(() => {
     if (showToast) {
@@ -201,7 +195,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     validateEmailText(computed);
   };
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
 
   const handleAuthSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,12 +268,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   return (
     <AuthBackground layout="split" pattern="waves">
-      <div className="fixed top-6 right-6 z-50">
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50">
         <ThemeToggle variant="pill" />
       </div>
 
       {/* Toast */}
-      <div className={`fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-500 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-lg transition-all duration-300 ${
+      <div className={`fixed top-4 right-4 sm:top-5 sm:right-5 z-50 flex items-center gap-2 bg-emerald-500 text-white text-sm font-semibold px-4 py-3 rounded-2xl shadow-lg transition-all duration-300 ${
         showToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
       }`}>
         <CheckCircle2 className="h-4 w-4 shrink-0" />
@@ -287,13 +282,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       {/* Offline banner */}
       {isOffline && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-md">
+        <div className="fixed top-4 sm:top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-md whitespace-nowrap">
           <WifiOff className="h-3.5 w-3.5" /> No internet connection
         </div>
       )}
 
       {view === 'login' ? (
-        <div className="w-full max-w-[480px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,45,98,0.22),0_0_25px_rgba(0,0,0,0.06)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 p-8 sm:p-10 space-y-6 relative z-10 transition-all duration-300 hover:shadow-[0_30px_70px_-15px_rgba(0,45,98,0.28)] text-slate-800 dark:text-slate-100">
+        <div className="w-full max-w-[480px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,45,98,0.22),0_0_25px_rgba(0,0,0,0.06)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 md:p-10 space-y-6 relative z-10 transition-all duration-300 hover:shadow-[0_30px_70px_-15px_rgba(0,45,98,0.28)] text-slate-800 dark:text-slate-100">
           {/* Header inside the card matching reference figure */}
           <div className="flex flex-col items-center text-center">
             {/* College Logo */}
@@ -302,7 +297,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
             
             {/* Brand Title */}
-            <h1 className="text-2xl font-black text-[#002D62] dark:text-blue-400 tracking-wider uppercase leading-none">
+            <h1 className="text-xl sm:text-2xl font-black text-[#002D62] dark:text-blue-400 tracking-wider uppercase leading-none">
               PLACEMATE
             </h1>
             <p className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 tracking-widest uppercase mt-1">
@@ -314,7 +309,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             {/* Welcome Back Section */}
             <div className="mt-6 w-full">
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Welcome Back!</h2>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight">Welcome Back!</h2>
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Login to your account</p>
               <div className="w-12 h-1 bg-[#002D62] dark:bg-blue-500 rounded-full mx-auto mt-3.5 mb-1" />
             </div>
@@ -322,7 +317,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           <form onSubmit={handleAuthSubmission} className="space-y-4">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <label htmlFor="email-input" className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">EMAIL ID</label>
                 {email && !email.includes('@') && (
                   <div className="flex gap-1.5">
@@ -345,7 +340,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   id="email-input" name="email" type="text" value={email}
                   onChange={e => { setEmail(e.target.value); validateEmailText(e.target.value); }}
                   placeholder="name@example.com"
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl text-base sm:text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800/90 border outline-none transition-all shadow-sm ${
                     emailError ? 'border-red-400 dark:border-red-900/60 bg-red-50/30 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-700 focus:border-[#002D62] dark:focus:border-blue-400 focus:ring-2 focus:ring-[#002D62]/10 dark:focus:ring-blue-500/20'
                   }`}
                 />
@@ -389,13 +384,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </div>
         </div>
       ) : (
-        <div className="w-full max-w-[480px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,45,98,0.22),0_0_25px_rgba(0,0,0,0.06)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 p-8 sm:p-10 space-y-6 relative z-10 transition-all duration-300 hover:shadow-[0_30px_70px_-15px_rgba(0,45,98,0.28)] text-slate-800 dark:text-slate-100">
+        <div className="w-full max-w-[480px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,45,98,0.22),0_0_25px_rgba(0,0,0,0.06)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 md:p-10 space-y-6 relative z-10 transition-all duration-300 hover:shadow-[0_30px_70px_-15px_rgba(0,45,98,0.28)] text-slate-800 dark:text-slate-100">
           {/* Header matching figure style */}
           <div className="flex flex-col items-center text-center">
             <div className="h-16 w-16 rounded-full bg-white border-2 border-[#002D62] dark:border-blue-400 shadow-md p-1.5 flex items-center justify-center mb-3">
               <img src={collegeLogo} alt="College Logo" className="w-full h-full object-contain rounded-full" />
             </div>
-            <h1 className="text-2xl font-black text-[#002D62] dark:text-blue-400 tracking-wider uppercase leading-none">
+            <h1 className="text-xl sm:text-2xl font-black text-[#002D62] dark:text-blue-400 tracking-wider uppercase leading-none">
               PLACEMATE
             </h1>
             <p className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 tracking-widest uppercase mt-1">
@@ -410,7 +405,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 className="absolute left-0 top-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Reset Password</h2>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight">Reset Password</h2>
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Verify identity to set new password</p>
               <div className="w-12 h-1 bg-[#002D62] dark:bg-blue-500 rounded-full mx-auto mt-3.5 mb-1" />
             </div>

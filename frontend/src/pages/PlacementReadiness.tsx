@@ -115,6 +115,41 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
     ? analysis.recommendations.split(/\n|(?<=\.)\s+(?=[A-Z0-9])/).map((s: string) => s.trim()).filter(Boolean)
     : [];
 
+  const renderConsolidatedReport = (text?: string) => {
+    if (!text) return null;
+    const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
+    if (cleaned.includes('##')) {
+      const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
+      return (
+        <div className="space-y-3 mt-3.5 max-w-2xl">
+          {sections.slice(0, 3).map((sec, idx) => {
+            const lines = sec.split('\n');
+            const title = lines[0].replace(/[:.#]/g, '').trim();
+            const body = lines.slice(1).join(' ').trim() || sec.replace(/^[^.\n]+[:.]?\s*/, '');
+            return (
+              <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm transition-all hover:shadow-md">
+                <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-1">
+                  • {title}
+                </span>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                  {body}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    const paragraphs = cleaned.split(/\n\n+/).filter(Boolean);
+    return (
+      <div className="space-y-2.5 mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-2xl">
+        {paragraphs.slice(0, 3).map((p, idx) => (
+          <p key={idx}>{p.replace(/#/g, '').trim()}</p>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       
@@ -279,7 +314,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
                   
                   <div className="flex-1 text-center md:text-left w-full">
                     <h3 className="text-xl font-black text-slate-800 dark:text-white">Status: <span className={`${score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-blue-600' : 'text-amber-600'}`}>{analysis.readiness_status}</span></h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed mt-3 max-w-2xl">{analysis.consolidated_report}</p>
+                    {renderConsolidatedReport(analysis.consolidated_report)}
 
                     <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                       <div className="bg-slate-50/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">

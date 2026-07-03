@@ -8,6 +8,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "build": "echo \"Backend build complete (no compilation required)\" && exit 0",
     "dev": "nodemon server.js"
   },
   "keywords": [],
