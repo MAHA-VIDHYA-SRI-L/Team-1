@@ -103,15 +103,70 @@ The consolidated report must provide a clean executive summary in 3 concise para
 After the report, append a JSON block at the very end in this exact format (no extra text after it):
 \`\`\`json
 {
-  "readiness_score": <integer 0-100>,
-  "readiness_status": "<Ready | Almost Ready | Needs Improvement>",
-  "strengths": "<2-3 sentences on top strengths>",
-  "weaknesses": "<2-3 sentences on areas needing improvement>",
-  "recommendations": "<3-5 specific actionable recommendations>"
+  "overall_summary": "<max 60 words>",
+  "academic_analysis": "<max 40 words>",
+  "resume_analysis": "<max 40 words>",
+  "technical_analysis": "<max 40 words>",
+  "project_analysis": "<max 40 words>",
+  "certification_analysis": "<max 30 words>",
+  "internship_analysis": "<max 30 words>",
+  "recruiter_impression": "<max 50 words>",
+  "career_fit": ["<role 1>", "<role 2>", "<role 3>", "<role 4 optional>", "<role 5 optional>"],
+  "final_verdict": "<max 50 words>"
 }
-\`\`\`
 
-Here is the student's complete profile:
+FIELD RULES:
+
+1. overall_summary (max 60 words)
+   - Professional summary of the student's complete profile
+   - Focus on academic performance, technical capability, experience, and career positioning
+   - Do NOT repeat raw marks, skill names, project titles, or certification names
+
+2. academic_analysis (max 40 words)
+   - Analyze academic performance quality and trends
+   - Comment on CGPA trajectory, consistency, and strength
+   - Do NOT just state CGPA or marks
+
+3. resume_analysis (max 40 words)
+   - Analyze resume presentation and effectiveness
+   - Comment on structure, ATS-friendliness, achievement articulation
+   - Do NOT repeat resume content
+
+4. technical_analysis (max 40 words)
+   - Analyze technical skills depth, relevance, and alignment with industry
+   - Comment on proficiency levels and tech stack appropriateness
+   - Do NOT list skill names
+
+5. project_analysis (max 40 words)
+   - Analyze project quality, complexity, and learning outcomes
+   - Comment on relevance to placement and skill development
+   - Do NOT list project names
+
+6. certification_analysis (max 30 words)
+   - Analyze certification value, relevance, and impact on readiness
+   - Do NOT list certifications
+
+7. internship_analysis (max 30 words)
+   - Analyze internship quality, roles, and experiential learning
+   - Do NOT list internship details
+
+8. recruiter_impression (max 50 words)
+   - Describe how recruiters would evaluate this candidate
+   - Comment on hiring appeal, strengths, and perceived gaps
+   - Professional, objective tone
+
+9. career_fit (array of 3–5 strings)
+   - Suggest 3–5 suitable job roles (e.g., "Frontend Developer", "Backend Engineer", "Full Stack Developer", "Data Analyst", "QA Engineer")
+   - Base on skills, projects, internships, and academic profile
+   - Realistic and aligned with student's demonstrated capabilities
+
+10. final_verdict (max 50 words)
+    - Summary of placement readiness and likelihood of placement
+    - Professional conclusion
+
+IMPORTANT: Return ONLY the JSON object. No text before or after. No markdown. No explanations.
+
+STUDENT DATA:
 
 ${studentData}`;
 
@@ -121,51 +176,57 @@ ${studentData}`;
         messages: [{ role: "user", content: prompt }],
         temperature: 0.5,
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("AI analysis timeout")), 120000)), // 2 minute timeout
+      new Promise((_, reject) => setTimeout(() => reject(new Error("AI analysis timeout")), 120000)),
     ]);
 
     const raw = completion.choices[0].message.content.trim();
 
-    // Extract the JSON block at the end
-    const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```\s*$/);
+    // Parse JSON response - handle markdown code blocks
     let result;
-    try {
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[1]);
-      } else {
-        const fallback = raw.match(/\{[\s\S]*\}/);
-        if (!fallback) return res.status(500).json({ error: "AI response parsing failed — no JSON block found" });
-        result = JSON.parse(fallback[0]);
+    let jsonStr = raw;
+    
+    // Try to extract JSON from markdown code blocks
+    const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    } else {
+      // Try to find JSON object directly
+      const directMatch = raw.match(/\{[\s\S]*\}/);
+      if (directMatch) {
+        jsonStr = directMatch[0];
       }
+    }
+
+    try {
+      result = JSON.parse(jsonStr);
     } catch (parseErr) {
-      return res.status(500).json({ error: "AI response JSON parse error: " + parseErr.message });
+      console.error("JSON Parse Error:", parseErr.message);
+      console.error("Raw Response:", raw.substring(0, 500));
+      return res.status(500).json({ error: "AI response is not valid JSON: " + parseErr.message });
     }
 
     // Validate required fields
-    if (typeof result.readiness_score !== 'number' || result.readiness_score < 0 || result.readiness_score > 100)
-      return res.status(500).json({ error: "AI returned invalid readiness_score" });
-    if (!result.readiness_status || !result.strengths || !result.weaknesses || !result.recommendations)
-      return res.status(500).json({ error: "AI response missing required fields" });
-
-    // The consolidated report is everything before the json block
-    const consolidated_report = raw.replace(/```json[\s\S]*?```\s*$/, "").trim();
+    const requiredFields = ['overall_summary', 'academic_analysis', 'resume_analysis', 'technical_analysis', 'project_analysis', 'certification_analysis', 'internship_analysis', 'recruiter_impression', 'career_fit', 'final_verdict'];
+    for (const field of requiredFields) {
+      if (result[field] === undefined || result[field] === null) {
+        return res.status(500).json({ error: `Missing required field: ${field}` });
+      }
+    }
+    if (!Array.isArray(result.career_fit) || result.career_fit.length < 3) {
+      return res.status(500).json({ error: "career_fit must be an array with at least 3 items" });
+    }
 
     const { error: saveError } = await supabase
       .from("placement_analysis")
       .upsert({
         student_id: studentId,
-        readiness_score: result.readiness_score,
-        readiness_status: result.readiness_status,
-        strengths: result.strengths,
-        weaknesses: result.weaknesses,
-        recommendations: result.recommendations,
-        consolidated_report,
+        consolidated_report: JSON.stringify(result),
         analyzed_at: new Date().toISOString(),
       }, { onConflict: "student_id" });
 
     if (saveError) return res.status(400).json({ error: saveError.message });
 
-    return res.status(200).json({ analysis: { ...result, consolidated_report } });
+    return res.status(200).json({ analysis: result });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

@@ -1,18 +1,81 @@
-You are an AI Placement Readiness Analyzer.
+AI Consolidated Report Prompt v5.0 — JSON SECTIONS
+===================================================
 
-Analyze the following student information:
-- Academic performance
-- Skills
-- Certifications
-- Internships
-- Resume content
+OBJECTIVE:
+Generate structured JSON data for the Consolidated Report page.
+The frontend displays each field as separate cards/sections—no markdown or report text.
 
-Return:
-1. Readiness Score (0-100)
-2. Readiness Status (Ready / Almost Ready / Needs Improvement)
-3. Top Strengths
-4. Areas for Improvement
-5. Recommended Skills
-6. Suggested Certifications
-7. Suggested Internships
-8. A consolidated report in 150-200 words.
+RESPONSE FORMAT (EXACT):
+{
+  "overall_summary": "<max 60 words>",
+  "academic_analysis": "<max 40 words>",
+  "resume_analysis": "<max 40 words>",
+  "technical_analysis": "<max 40 words>",
+  "project_analysis": "<max 40 words>",
+  "certification_analysis": "<max 30 words>",
+  "internship_analysis": "<max 30 words>",
+  "recruiter_impression": "<max 50 words>",
+  "career_fit": ["<role 1>", "<role 2>", "<role 3>", "<role 4 optional>", "<role 5 optional>"],
+  "final_verdict": "<max 50 words>"
+}
+
+FIELD SPECIFICATIONS:
+
+1. overall_summary (max 60 words)
+   - Professional summary of complete profile
+   - Academic + technical + experiential overview
+   - Do NOT repeat marks, skill names, or project titles
+
+2. academic_analysis (max 40 words)
+   - Analyze performance quality and trends
+   - Comment on CGPA trajectory, consistency, strength
+   - Do NOT state marks/CGPA numerically
+
+3. resume_analysis (max 40 words)
+   - Analyze presentation, ATS-friendliness, achievement articulation
+   - Comment on structure and effectiveness
+   - Do NOT repeat content verbatim
+
+4. technical_analysis (max 40 words)
+   - Analyze skills depth, relevance, industry alignment
+   - Comment on proficiency levels, tech stack fit
+   - Do NOT list skill names
+
+5. project_analysis (max 40 words)
+   - Analyze complexity, relevance, learning outcomes
+   - Comment on skill development and placement impact
+   - Do NOT list project names
+
+6. certification_analysis (max 30 words)
+   - Analyze value, relevance, readiness impact
+   - Do NOT list certifications
+
+7. internship_analysis (max 30 words)
+   - Analyze quality, roles, experiential learning
+   - Do NOT repeat internship details
+
+8. recruiter_impression (max 50 words)
+   - How recruiters would evaluate candidate
+   - Hiring appeal, strengths, perceived gaps
+   - Professional, objective tone
+
+9. career_fit (array of 3–5 strings)
+   - Suggested roles: Frontend Developer, Backend Engineer, Full Stack Developer, QA Engineer, Data Analyst, DevOps Engineer, etc.
+   - Based on skills, projects, internships, academics
+   - Realistic and aligned with capabilities
+
+10. final_verdict (max 50 words)
+    - Placement readiness summary
+    - Likelihood of placement and next steps
+    - Professional conclusion
+
+ANALYSIS PRINCIPLES:
+✓ Analyze QUALITY, not list data
+✓ No repetition of raw profile information
+✓ Every word adds value
+✓ Professional, concise language
+✓ Valid JSON only
+✓ No markdown, headings, or formatting
+
+TONE: Analytical, professional, concise
+FORMAT: Pure JSON (no other text)
