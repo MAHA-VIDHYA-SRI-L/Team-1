@@ -16,16 +16,14 @@ dotenv.config();
 
 const app = express();
 
-// Set up an array of allowed local development origins
-  const allowedOrigins = [
+const allowedOrigins = [
   "https://team-1-placemate.vercel.app",
-  "https://team-1-placemate.vercel.app",
-  "https://team-1-placemate.vercel.app"  
-];
+  process.env.CLIENT_URL,
+].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin === process.env.CLIENT_URL)
+    if (!origin || allowedOrigins.includes(origin))
       return callback(null, true);
     callback(new Error(`CORS: ${origin} not allowed`), false);
   },

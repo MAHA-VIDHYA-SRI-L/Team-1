@@ -5,6 +5,8 @@ import AuthBackground from '../components/ui/AuthBackground';
 import collegeLogo from '../assets/logo.jpg';
 import ThemeToggle from '../components/ThemeToggle';
 
+const API_BASE = (import.meta.env.VITE_API_URL as string) || 'https://placemate-q1qo.onrender.com/api';
+
 interface UserData {
   fullName: string;
   email: string;
@@ -194,9 +196,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setEmail(computed);
     validateEmailText(computed);
   };
-
-  const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-  const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
 
   const handleAuthSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
