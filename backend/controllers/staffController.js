@@ -100,7 +100,8 @@ export const updatePlacementStatus = async (req, res) => {
       .from("academic_details")
       .select("student_id")
       .eq("student_id", id)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (!existing) return res.status(404).json({ error: "Student has no academic record. Ask student to complete their profile first." });
 
