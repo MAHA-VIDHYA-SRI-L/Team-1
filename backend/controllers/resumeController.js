@@ -1,15 +1,15 @@
 import supabase from "../config/supabase.js";
 import { analyzeStudent } from "./analysisController.js";
 import pdfParse from "pdf-parse";
+import { getCachedStudentId } from "../utils/cacheUtils.js";
 
-const getStudentId = async (authUserId) => {
-  const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
-  return data?.id || null;
+const getStudentId = async (req) => {
+  return req.profileId || await getCachedStudentId(req.user?.id);
 };
 
 export const uploadResume = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     if (!req.file) return res.status(400).json({ error: "PDF file is required" });
@@ -50,7 +50,7 @@ export const uploadResume = async (req, res) => {
 
 export const getResume = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { data, error } = await supabase
