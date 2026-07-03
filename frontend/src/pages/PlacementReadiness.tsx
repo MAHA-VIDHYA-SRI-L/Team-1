@@ -119,14 +119,14 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
           return (
             <div className="space-y-3 mt-4 max-w-2xl">
               {sections.map((sec, idx) => (
-                <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm transition-all hover:shadow-md">
+                <Card key={idx} className="p-4 shadow-sm transition-all hover:shadow-md">
                   <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-1">
                     • {sec.title}
                   </span>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                     {sec.body}
                   </p>
-                </div>
+                </Card>
               ))}
             </div>
           );
@@ -145,14 +145,14 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
             const title = lines[0].replace(/[:.#]/g, '').trim();
             const body = lines.slice(1).join(' ').trim() || sec.replace(/^[^.\n]+[:.]?\s*/, '');
             return (
-              <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm transition-all hover:shadow-md">
+              <Card key={idx} className="p-4 shadow-sm transition-all hover:shadow-md">
                 <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-1">
                   • {title}
                 </span>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                   {body}
                 </p>
-              </div>
+              </Card>
             );
           })}
         </div>

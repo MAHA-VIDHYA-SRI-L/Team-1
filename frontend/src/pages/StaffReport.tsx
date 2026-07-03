@@ -19,7 +19,7 @@ import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../ser
 import { ThemeToggle } from '../components/ThemeToggle';
 import logoUrl from '../assets/logo.jpg';
 import {
-  Button, Card, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
+  Button, Card, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
 } from '../components/ui';
 
 interface StaffReportProps {
@@ -310,31 +310,26 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
 
                   {/* Search */}
                   <div className="xl:col-span-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Search</label>
-                    <div className="relative">
-                      <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Name, Reg No or Company..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl focus:outline-none focus:border-[#002D62] dark:focus:border-blue-500 font-medium transition-colors"
-                      />
-                    </div>
+                    <Input
+                      label="Search"
+                      icon={<Search className="h-4 w-4" />}
+                      placeholder="Name, Reg No or Company..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                   </div>
 
                   {/* Department */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Department</label>
-                    <select
+                    <Select
+                      label="Department"
                       value={selectedDept}
                       onChange={(e) => setSelectedDept(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-[#002D62] dark:focus:border-blue-500 font-bold text-slate-700 dark:text-slate-200 transition-colors"
                     >
                       {DEPARTMENTS.map((d) => (
                         <option key={d} value={d}>{d === 'All' ? 'All Departments' : d}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   {/* Placement Status */}
@@ -342,18 +337,16 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                     <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Placement</label>
                     <div className="flex gap-1.5">
                       {['All', 'Placed', 'Not Placed'].map((st) => (
-                        <button
+                        <Button
                           key={st}
                           type="button"
+                          variant={statusFilter === st ? 'primary' : 'secondary'}
+                          size="sm"
                           onClick={() => setStatusFilter(st)}
-                          className={`flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all ${
-                            statusFilter === st
-                              ? 'bg-[#002D62] dark:bg-blue-600 text-white border-[#002D62] dark:border-blue-600 shadow-sm'
-                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                          }`}
+                          className="flex-1"
                         >
                           {st === 'Not Placed' ? 'Unplaced' : st}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -363,18 +356,16 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                     <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Profile</label>
                     <div className="flex gap-1.5">
                       {['All', 'Verified', 'Unverified'].map((v) => (
-                        <button
+                        <Button
                           key={v}
                           type="button"
+                          variant={verifiedFilter === v ? 'primary' : 'secondary'}
+                          size="sm"
                           onClick={() => setVerifiedFilter(v)}
-                          className={`flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all ${
-                            verifiedFilter === v
-                              ? 'bg-[#002D62] dark:bg-blue-600 text-white border-[#002D62] dark:border-blue-600 shadow-sm'
-                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                          }`}
+                          className="flex-1"
                         >
                           {v}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
