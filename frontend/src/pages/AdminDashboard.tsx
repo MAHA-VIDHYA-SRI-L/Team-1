@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, UserCheck, Plus, Trash2, Ban, CheckCircle2, Eye, Edit2, User, Hash, Phone, Mail, ShieldCheck, Search, UserX } from 'lucide-react';
-import { PageContainer, PageHeader, StatCard, ThemeToggle, Badge, SectionCard, Input, Button, Select, Table, Thead, Tbody, Th, Tr, Td, Modal, Label, FieldError } from '../components/ui';
-
+import { PageContainer, PageHeader, StatCard, ThemeToggle, Badge, Input, Button, Select, Table, Thead, Tbody, Th, Tr, Td, Modal, Label, FieldError } from '../components/ui';
+import { AlertCircle } from "lucide-react";
 interface AdminUser { fullName: string; email: string; }
 interface AdminDashboardProps { user: AdminUser; onLogout: () => void; }
 
@@ -343,22 +343,22 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <Tbody>
                   {rawList.length === 0 ? (
                     <Tr>
-                      <Td colSpan={6} align="center">
+                      <td colSpan={6} align="center" className="text-center px-6 py-10">
                         <div className="py-10 flex flex-col items-center gap-2">
                           <AlertCircle className="h-7 w-7 text-slate-300" />
                           <p className="font-bold text-slate-500">No {tab} registered yet</p>
                         </div>
-                      </Td>
+                      </td>
                     </Tr>
                   ) : filteredList.length === 0 ? (
                     <Tr>
-                      <Td colSpan={6} align="center">
+                      <td colSpan={6} align="center">
                         <div className="py-10 flex flex-col items-center gap-2">
                           <Search className="h-7 w-7 text-slate-300" />
                           <p className="font-bold text-slate-500">No matching {tab} found</p>
                           <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>Reset Filters</Button>
                         </div>
-                      </Td>
+                      </td>
                     </Tr>
                   ) : (
                     filteredList.map((item, idx) => {
