@@ -1,18 +1,13 @@
 import supabase from "../config/supabase.js";
+import { getCachedStudentId } from "../utils/cacheUtils.js";
 
-const getStudentId = async (authUserId) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("auth_user_id", authUserId)
-    .single();
-  if (error || !data) return null;
-  return data.id;
+const getStudentId = async (req) => {
+  return req.profileId || await getCachedStudentId(req.user?.id);
 };
 
 export const getSkills = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { data, error } = await supabase
@@ -30,7 +25,7 @@ export const getSkills = async (req, res) => {
 
 export const addSkill = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { skill_name, proficiency } = req.body;
@@ -55,7 +50,7 @@ export const addSkill = async (req, res) => {
 
 export const deleteSkill = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { id } = req.params;

@@ -3,14 +3,15 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const getStudentId = async (authUserId) => {
-  const { data } = await supabase.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
-  return data?.id || null;
+import { getCachedStudentId } from "../utils/cacheUtils.js";
+
+const getStudentId = async (req) => {
+  return req.profileId || await getCachedStudentId(req.user?.id);
 };
 
 export const analyzeStudent = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const [
@@ -255,7 +256,7 @@ ${studentData}`;
 
 export const getAnalysis = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { data, error } = await supabase
