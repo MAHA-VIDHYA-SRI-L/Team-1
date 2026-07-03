@@ -17,11 +17,10 @@ dotenv.config();
 const app = express();
 
 // Set up an array of allowed local development origins
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  "https://team-1-placemate.vercel.app"  // Production frontend
+  const allowedOrigins = [
+  "https://team-1-placemate.vercel.app",
+  "https://team-1-placemate.vercel.app",
+  "https://team-1-placemate.vercel.app"  
 ];
 
 app.use(cors({

@@ -1,11 +1,59 @@
 @import "tailwindcss";
+
 @custom-variant dark (&:is(.dark *));
+
+:root {
+  --pm-primary: #002D62;
+  --pm-secondary: #0F172A;
+  --pm-accent: #2563EB;
+
+  --pm-success: #16A34A;
+  --pm-warning: #F59E0B;
+  --pm-danger: #DC2626;
+
+  --pm-bg: #F8FAFC;
+  --pm-card: #FFFFFF;
+
+  --pm-text: #0F172A;
+  --pm-muted: #64748B;
+
+  --pm-ring: rgba(37, 99, 235, 0.25);
+  --pm-shadow-sm: 0 4px 15px -3px rgba(0, 45, 98, 0.10);
+  --pm-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
+
+  --pm-radius-lg: 18px;
+  --pm-radius-xl: 24px;
+}
+
+dark {
+  --pm-bg: #0F172A;
+  --pm-card: #0B1120;
+  --pm-text: #E5E7EB;
+  --pm-muted: #94A3B8;
+}
 
 @layer base {
   * {
-    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--pm-bg);
+  }
+
+  body {
+    color: var(--pm-text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+      "Segoe UI Emoji";
+  }
+
+  /* Accessible focus ring */
+  :focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 2px;
   }
 }
 
@@ -24,3 +72,4 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
