@@ -1,6 +1,6 @@
 import type { StudentProfileData } from '../types/profile';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://placemate-q1qo.onrender.com/api';
 
 let _authToken = sessionStorage.getItem('_pm_token') || '';
 let _refreshToken = sessionStorage.getItem('_pm_refresh') || '';

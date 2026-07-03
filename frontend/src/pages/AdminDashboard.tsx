@@ -98,7 +98,7 @@ interface Staff {
   id: string; full_name: string; faculty_id: string; email: string; phone: string; is_blocked: boolean;
 }
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API = import.meta.env.VITE_API_URL || 'https://placemate-q1qo.onrender.com/api';
 const adminHeaders = () => ({
   'Content-Type': 'application/json',
   'x-admin-key': import.meta.env.VITE_ADMIN_KEY || '',
