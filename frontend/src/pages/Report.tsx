@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, Download, Loader2, AlertCircle,
+  ArrowLeft, Download, AlertCircle,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,7 +12,11 @@ import {
   fetchSkills,
   fetchInternships,
 } from '../services/api';
-import ThemeToggle from '../components/ThemeToggle';
+import { ThemeToggle } from '../components/ThemeToggle';
+import logoUrl from '../assets/logo.jpg';
+import {
+  Button, Card, SectionLoader, EmptyState, PageHeader
+} from '../components/ui';
 
 interface ReportProps {
   user: { fullName: string; email: string; department?: string };
@@ -108,19 +112,29 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center gap-2 transition-colors duration-300">
-        <Loader2 className="h-5 w-5 animate-spin text-[#002D62] dark:text-blue-400" />
-        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Building report...</span>
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] p-6 flex items-center justify-center transition-colors duration-300">
+        <Card className="p-12 max-w-md w-full shadow-lg">
+          <SectionLoader message="Building report..." />
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
-        <AlertCircle className="h-8 w-8 text-red-400" />
-        <p className="text-sm text-slate-600 dark:text-slate-400">{error}</p>
-        <button onClick={onBackToDashboard} className="text-xs font-bold text-[#002D62] dark:text-blue-400 underline">Back</button>
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] p-6 flex items-center justify-center transition-colors duration-300">
+        <Card className="p-12 max-w-md w-full shadow-lg">
+          <EmptyState
+            icon={<AlertCircle className="h-12 w-12 text-red-500" />}
+            title="Report Error"
+            description={error}
+            action={
+              <Button variant="secondary" size="sm" onClick={onBackToDashboard}>
+                Back to Dashboard
+              </Button>
+            }
+          />
+        </Card>
       </div>
     );
   }
@@ -201,7 +215,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
           );
         }
       }
-    } catch (e) {
+    } catch {
       // fallback to text parsing
     }
     const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
@@ -236,37 +250,45 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 dark:bg-slate-950 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] font-sans transition-colors duration-300 flex flex-col">
 
       {/* ── Toolbar (not captured in PDF) ── */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm transition-colors duration-300">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ArrowLeft size={13} /> Back
-          </button>
-          <div>
-            <div className="text-sm font-black text-[#002D62] dark:text-blue-400 tracking-wider">PLACEMATE</div>
-            <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">PLACEMENT READINESS REPORT</div>
+      <PageHeader
+        logo={
+          <div className="h-10 w-10 rounded-2xl overflow-hidden ring-2 ring-slate-200/80 dark:ring-slate-700 shadow-sm shrink-0 bg-white p-0.5">
+            <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="Placemate Logo" />
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <button
-            onClick={downloadPdf}
-            disabled={downloading}
-            className={`flex items-center gap-2 px-4 py-2 ${downloading ? 'bg-slate-500' : 'bg-[#002D62] dark:bg-blue-600 hover:bg-[#001c3d] dark:hover:bg-blue-500'} text-white rounded-xl text-xs font-bold transition-all shadow-sm disabled:cursor-not-allowed`}
-          >
-            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            {downloading ? 'Generating PDF...' : 'Download PDF'}
-          </button>
-        </div>
-      </div>
+        }
+        title="Placemate"
+        badge="Placement Readiness Report"
+        subtitle="Official Candidate Summary"
+        actions={
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onBackToDashboard}
+              icon={<ArrowLeft className="h-4 w-4" />}
+            >
+              Back
+            </Button>
+            <ThemeToggle variant="button" />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={downloadPdf}
+              disabled={downloading}
+              loading={downloading}
+              icon={<Download className="h-4 w-4" />}
+            >
+              Download PDF
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── A4 Paper ── */}
-      <div style={{ padding: '32px 16px', display: 'flex', justifyContent: 'center' }}>
+      <div className="p-8 flex justify-center flex-1 overflow-x-auto">
         <div
           ref={reportRef}
           style={{
