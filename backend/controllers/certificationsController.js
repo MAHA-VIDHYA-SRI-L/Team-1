@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../config/supabase.js";
+import supabase, { supabaseAdmin } from "../config/supabase.js";
 import multer from "multer";
 
 export const uploadCertificateFile = multer({
