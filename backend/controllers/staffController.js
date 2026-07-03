@@ -95,7 +95,6 @@ export const updatePlacementStatus = async (req, res) => {
     const updates = { placement_status, placement_verified: placement_status === 'Placed' };
     if (company_name !== undefined) updates.company_name = placement_status === 'Placed' ? company_name : null;
 
-    // Check academic_details row exists first
     const { data: existing } = await supabaseAdmin
       .from("academic_details")
       .select("student_id")
@@ -103,12 +102,17 @@ export const updatePlacementStatus = async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    if (!existing) return res.status(404).json({ error: "Student has no academic record. Ask student to complete their profile first." });
-
-    const { error } = await supabaseAdmin
-      .from("academic_details")
-      .update(updates)
-      .eq("student_id", id);
+    let error;
+    if (existing) {
+      ({ error } = await supabaseAdmin
+        .from("academic_details")
+        .update(updates)
+        .eq("student_id", id));
+    } else {
+      ({ error } = await supabaseAdmin
+        .from("academic_details")
+        .insert({ student_id: id, ...updates }));
+    }
 
     if (error) return res.status(400).json({ error: error.message });
     return res.status(200).json({ message: "Placement status updated" });
