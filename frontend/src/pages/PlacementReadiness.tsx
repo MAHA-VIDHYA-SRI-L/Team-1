@@ -117,6 +117,37 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
 
   const renderConsolidatedReport = (text?: string) => {
     if (!text) return null;
+    try {
+      if (text.trim().startsWith('{')) {
+        const obj = JSON.parse(text);
+        const sections = [
+          { title: 'Overall Summary', body: obj.overall_summary },
+          { title: 'Academic Analysis', body: obj.academic_analysis },
+          { title: 'Technical & Projects', body: `${obj.technical_analysis || ''} ${obj.project_analysis || ''}`.trim() },
+          { title: 'Recruiter Impression', body: obj.recruiter_impression },
+          { title: 'Final Verdict', body: obj.final_verdict }
+        ].filter(s => s.body && s.body !== 'Analysis unavailable.');
+
+        if (sections.length > 0) {
+          return (
+            <div className="space-y-3 mt-3.5 max-w-2xl">
+              {sections.map((sec, idx) => (
+                <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm transition-all hover:shadow-md">
+                  <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-1">
+                    • {sec.title}
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                    {sec.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          );
+        }
+      }
+    } catch (e) {
+      // fallback to text parsing
+    }
     const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
     if (cleaned.includes('##')) {
       const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
