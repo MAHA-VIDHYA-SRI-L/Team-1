@@ -173,16 +173,11 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   }, {});
 
   // ── Divider ──
-  const HR = () => <div style={{ borderTop: '1px solid #e2e8f0', margin: '12px 0' }} />;
+  const HR = () => <div className="my-3 border-t border-slate-200 dark:border-slate-700" />;
 
   // ── Section heading ──
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
-      background: '#f1f5f9', color: '#002D62', padding: '8px 14px',
-      fontSize: 10, fontWeight: 800, letterSpacing: 1.2,
-      textTransform: 'uppercase', marginBottom: 12, borderRadius: 10,
-      borderLeft: '4px solid #002D62', display: 'flex', alignItems: 'center'
-    }}>
+    <div className="mb-3 flex items-center rounded-xl border-l-4 border-[#002D62] bg-slate-100 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#002D62] dark:bg-slate-800 dark:text-blue-400">
       {title}
     </div>
   );
@@ -202,14 +197,14 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
         if (sections.length > 0) {
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {sections.map((sec, idx) => (
-                <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                  <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                <Card key={idx} className="p-3.5 shadow-sm">
+                  <strong className="mb-1 block text-[10px] uppercase tracking-[0.08em] text-[#002D62] dark:text-blue-400">
                     • {sec.title}
                   </strong>
-                  <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{sec.body}</span>
-                </div>
+                  <span className="text-[10px] leading-6 text-slate-700 dark:text-slate-300">{sec.body}</span>
+                </Card>
               ))}
             </div>
           );
@@ -241,9 +236,9 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     }
     const paragraphs = cleaned.split(/\n\n+/).filter(Boolean);
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {paragraphs.slice(0, 3).map((p, idx) => (
-          <p key={idx} style={{ margin: 0, lineHeight: 1.6, color: '#334155' }}>{p.replace(/#/g, '').trim()}</p>
+          <p key={idx} className="m-0 text-[10px] leading-6 text-slate-700 dark:text-slate-300">{p.replace(/#/g, '').trim()}</p>
         ))}
       </div>
     );

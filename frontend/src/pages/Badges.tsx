@@ -382,24 +382,22 @@ export default function Badges({
               const count = certificates.filter(c => c.category === cat).length;
               const isActive = activeTab === cat;
               return (
-                <button
+                <Button
                   key={cat}
                   type="button"
+                  variant={isActive ? 'primary' : 'secondary'}
+                  size="sm"
                   onClick={() => setActiveTab(cat)}
-                  className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all shrink-0 duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#002D62] to-[#00428c] dark:from-blue-600 dark:to-blue-500 text-white shadow-md'
-                      : 'bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-200/60 dark:border-slate-700/60'
-                  }`}
+                  className={`shrink-0 ${isActive ? 'shadow-md' : 'border-slate-200/60 dark:border-slate-700/60 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'}`} 
+                  icon={getCategoryIcon(cat, "h-4 w-4 shrink-0")}
                 >
-                  {getCategoryIcon(cat, "h-4 w-4 shrink-0")}
                   <span>{cat}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     isActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                   }`}>
                     {count}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -542,13 +540,15 @@ export default function Badges({
                               <Unlock className="h-4 w-4 text-slate-400" />
                             )}
                           </span>
-                          <button 
+                          <Button
                             type="button"
-                            onClick={() => handleOpenPreview(cert)} 
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleOpenPreview(cert)}
                             className="text-[#002D62] dark:text-blue-400 hover:underline font-extrabold shrink-0"
                           >
                             View Document →
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
