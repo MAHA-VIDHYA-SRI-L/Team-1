@@ -230,7 +230,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col font-sans antialiased text-slate-800 dark:text-slate-100 transition-colors">
+    <PageContainer width="wide">
       {/* Toast */}
       {toast && <Toast message={toast} type="success" />}
 
@@ -264,9 +264,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         }
       />
 
-      {/* Main Container */}
-      <div className="max-w-[1600px] w-full mx-auto px-6 sm:px-10 xl:px-14 py-8 flex-1 flex flex-col space-y-8 relative z-10">
-        {/* Stats Summary Banner */}
+      <div className="flex-1 flex flex-col space-y-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <StatCard
             label="Student Users"
@@ -382,26 +380,6 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   ) : null
                 }
               />
-            </div>
-
-            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1.5 rounded-2xl border-2 border-slate-200/80 dark:border-slate-700/80 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.04)] self-start sm:self-auto shrink-0">
-              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2.5 flex items-center gap-1.5">
-                <Filter className="h-3.5 w-3.5 text-[#002D62] dark:text-blue-400" /> Status:
-              </span>
-              {(['all', 'active', 'blocked'] as const).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-black capitalize transition-all ${
-                    statusFilter === st
-                      ? 'bg-gradient-to-r from-[#002D62] to-[#00428c] dark:from-blue-600 dark:to-blue-500 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -734,18 +712,18 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       )}
 
       {/* View Student */}
-      {modal === 'view-student' && selected && (() => {
+      {(() => {
         const s = selected as Student;
         return (
           <Modal title="Student Profile Details" onClose={() => setModal(null)} size="md">
             <div className="space-y-3">
               <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-700">
                 <div className="h-12 w-12 rounded-2xl bg-[#002D62]/10 dark:bg-blue-900/40 flex items-center justify-center text-[#002D62] dark:text-blue-400 font-black text-base shrink-0">
-                  {s.full_name ? s.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST'}
+                  {s?.full_name ? s.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'ST'}
                 </div>
                 <div>
-                  <p className="font-extrabold text-slate-800 dark:text-white text-base">{s.full_name}</p>
-                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-400">Roll No: {s.register_no}</p>
+                  <p className="font-bold text-slate-800 dark:text-white">{s?.full_name}</p>
+                  <p className="text-xs text-slate-400">Roll No: {s?.register_no}</p>
                 </div>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
@@ -755,8 +733,8 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   ['Account State', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between py-2.5">
-                    <span className="font-semibold text-slate-400 dark:text-slate-400 text-xs uppercase tracking-wider">{k}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{v}</span>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{k}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{v}</span>
                   </div>
                 ))}
               </div>
@@ -766,18 +744,18 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       })()}
 
       {/* View Staff */}
-      {modal === 'view-staff' && selected && (() => {
+      {(() => {
         const s = selected as Staff;
         return (
           <Modal title="Staff Profile Details" onClose={() => setModal(null)} size="md">
             <div className="space-y-3">
               <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-700">
                 <div className="h-12 w-12 rounded-2xl bg-orange-500/10 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-base shrink-0">
-                  {s.full_name ? s.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST'}
+                  {s?.full_name ? s.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'ST'}
                 </div>
                 <div>
-                  <p className="font-extrabold text-slate-800 dark:text-white text-base">{s.full_name}</p>
-                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-400">Staff ID: {s.faculty_id}</p>
+                  <p className="font-bold text-slate-800 dark:text-white">{s?.full_name}</p>
+                  <p className="text-xs text-slate-400">Staff ID: {s?.faculty_id}</p>
                 </div>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
@@ -787,8 +765,8 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   ['Account State', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between py-2.5">
-                    <span className="font-semibold text-slate-400 dark:text-slate-400 text-xs uppercase tracking-wider">{k}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{v}</span>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{k}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{v}</span>
                   </div>
                 ))}
               </div>
@@ -796,6 +774,6 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           </Modal>
         );
       })()}
-    </div>
+    </PageContainer>
   );
 }
