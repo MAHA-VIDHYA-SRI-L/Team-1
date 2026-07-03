@@ -1,8 +1,8 @@
 import { supabaseAdmin } from "../config/supabase.js";
+import { getCachedStudentId } from "../utils/cacheUtils.js";
 
-const getStudentId = async (authUserId) => {
-  const { data } = await supabaseAdmin.from("student_profiles").select("id").eq("auth_user_id", authUserId).single();
-  return data?.id || null;
+const getStudentId = async (req) => {
+  return req.profileId || await getCachedStudentId(req.user?.id);
 };
 
 const toFloat = (val, min = 0, max = Infinity) => {
@@ -14,7 +14,7 @@ const toFloat = (val, min = 0, max = Infinity) => {
 
 export const getAcademicDetails = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { data, error } = await supabaseAdmin
@@ -44,7 +44,7 @@ export const getAcademicDetails = async (req, res) => {
 
 export const upsertAcademicDetails = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const {

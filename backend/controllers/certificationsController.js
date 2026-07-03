@@ -12,7 +12,7 @@ export const uploadCertificateFile = multer({
 
 export const uploadCertFile = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
     if (!req.file) return res.status(400).json({ error: "File is required" });
 
@@ -35,19 +35,15 @@ export const uploadCertFile = async (req, res) => {
   }
 };
 
-const getStudentId = async (authUserId) => {
-  const { data, error } = await supabase
-    .from("student_profiles")
-    .select("id")
-    .eq("auth_user_id", authUserId)
-    .single();
-  if (error || !data) return null;
-  return data.id;
+import { getCachedStudentId } from "../utils/cacheUtils.js";
+
+const getStudentId = async (req) => {
+  return req.profileId || await getCachedStudentId(req.user?.id);
 };
 
 export const getCertifications = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { data, error } = await supabase
@@ -66,7 +62,7 @@ export const getCertifications = async (req, res) => {
 
 export const addCertification = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { certification_name, issuer, certificate_url, category, start_date, end_date, description } = req.body;
@@ -96,7 +92,7 @@ export const addCertification = async (req, res) => {
 
 export const updateCertification = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { id } = req.params;
@@ -122,7 +118,7 @@ export const updateCertification = async (req, res) => {
 
 export const deleteCertification = async (req, res) => {
   try {
-    const studentId = await getStudentId(req.user.id);
+    const studentId = await getStudentId(req);
     if (!studentId) return res.status(404).json({ error: "Student profile not found" });
 
     const { id } = req.params;

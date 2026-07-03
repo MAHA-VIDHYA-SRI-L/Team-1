@@ -47,6 +47,17 @@ const buildHeaders = (): Record<string, string> => {
 
 const authHeaders = buildHeaders;
 
+interface CacheEntry {
+  text: string;
+  expiresAt: number;
+}
+const _apiCache = new Map<string, CacheEntry>();
+const API_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+export const clearApiCache = () => {
+  _apiCache.clear();
+};
+
 export const setTokens = (token: string, refreshToken?: string) => {
   _authToken = token;
   sessionStorage.setItem('_pm_token', token);
@@ -54,6 +65,7 @@ export const setTokens = (token: string, refreshToken?: string) => {
     _refreshToken = refreshToken;
     sessionStorage.setItem('_pm_refresh', refreshToken);
   }
+  clearApiCache();
 };
 
 export const clearTokens = () => {
@@ -61,6 +73,7 @@ export const clearTokens = () => {
   _refreshToken = '';
   sessionStorage.removeItem('_pm_token');
   sessionStorage.removeItem('_pm_refresh');
+  clearApiCache();
 };
 
 export const setUnauthorizedHandler = (handler: () => void) => {
@@ -95,6 +108,19 @@ const tryRefresh = async (): Promise<boolean> => {
 
 // Fetch wrapper that auto-retries once after token refresh on 401
 const apiFetch = async (input: string, init?: RequestInit): Promise<Response> => {
+  const method = (init?.method || 'GET').toUpperCase();
+  const isGet = method === 'GET';
+
+  if (!isGet) {
+    clearApiCache(); // Automatically invalidate cache on mutations
+  } else {
+    const cacheKey = `${input}|${_authToken}`;
+    const cached = _apiCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return new Response(cached.text, { status: 200, statusText: 'OK', headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
@@ -115,6 +141,11 @@ const apiFetch = async (input: string, init?: RequestInit): Promise<Response> =>
     }
     if (res.status === 401) {
       _onUnauthorized?.();
+    }
+    if (res.ok && isGet) {
+      const text = await res.clone().text();
+      const cacheKey = `${input}|${_authToken}`;
+      _apiCache.set(cacheKey, { text, expiresAt: Date.now() + API_CACHE_TTL_MS });
     }
     return res;
   } catch (error: any) {
