@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   LogOut, LayoutDashboard, User, Briefcase, CheckCircle2,
-  RotateCcw, Award, Settings, Camera,
+  RotateCcw, Award, Settings,
   X, BadgeCheck, Clock, CheckCircle, FileText, Upload, Loader2, FileBarChart, Menu
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -54,11 +54,9 @@ export default function StudentDashboard({
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [profileFormRecord, setProfileFormRecord] = useState<Partial<StudentProfileData> | null>(null);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
@@ -116,7 +114,6 @@ export default function StudentDashboard({
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
-      if (profilePic) URL.revokeObjectURL(profilePic);
     };
   }, []);
 
@@ -147,13 +144,7 @@ export default function StudentDashboard({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (profilePic) URL.revokeObjectURL(profilePic);
-      setProfilePic(URL.createObjectURL(file));
-    }
-  };
+
 
   if (checkingProfile) {
     return (
@@ -335,12 +326,9 @@ export default function StudentDashboard({
           <div className="flex items-center gap-3">
             <ThemeToggle />
             {/* Avatar */}
-            <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-              <div className={`h-9 w-9 rounded-full overflow-hidden ring-2 ${isVerified ? 'ring-blue-400 dark:ring-blue-500' : 'ring-amber-400 dark:ring-amber-500'} bg-gradient-to-br from-[#002D62] to-blue-500 flex items-center justify-center text-white font-bold text-sm`}>
-                {profilePic
-                  ? <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
-                  : displayName.charAt(0).toUpperCase()
-                }
+            <div className="relative">
+              <div className={`h-9 w-9 rounded-full overflow-hidden ring-2 ${isVerified ? 'ring-blue-400 dark:ring-blue-500' : 'ring-amber-400 dark:ring-amber-500'} bg-gradient-to-br from-[#002D62] to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
+                {displayName.charAt(0).toUpperCase()}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-800 rounded-full p-0.5 shadow-sm">
                 {isVerified
@@ -348,10 +336,6 @@ export default function StudentDashboard({
                   : <Clock className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                 }
               </div>
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="h-3.5 w-3.5 text-white" />
-              </div>
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             </div>
             {/* Mobile actions */}
             <div className="md:hidden flex items-center gap-1">

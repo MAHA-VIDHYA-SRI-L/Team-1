@@ -76,13 +76,32 @@ PROFILE COMPLETION:
 - Resume: ${resumeText !== "Not provided" ? "Uploaded" : "Not uploaded"}
 `.trim();
 
-    const prompt = `You are an expert placement analyst. Your task is to return ONLY valid JSON. Nothing else.
+    const prompt = `You are an expert AI Placement Analyst working for a college Student Placement Tracker System.
 
-DO NOT include any text, explanation, or markdown before or after the JSON.
-DO NOT wrap the JSON in code blocks.
-DO NOT include any other content.
+Your responsibility is to analyze the complete student profile and generate a professional Placement Analysis & Consolidated Report.
 
-Return this exact JSON structure and NOTHING ELSE:
+Analyze every section carefully. Do not simply summarize the information. Instead, evaluate the student's placement readiness based on the quality, completeness, relevance, consistency, and strength of the profile.
+
+You must generate your own Placement Readiness Score out of 100 based on your analysis. The score should consider: Academic Performance, Technical Skills, Soft Skills, Resume Quality, Relevant Projects, Internship Experience, Certifications, Profile Completeness, Overall Industry Readiness. Do not assign random scores. Justify the score based on the student's profile.
+
+Rules:
+- Be objective.
+- Do not invent information.
+- If information is unavailable, explicitly mention it.
+- Use professional placement-oriented language.
+- Keep the report concise, executive-level, and impactful (between 150 and 250 words total).
+- Avoid verbose paragraphs; use crisp sentences and focus only on critical placement insights.
+- Make the report personalized for the student.
+- Do not use emojis.
+- Do NOT use Markdown header tags (# or ##) in the report text.
+
+The consolidated report must provide a clean executive summary in 3 concise paragraphs covering:
+1. Student Profile & Academic Standing
+2. Key Competencies & Industry Readiness
+3. Priority Action Items for Placement Success
+
+After the report, append a JSON block at the very end in this exact format (no extra text after it):
+\`\`\`json
 {
   "overall_summary": "<max 60 words>",
   "academic_analysis": "<max 40 words>",

@@ -164,13 +164,47 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   // ── Section heading ──
   const SectionHead = ({ title }: { title: string }) => (
     <div style={{
-      background: '#002D62', color: '#fff', padding: '5px 12px',
-      fontSize: 9, fontWeight: 800, letterSpacing: 1.5,
-      textTransform: 'uppercase', marginBottom: 10, borderRadius: 3,
+      background: '#f1f5f9', color: '#002D62', padding: '8px 14px',
+      fontSize: 10, fontWeight: 800, letterSpacing: 1.2,
+      textTransform: 'uppercase', marginBottom: 12, borderRadius: 10,
+      borderLeft: '4px solid #002D62', display: 'flex', alignItems: 'center'
     }}>
       {title}
     </div>
   );
+
+  const formatReportText = (text?: string) => {
+    if (!text) return null;
+    const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
+    if (cleaned.includes('##')) {
+      const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {sections.slice(0, 3).map((sec, idx) => {
+            const lines = sec.split('\n');
+            const title = lines[0].replace(/[:.#]/g, '').trim();
+            const body = lines.slice(1).join(' ').trim() || sec.replace(/^[^.\n]+[:.]?\s*/, '');
+            return (
+              <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                  • {title}
+                </strong>
+                <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{body}</span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    const paragraphs = cleaned.split(/\n\n+/).filter(Boolean);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {paragraphs.slice(0, 3).map((p, idx) => (
+          <p key={idx} style={{ margin: 0, lineHeight: 1.6, color: '#334155' }}>{p.replace(/#/g, '').trim()}</p>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-200 dark:bg-slate-950 font-sans transition-colors duration-300">
@@ -208,7 +242,8 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
           ref={reportRef}
           style={{
             width: 794, background: '#fff',
-            boxShadow: '0 4px 32px rgba(0,0,0,0.15)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
+            borderRadius: 16,
             padding: '48px 56px',
             color: '#1e293b',
             fontSize: 11,
@@ -255,7 +290,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
           {analysis && (
             <div style={{
               background: '#f8fafc', border: '1px solid #e2e8f0',
-              borderRadius: 6, padding: '14px 20px', marginBottom: 20,
+              borderRadius: 14, padding: '16px 22px', marginBottom: 20,
               display: 'flex', alignItems: 'center', gap: 24,
             }}>
               <div style={{ textAlign: 'center', minWidth: 80 }}>
@@ -264,7 +299,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                 <div style={{
                   marginTop: 4, fontSize: 8, fontWeight: 800, textTransform: 'uppercase',
                   letterSpacing: 0.8, color: scoreColor,
-                  background: `${scoreColor}18`, padding: '2px 8px', borderRadius: 3,
+                  background: `${scoreColor}18`, padding: '3px 10px', borderRadius: 6,
                 }}>
                   {scoreLabel}
                 </div>
@@ -313,7 +348,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                 borderRadius: 4, padding: '12px 16px', marginBottom: 20,
                 fontSize: 10.5, color: '#334155', lineHeight: 1.8,
               }}>
-                {analysis.consolidated_report}
+                {formatReportText(analysis.consolidated_report)}
               </div>
             </>
           )}
@@ -362,7 +397,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                 ].filter(i => i.value && i.value !== '').map(item => (
                   <div key={item.label} style={{
                     background: '#f8fafc', border: '1px solid #e2e8f0',
-                    borderRadius: 4, padding: '8px 10px',
+                    borderRadius: 10, padding: '10px 12px',
                   }}>
                     <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>{item.label}</div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: '#1e293b', marginTop: 2 }}>{item.value}</div>
@@ -382,7 +417,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                         flex: 1, textAlign: 'center', padding: '6px 4px',
                         background: v ? (parseFloat(v) >= 8 ? '#d1fae5' : parseFloat(v) >= 6.5 ? '#dbeafe' : '#fff7ed') : '#f8fafc',
                         border: `1px solid ${v ? (parseFloat(v) >= 8 ? '#6ee7b7' : parseFloat(v) >= 6.5 ? '#93c5fd' : '#fed7aa') : '#e2e8f0'}`,
-                        borderRadius: 4, opacity: v ? 1 : 0.4,
+                        borderRadius: 8, opacity: v ? 1 : 0.4,
                       }}>
                         <div style={{ fontSize: 7.5, color: '#94a3b8', fontWeight: 700 }}>S{i + 1}</div>
                         <div style={{ fontSize: 11, fontWeight: 900, color: '#1e293b', marginTop: 1 }}>{v || '—'}</div>
@@ -420,8 +455,8 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                 {internships.map((intern: any, i: number) => (
                   <div key={intern.id ?? i} style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10,
-                    padding: '8px 10px', marginBottom: 6,
-                    background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4,
+                    padding: '10px 12px', marginBottom: 8,
+                    background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
                   }}>
                     <div style={{ fontSize: 14, marginTop: 1 }}>💼</div>
                     <div>
@@ -453,8 +488,8 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                       {(certs as any[]).map((cert: any, i: number) => (
                         <div key={cert.id ?? i} style={{
-                          padding: '7px 10px', background: '#f8fafc',
-                          border: '1px solid #e2e8f0', borderRadius: 4,
+                          padding: '10px 12px', background: '#f8fafc',
+                          border: '1px solid #e2e8f0', borderRadius: 10,
                         }}>
                           <div style={{ fontSize: 10, fontWeight: 800, color: '#1e293b' }}>{cert.certification_name}</div>
                           <div style={{ fontSize: 9, color: '#64748b', marginTop: 1 }}>{cert.issuer}</div>
@@ -485,10 +520,10 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
           <SectionHead title="Placement Status" />
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 14px', marginBottom: 20,
+            padding: '14px 18px', marginBottom: 20,
             background: isPlaced ? '#f0fdf4' : '#fff7ed',
             border: `1px solid ${isPlaced ? '#bbf7d0' : '#fed7aa'}`,
-            borderRadius: 4,
+            borderRadius: 12,
           }}>
             <div style={{ fontSize: 20 }}>{isPlaced ? '✅' : '⏳'}</div>
             <div>

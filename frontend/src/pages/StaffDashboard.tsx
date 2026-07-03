@@ -21,7 +21,8 @@ import {
   Mail,
   BadgeCheck,
   Clock,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 import { fetchStaffStudents, fetchStaffStudentById, updatePlacementStatus, verifyStudentByStaff, blockStudent, updateCertStatus, mapStudentRecord, type StudentRecord } from '../services/api';
 import {
@@ -217,6 +218,34 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
 
   const PIE_COLORS = ['#059669', '#f97316'];
 
+  const exportRosterToCSV = (dataToExport = students) => {
+    if (!dataToExport || dataToExport.length === 0) {
+      alert('No students to export.');
+      return;
+    }
+    const headers = ['Register No', 'Full Name', 'Email', 'Department', 'Readiness Score', 'Placement Status', 'Company', 'Profile Verified', 'Blocked'];
+    const rows = dataToExport.map(s => [
+      s.regNo || '',
+      `"${(s.name || '').replace(/"/g, '""')}"`,
+      s.email || '',
+      s.dept || '',
+      `${s.readinessScore || 0}%`,
+      s.status || '',
+      `"${(s.company || '').replace(/"/g, '""')}"`,
+      s.isVerified ? 'Yes' : 'No',
+      s.isBlocked ? 'Yes' : 'No'
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `placemate_roster_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col transition-colors text-slate-800 dark:text-slate-100">
       
@@ -257,6 +286,14 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
                 <span>Reports</span>
               </button>
             )}
+            <button
+              onClick={() => exportRosterToCSV(students)}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl transition-all shadow-2xs hover:scale-102 active:scale-98"
+              title="Export complete student roster to CSV spreadsheet"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Export CSV</span>
+            </button>
             <button 
               onClick={onLogout}
               className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white rounded-xl transition-all shadow-2xs hover:scale-102 active:scale-98 border border-red-100 dark:border-red-900/40"
@@ -542,14 +579,24 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
               <span className="text-[11px] font-bold text-slate-500">Filtered Results ({filteredStudents.length} matching)</span>
-              {(searchQuery || selectedDept !== 'All' || minReadiness > 0 || statusFilter !== 'All') && (
-                <button 
-                  onClick={() => { setSearchQuery(''); setSelectedDept('All'); setMinReadiness(0); setStatusFilter('All'); }}
-                  className="text-[10px] text-orange-500 font-bold hover:underline"
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => exportRosterToCSV(filteredStudents)}
+                  disabled={filteredStudents.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-[#002D62] dark:text-blue-300 bg-[#002D62]/5 dark:bg-blue-950/40 hover:bg-[#002D62]/10 border border-[#002D62]/20 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Clear Active Filters
+                  <Download className="h-3 w-3" />
+                  <span>Export Filtered ({filteredStudents.length})</span>
                 </button>
-              )}
+                {(searchQuery || selectedDept !== 'All' || minReadiness > 0 || statusFilter !== 'All') && (
+                  <button 
+                    onClick={() => { setSearchQuery(''); setSelectedDept('All'); setMinReadiness(0); setStatusFilter('All'); }}
+                    className="text-[10px] text-orange-500 font-bold hover:underline"
+                  >
+                    Clear Active Filters
+                  </button>
+                )}
+              </div>
             </div>
 
             {filteredStudents.length === 0 ? (
