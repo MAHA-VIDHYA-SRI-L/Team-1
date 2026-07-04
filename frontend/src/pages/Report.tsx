@@ -265,7 +265,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
               onClick={onBackToDashboard}
               icon={<ArrowLeft className="h-4 w-4" />}
             >
-              Back
+              Back to Dashboard
             </Button>
             <ThemeToggle variant="button" />
             <Button
