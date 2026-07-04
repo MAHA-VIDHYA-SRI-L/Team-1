@@ -364,6 +364,36 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
                   ))}
                 </div>
               </Card>
+
+              {analysis.recruiter_impression && (
+                <Card className="p-6 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200/80 dark:border-emerald-800/50">
+                  <h4 className="flex items-center gap-2.5 font-black text-emerald-900 dark:text-emerald-450 uppercase tracking-wide text-xs mb-3">
+                    <CheckCircle className="h-4 w-4" /> Recruiter Impression
+                  </h4>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.recruiter_impression}</p>
+                </Card>
+              )}
+
+              {analysis.career_fit && Array.isArray(analysis.career_fit) && (
+                <Card className="p-6">
+                  <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-4 text-xs">🎓 Suitable Career Paths</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.career_fit.map((role: string, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-800/50">
+                        <div className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                        <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300">{role}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {analysis.final_verdict && (
+                <Card className="p-6 bg-gradient-to-r from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800/50">
+                  <h4 className="font-black text-purple-900 dark:text-purple-400 uppercase tracking-wide mb-3 text-xs">📋 Final Verdict</h4>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">{analysis.final_verdict}</p>
+                </Card>
+              )}
             </div>
 
             {/* Right Column: Reports and detailed texts */}
@@ -429,35 +459,6 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
                 </Card>
               )}
 
-              {analysis.recruiter_impression && (
-                <Card className="p-6 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200/80 dark:border-emerald-800/50">
-                  <h4 className="flex items-center gap-2.5 font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-wide text-sm mb-3">
-                    <CheckCircle className="h-5 w-5" /> Recruiter Impression
-                  </h4>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.recruiter_impression}</p>
-                </Card>
-              )}
-
-              {analysis.career_fit && Array.isArray(analysis.career_fit) && (
-                <Card className="p-6">
-                  <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-4 text-sm">🎓 Suitable Career Paths</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {analysis.career_fit.map((role: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-3.5 rounded-xl border border-blue-200/80 dark:border-blue-800/50">
-                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{role}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {analysis.final_verdict && (
-                <Card className="p-6 bg-gradient-to-r from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800/50">
-                  <h4 className="font-black text-purple-900 dark:text-purple-400 uppercase tracking-wide mb-3 text-sm">📋 Final Verdict</h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-205 leading-relaxed">{analysis.final_verdict}</p>
-                </Card>
-              )}
             </div>
           </div>
         )}
