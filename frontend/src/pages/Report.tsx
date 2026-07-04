@@ -282,115 +282,11 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
         }
       />
 
-      {/* ── Two-Column Layout on Wide Screens ── */}
-      <main className="max-w-[1600px] w-full mx-auto px-6 sm:px-10 xl:px-14 py-8 flex-1 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start relative z-10">
-        
-        {/* Left Column: Index & Document Info Sidebar (xl:col-span-4) */}
-        <div className="xl:col-span-4 space-y-6 print:hidden">
-          
-          {/* Candidate Profile Widget */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-[#002D62] text-white flex items-center justify-center font-black text-lg shadow-sm">
-                {name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h3 className="font-extrabold text-slate-800 dark:text-white text-base leading-snug">{name}</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-wider mt-0.5">{dept || 'Student'}</p>
-              </div>
-            </div>
-            
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2.5 text-xs text-slate-500 dark:text-slate-400 font-bold">
-              {regNo && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Register Number:</span>
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold">{regNo}</span>
-                </div>
-              )}
-              {email && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Email Address:</span>
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold truncate max-w-[160px]" title={email}>{email}</span>
-                </div>
-              )}
-              {phone && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Phone Number:</span>
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold">{phone}</span>
-                </div>
-              )}
-              {passOut && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Batch Year:</span>
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold">{passOut}</span>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* AI Assessment Score / Status */}
-          {analysis && (
-            <Card className="p-6 space-y-4">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Verification Summary</h3>
-              <div className="flex items-center justify-between p-3.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-450">Readiness Score</span>
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                  {analysis.placement_readiness_score ?? 'N/A'}/100
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3.5 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-450">System Status</span>
-                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                  {analysis.readiness_status ?? 'VERIFIED'}
-                </span>
-              </div>
-            </Card>
-          )}
-
-          {/* Report Sections Index / Checklist */}
-          <Card className="p-6 space-y-4">
-            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Report Structure Checklist</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'Scholastic Profile', done: true },
-                { label: 'Academic & CGPA History', done: !!academic },
-                { label: 'Resume Verification', done: !!analysis?.resume_analysis },
-                { label: 'Technical Core Knowledge', done: !!analysis?.technical_analysis },
-                { label: 'Project Portfolio', done: !!analysis?.project_analysis },
-                { label: 'Certificates & Internships', done: certifications.length > 0 || internships.length > 0 },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-xs font-bold">
-                  <div className={`h-4.5 w-4.5 rounded-md flex items-center justify-center border ${
-                    item.done 
-                      ? 'bg-emerald-500 border-emerald-500 text-white' 
-                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
-                  }`}>
-                    {item.done && (
-                      <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/></svg>
-                    )}
-                  </div>
-                  <span className={item.done ? 'text-slate-700 dark:text-slate-300 font-extrabold' : 'text-slate-400 dark:text-slate-500'}>
-                    {item.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Document Verification Policy Footer */}
-          <Card className="p-6 bg-slate-50 dark:bg-slate-800/40 border-0">
-            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-2">Audit Assurance</h4>
-            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
-              This summary is built by parsing institutional records, uploaded certificates, and direct database queries. Verified badge records are permanent and signed.
-            </p>
-          </Card>
-        </div>
-
-        {/* Right Column: Centered A4 Printable Document View (xl:col-span-8) */}
-        <div className="xl:col-span-8 flex justify-center w-full overflow-x-auto p-4 bg-slate-100 dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-slate-800/50 shadow-inner">
-          <div
-            ref={reportRef}
-            style={{
+      {/* ── A4 Paper ── */}
+      <div className="flex-1 flex justify-center py-10 px-4 bg-slate-100 dark:bg-slate-900/60 overflow-x-auto shadow-inner">
+        <div
+          ref={reportRef}
+          style={{
             width: 794, background: '#fff',
             boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
             borderRadius: 16,
@@ -710,7 +606,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
         </div>
       </div>
-    </main>
-  </div>
+    </div>
   );
 }

@@ -321,6 +321,9 @@ export default function Badges({
     return certificates.filter(c => c.category === activeTab);
   }, [certificates, activeTab]);
 
+  const approvedCount = useMemo(() => certificates.filter(c => c.status === 'Approved').length, [certificates]);
+  const progressPercent = useMemo(() => certificates.length > 0 ? Math.round((approvedCount / certificates.length) * 100) : 0, [certificates, approvedCount]);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col font-sans antialiased text-slate-800 dark:text-slate-100 transition-colors duration-300">
       
@@ -380,7 +383,7 @@ export default function Badges({
             </Card>
 
             {/* Metrics Dashboard Card */}
-            <Card className="p-6 space-y-4">
+            <Card className="p-6 space-y-5">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Credentials Audit</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
@@ -389,11 +392,31 @@ export default function Badges({
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">
-                    {certificates.filter(c => c.status === 'Approved').length}
+                    {approvedCount}
                   </span>
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-555 uppercase tracking-widest">Verified</span>
                 </div>
               </div>
+
+              {/* Dynamic Progress Bar */}
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider">
+                  <span>Verification Progress</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{progressPercent}%</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-700/50 p-0.5">
+                  <div 
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-700 ease-out" 
+                    style={{ width: `${progressPercent}%` }} 
+                  />
+                </div>
+              </div>
+
+              {progressPercent === 100 && certificates.length > 0 && (
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl text-[10px] text-emerald-700 dark:text-emerald-400 font-extrabold uppercase tracking-wide justify-center animate-pulse">
+                  🎉 Portfolio Fully Verified
+                </div>
+              )}
             </Card>
 
             {/* Quick Actions / Guidelines */}
