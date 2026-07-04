@@ -5,6 +5,8 @@ interface CardProps {
   className?: string;
   /** Remove default padding */
   noPadding?: boolean;
+  /** Enable hover effect */
+  hover?: boolean;
 }
 
 interface CardHeaderProps {
@@ -20,15 +22,16 @@ interface CardSectionProps {
 }
 
 /** Root card container */
-export function Card({ children, className = '', noPadding = false }: CardProps) {
+export function Card({ children, className = '', noPadding = false, hover = false }: CardProps) {
+  void noPadding;
   return (
     <div
       className={[
         'bg-white dark:bg-[#1E293B]',
         'border border-slate-200 dark:border-slate-700/80',
         'rounded-2xl shadow-sm',
-        'transition-colors',
-        noPadding ? '' : '',
+        'transition-all duration-200',
+        hover ? 'hover:shadow-md hover:-translate-y-0.5' : '',
         className,
       ].join(' ')}
     >

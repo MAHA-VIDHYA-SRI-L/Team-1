@@ -2,11 +2,31 @@ import React from 'react';
 
 // ── Table wrapper ──────────────────────────────────────────────────────────
 interface TableProps {
+  headers?: React.ReactNode[];
   children: React.ReactNode;
   className?: string;
 }
 
-export function Table({ children, className = '' }: TableProps) {
+export function Table({ headers, children, className = '' }: TableProps) {
+  if (headers) {
+    return (
+      <div className="overflow-x-auto">
+        <table className={['w-full text-sm border-collapse', className].join(' ')}>
+          <thead className="bg-gradient-to-r from-[#002D62] via-[#00387a] to-[#002D62] text-white border-b border-[#001f44] dark:from-slate-800 dark:to-slate-850 dark:border-slate-700">
+            <tr className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-white/95 dark:text-slate-400">
+              {headers.map((h, i) => (
+                <th key={i} className="px-4 py-3 text-left">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{children}</tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className={['w-full text-sm border-collapse', className].join(' ')}>
@@ -96,5 +116,27 @@ export function Td({ children, className = '', align = 'left', muted = false }: 
     >
       {children}
     </td>
+  );
+}
+
+// ── TableRow ───────────────────────────────────────────────────────────────
+interface TableRowProps {
+  children: React.ReactNode;
+  striped?: boolean;
+  className?: string;
+}
+
+export function TableRow({ children, striped = false, className = '' }: TableRowProps) {
+  return (
+    <tr
+      className={[
+        'transition-colors',
+        striped ? 'bg-slate-50/50 dark:bg-slate-800/30' : 'bg-white dark:bg-slate-800/80',
+        'hover:bg-slate-50/80 dark:hover:bg-slate-800/60',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </tr>
   );
 }

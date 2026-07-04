@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
   title?: string;
   /** Optional subtitle below title */
@@ -12,17 +12,27 @@ interface ModalProps {
   footer?: React.ReactNode;
   /** Max width class, default 'max-w-md' */
   maxWidth?: string;
+  /** Legacy modal size */
+  size?: 'sm' | 'md' | 'lg';
 }
 
+const sizeWidths = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+};
+
 export function Modal({
-  open,
+  open = true,
   onClose,
   title,
   subtitle,
   children,
   footer,
-  maxWidth = 'max-w-md',
+  maxWidth,
+  size,
 }: ModalProps) {
+  const resolvedWidth = maxWidth || (size ? sizeWidths[size] : 'max-w-md');
   // Close on Escape
   useEffect(() => {
     if (!open) return;
@@ -51,7 +61,7 @@ export function Modal({
       <div
         className={[
           'relative w-full',
-          maxWidth,
+          resolvedWidth,
           'bg-white dark:bg-[#1E293B]',
           'border border-slate-200 dark:border-slate-700',
           'rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]',
