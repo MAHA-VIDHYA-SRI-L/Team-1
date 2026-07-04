@@ -29,7 +29,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   const [profile, setProfile] = useState<any>(null);
   const [academic, setAcademic] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [certifications, setCertifications] = useState<any[]>([]);
+  const [, setCertifications] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [internships, setInternships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,12 +165,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   const isPlaced = academic?.placementStatus === 'Placed';
 
-  const certsByCategory = certifications.reduce((acc: Record<string, any[]>, c: any) => {
-    const cat = c.category || 'General';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(c);
-    return acc;
-  }, {});
+
 
   // ── Divider ──
   const HR = () => <div className="my-3 border-t border-slate-200 dark:border-slate-700" />;
@@ -187,28 +182,46 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     try {
       if (text.trim().startsWith('{')) {
         const obj = JSON.parse(text);
-        const sections = [
-          { title: 'Overall Summary', body: obj.overall_summary },
-          { title: 'Academic Analysis', body: obj.academic_analysis },
-          { title: 'Technical & Projects', body: `${obj.technical_analysis || ''} ${obj.project_analysis || ''}`.trim() },
-          { title: 'Recruiter Impression', body: obj.recruiter_impression },
-          { title: 'Final Verdict', body: obj.final_verdict }
-        ].filter(s => s.body && s.body !== 'Analysis unavailable.');
-
-        if (sections.length > 0) {
-          return (
-            <div className="flex flex-col gap-3">
-              {sections.map((sec, idx) => (
-                <Card key={idx} className="p-3.5 shadow-sm">
-                  <strong className="mb-1 block text-[10px] uppercase tracking-[0.08em] text-[#002D62] dark:text-blue-400">
-                    • {sec.title}
-                  </strong>
-                  <span className="text-[10px] leading-6 text-slate-700 dark:text-slate-300">{sec.body}</span>
-                </Card>
-              ))}
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
+            {obj.overall_summary && (
+              <p style={{ margin: 0, textIndent: '24px', lineHeight: 1.6 }}>
+                {obj.overall_summary}
+              </p>
+            )}
+            {(obj.academic_analysis || obj.technical_analysis || obj.project_analysis) && (
+              <p style={{ margin: 0, textIndent: '24px', lineHeight: 1.6 }}>
+                {obj.academic_analysis || ''} {obj.technical_analysis || ''} {obj.project_analysis || ''}
+              </p>
+            )}
+            {(obj.recruiter_impression || obj.final_verdict) && (
+              <p style={{ margin: 0, textIndent: '24px', lineHeight: 1.6 }}>
+                {obj.recruiter_impression || ''} {obj.final_verdict || ''}
+              </p>
+            )}
+            
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
+              <div style={{ marginBottom: '6px' }}>
+                <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Key Strengths:</strong>
+                <span style={{ marginLeft: '6px' }}>{obj.strengths || analysis?.strengths || 'N/A'}</span>
+              </div>
+              <div style={{ marginBottom: '6px' }}>
+                <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Areas to Improve:</strong>
+                <span style={{ marginLeft: '6px' }}>{obj.weaknesses || analysis?.weaknesses || 'N/A'}</span>
+              </div>
+              <div>
+                <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actionable Recommendations:</strong>
+                <div style={{ marginTop: '4px', paddingLeft: '12px' }}>
+                  {(obj.recommendations || analysis?.recommendations || '').split(/\d+\.\s+/).map((r: string) => r.trim()).filter(Boolean).map((rec: string, idx: number) => (
+                    <div key={idx} style={{ marginBottom: '3px' }}>
+                      <strong>{idx + 1}.</strong> {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          );
-        }
+          </div>
+        );
       }
     } catch {
       // fallback to text parsing
@@ -217,18 +230,14 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     if (cleaned.includes('##')) {
       const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
           {sections.slice(0, 3).map((sec, idx) => {
             const lines = sec.split('\n');
-            const title = lines[0].replace(/[:.#]/g, '').trim();
             const body = lines.slice(1).join(' ').trim() || sec.replace(/^[^.\n]+[:.]?\s*/, '');
             return (
-              <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
-                  • {title}
-                </strong>
-                <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{body}</span>
-              </div>
+              <p key={idx} style={{ margin: 0, textIndent: '24px', lineHeight: 1.6 }}>
+                {body}
+              </p>
             );
           })}
         </div>
@@ -236,9 +245,11 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     }
     const paragraphs = cleaned.split(/\n\n+/).filter(Boolean);
     return (
-      <div className="flex flex-col gap-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
         {paragraphs.slice(0, 3).map((p, idx) => (
-          <p key={idx} className="m-0 text-[10px] leading-6 text-slate-700 dark:text-slate-300">{p.replace(/#/g, '').trim()}</p>
+          <p key={idx} style={{ margin: 0, textIndent: '24px', lineHeight: 1.6 }}>
+            {p.replace(/#/g, '').trim()}
+          </p>
         ))}
       </div>
     );
@@ -366,9 +377,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                   )}
                   <div style={{ display: 'flex', gap: 16, marginTop: 4, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 10, color: '#475569' }}>
-                      <strong style={{ color: '#1e293b' }}>Certifications:</strong> {certifications.length}
-                    </span>
-                    <span style={{ fontSize: 10, color: '#475569' }}>
                       <strong style={{ color: '#1e293b' }}>Skills:</strong> {skills.length}
                     </span>
                     <span style={{ fontSize: 10, color: '#475569' }}>
@@ -395,33 +403,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                 fontSize: 10.5, color: '#334155', lineHeight: 1.8,
               }}>
                 {formatReportText(analysis.consolidated_report)}
-              </div>
-            </>
-          )}
-
-          {/* ══ ANALYSIS ══ */}
-          {analysis && (analysis.strengths || analysis.weaknesses || analysis.recommendations) && (
-            <>
-              <SectionHead title="AI Analysis Summary" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
-                {analysis.strengths && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#166534', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>✓ Strengths</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.strengths}</div>
-                  </div>
-                )}
-                {analysis.weaknesses && (
-                  <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#9a3412', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>⚠ Areas to Improve</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.weaknesses}</div>
-                  </div>
-                )}
-                {analysis.recommendations && (
-                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#1e40af', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>→ Recommendations</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.recommendations}</div>
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -510,51 +491,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                       <div style={{ fontSize: 9.5, color: '#64748b' }}>
                         {intern.company_name}{intern.duration ? ` · ${intern.duration}` : ''}
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ══ CERTIFICATIONS ══ */}
-          {certifications.length > 0 && (
-            <>
-              <SectionHead title={`Certifications & Achievements (${certifications.length})`} />
-              <div style={{ marginBottom: 20 }}>
-                {Object.entries(certsByCategory).map(([cat, certs]) => (
-                  <div key={cat} style={{ marginBottom: 12 }}>
-                    <div style={{
-                      fontSize: 9, fontWeight: 800, color: '#475569',
-                      textTransform: 'uppercase', letterSpacing: 0.8,
-                      borderBottom: '1px solid #f1f5f9', paddingBottom: 4, marginBottom: 6,
-                    }}>
-                      {cat} ({(certs as any[]).length})
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                      {(certs as any[]).map((cert: any, i: number) => (
-                        <div key={cert.id ?? i} style={{
-                          padding: '10px 12px', background: '#f8fafc',
-                          border: '1px solid #e2e8f0', borderRadius: 10,
-                        }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: '#1e293b' }}>{cert.certification_name}</div>
-                          <div style={{ fontSize: 9, color: '#64748b', marginTop: 1 }}>{cert.issuer}</div>
-                          {cert.start_date && (
-                            <div style={{ fontSize: 8.5, color: '#94a3b8', marginTop: 1 }}>
-                              {cert.start_date}{cert.end_date ? ` — ${cert.end_date}` : ''}
-                            </div>
-                          )}
-                          <span style={{
-                            display: 'inline-block', marginTop: 3,
-                            padding: '1px 6px', borderRadius: 3, fontSize: 8,
-                            fontWeight: 700, textTransform: 'uppercase',
-                            background: cert.status?.toLowerCase() === 'approved' ? '#d1fae5' : '#fff7ed',
-                            color: cert.status?.toLowerCase() === 'approved' ? '#065f46' : '#c2410c',
-                          }}>
-                            {cert.status || 'Pending'}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 ))}
