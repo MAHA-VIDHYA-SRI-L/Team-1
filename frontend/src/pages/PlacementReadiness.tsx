@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, TrendingUp, CheckCircle, Clock
+  ArrowLeft, TrendingUp, CheckCircle, Clock, AlertTriangle
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
@@ -258,28 +258,50 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
             
             {/* Left Column: Visual score gauge and charts */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Circular Score Gauge */}
+              {/* Circular Score Gauge refactored to Segmented Box Gauge */}
               <Card className="p-6 flex flex-col items-center text-center">
-                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Readiness Score</p>
-                <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="88" cy="88" r={56} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth="12" fill="transparent" />
-                    <circle 
-                      cx="88" cy="88" r={56} 
-                      stroke="currentColor" strokeWidth="12" fill="transparent" 
-                      strokeDasharray={2 * Math.PI * 56} 
-                      strokeDashoffset={2 * Math.PI * 56 - (score / 100) * 2 * Math.PI * 56} 
-                      className={`${score >= 80 ? 'text-emerald-500' : score >= 60 ? 'text-blue-500' : 'text-amber-500'} transition-all duration-1000 ease-out`} 
-                      strokeLinecap="round" 
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-black text-slate-800 dark:text-white">{score}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">Quotient</span>
+                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Readiness Score Quotient</p>
+                <div className="flex items-center gap-3 justify-center mb-4 pt-2">
+                  <span className="text-5xl font-black text-slate-800 dark:text-white tracking-tight">{score}<span className="text-xl font-extrabold text-slate-400 dark:text-slate-505">/100</span></span>
+                  <div className="text-left">
+                    <span className="text-[10px] uppercase font-extrabold text-slate-450 dark:text-slate-550 tracking-wider block">Level</span>
+                    <span className={`text-xs font-extrabold uppercase tracking-wider ${
+                      score >= 80 ? 'text-emerald-500' : score >= 60 ? 'text-blue-500' : 'text-amber-500'
+                    }`}>
+                      {score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Work'}
+                    </span>
                   </div>
                 </div>
                 
-                <h3 className="text-lg font-black text-slate-800 dark:text-white mt-4">
+                {/* Segmented block boxes (10 segments) */}
+                <div className="w-full space-y-2 px-2 mt-2">
+                  <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-455 dark:text-slate-500 uppercase tracking-wider">
+                    <span>Placement Ready</span>
+                    <span>{score}%</span>
+                  </div>
+                  <div className="grid grid-cols-10 gap-1.5 w-full">
+                    {Array.from({ length: 10 }).map((_, idx) => {
+                      const stepValue = (idx + 1) * 10;
+                      const isActive = score >= stepValue;
+                      return (
+                        <div
+                          key={idx}
+                          className={`h-4.5 rounded-md border transition-all duration-500 ${
+                            isActive
+                              ? score >= 80
+                                ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                                : score >= 60
+                                  ? 'bg-gradient-to-t from-blue-600 to-blue-400 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.25)]'
+                                  : 'bg-gradient-to-t from-amber-600 to-amber-400 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                              : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200/60 dark:border-slate-700/60'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                <h3 className="text-lg font-black text-slate-800 dark:text-white mt-5">
                   Status: <span className={`${score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>{analysis.readiness_status}</span>
                 </h3>
               </Card>
@@ -398,6 +420,47 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
 
             {/* Right Column: Reports and detailed texts */}
             <div className="lg:col-span-2 space-y-6">
+              {/* AI Key Insights: Strengths, Weaknesses, Recommendations */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {analysis.strengths && (
+                  <Card className="p-5 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 dark:from-emerald-500/10 dark:to-teal-500/10 border border-emerald-100 dark:border-emerald-950/80 shadow-sm flex flex-col">
+                    <h5 className="flex items-center gap-2 font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider text-[10px] mb-2.5 shrink-0">
+                      <CheckCircle className="h-4 w-4" /> Top Strengths
+                    </h5>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-350 leading-relaxed flex-1">
+                      {analysis.strengths}
+                    </p>
+                  </Card>
+                )}
+
+                {analysis.weaknesses && (
+                  <Card className="p-5 bg-gradient-to-br from-rose-500/5 to-amber-500/5 dark:from-rose-500/10 dark:to-amber-500/10 border border-rose-100 dark:border-rose-950/80 shadow-sm flex flex-col">
+                    <h5 className="flex items-center gap-2 font-black text-rose-800 dark:text-rose-455 uppercase tracking-wider text-[10px] mb-2.5 shrink-0">
+                      <AlertTriangle className="h-4 w-4" /> Areas to Improve
+                    </h5>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-355 leading-relaxed flex-1">
+                      {analysis.weaknesses}
+                    </p>
+                  </Card>
+                )}
+
+                {analysis.recommendations && (
+                  <Card className="p-5 bg-gradient-to-br from-indigo-500/5 to-blue-500/5 dark:from-indigo-500/10 dark:to-blue-500/10 border border-indigo-100 dark:border-indigo-950/80 shadow-sm flex flex-col">
+                    <h5 className="flex items-center gap-2 font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-wider text-[10px] mb-2.5 shrink-0">
+                      <TrendingUp className="h-4 w-4" /> Roadmap Action
+                    </h5>
+                    <div className="text-[11px] font-bold text-slate-650 dark:text-slate-350 leading-relaxed space-y-1 flex-1">
+                      {analysis.recommendations.split(/\d+\.\s+/).map((r: string) => r.trim()).filter(Boolean).map((rec: string, idx: number) => (
+                        <div key={idx} className="flex gap-1.5 items-start">
+                          <span className="text-indigo-650 dark:text-indigo-400 font-extrabold shrink-0">{idx + 1}.</span>
+                          <span>{rec}</span>
+                        </div>
+                      )) || analysis.recommendations}
+                    </div>
+                  </Card>
+                )}
+              </div>
+
               {/* Detailed Consolidated Report Preview card */}
               <Card className="p-6 bg-white dark:bg-slate-800">
                 <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-2">

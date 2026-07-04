@@ -133,6 +133,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
 
   useEffect(() => {
+    // Wake up/pre-warm Render backend service on mount
+    fetch(`${API_BASE}/health`).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (showToast) {
       const t = setTimeout(() => setShowToast(false), 4000);
       return () => clearTimeout(t);
@@ -215,7 +220,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       localStorage.setItem('_pm_remembered_email', email.trim());
       setToastMessage('Logged in successfully');
       setShowToast(true);
-      setTimeout(() => onLoginSuccess(result.role, result.user), 1000);
+      setTimeout(() => onLoginSuccess(result.role, result.user), 200);
     } catch {
       setLoginError(!navigator.onLine
         ? 'You are offline. Please check your internet connection.'
