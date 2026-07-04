@@ -34,10 +34,15 @@ export function PageLoader({ message = 'Loading...' }: PageLoaderProps) {
   );
 }
 
+interface SectionLoaderProps {
+  message?: string;
+  className?: string;
+}
+
 // ── Inline section loader ──────────────────────────────────────────────────
-export function SectionLoader({ message = 'Loading...' }: PageLoaderProps) {
+export function SectionLoader({ message = 'Loading...', className = '' }: SectionLoaderProps) {
   return (
-    <div className="flex items-center justify-center py-16 gap-3">
+    <div className={['flex items-center justify-center py-16 gap-3', className].join(' ')}>
       <Spinner size="md" />
       <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{message}</span>
     </div>
