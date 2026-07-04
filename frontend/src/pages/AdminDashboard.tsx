@@ -712,7 +712,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       )}
 
       {/* View Student */}
-      {(() => {
+      {modal === 'view-student' && selected && (() => {
         const s = selected as Student;
         return (
           <Modal title="Student Profile Details" onClose={() => setModal(null)} size="md">
@@ -744,7 +744,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       })()}
 
       {/* View Staff */}
-      {(() => {
+      {modal === 'view-staff' && selected && (() => {
         const s = selected as Staff;
         return (
           <Modal title="Staff Profile Details" onClose={() => setModal(null)} size="md">
