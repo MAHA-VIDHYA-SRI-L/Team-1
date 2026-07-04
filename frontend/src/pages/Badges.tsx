@@ -360,205 +360,250 @@ export default function Badges({
       />
 
       {/* Main Area */}
-      <main className="max-w-[1600px] w-full mx-auto px-6 sm:px-10 xl:px-14 py-8 flex-1 flex flex-col space-y-8 relative z-10">
-        
-        {/* Horizontal Category Buckets & User Profile Bar */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 bg-white dark:bg-slate-800/90 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.04)]">
+      <main className="max-w-[1600px] w-full mx-auto px-6 sm:px-10 xl:px-14 py-8 flex-1 relative z-10">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 items-start">
           
-          {/* User Profile Chip */}
-          <div className="flex items-center gap-3.5 pr-6 lg:border-r border-slate-200 dark:border-slate-700 shrink-0">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white font-black text-lg flex items-center justify-center shadow-md">
-              {user.fullName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-black text-slate-800 dark:text-white leading-tight">{user.fullName}</p>
-              <p className="text-[11px] font-bold text-slate-400 dark:text-slate-400 mt-0.5 uppercase tracking-wider">{user.department} Department</p>
-            </div>
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto flex-1 pb-2 lg:pb-0 scrollbar-none">
-            {categories.map((cat) => {
-              const count = certificates.filter(c => c.category === cat).length;
-              const isActive = activeTab === cat;
-              return (
-                <Button
-                  key={cat}
-                  type="button"
-                  variant={isActive ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => setActiveTab(cat)}
-                  className={`shrink-0 ${isActive ? 'shadow-md' : 'border-slate-200/60 dark:border-slate-700/60 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'}`} 
-                  icon={getCategoryIcon(cat, "h-4 w-4 shrink-0")}
-                >
-                  <span>{cat}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}>
-                    {count}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-
-          {/* Add Category Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsCustomCategoryModalOpen(true)}
-            icon={<FolderPlus className="h-4 w-4 text-[#002D62] dark:text-blue-400" />}
-            className="shrink-0 self-start lg:self-auto"
-          >
-            Add Custom Category
-          </Button>
-        </div>
-
-        {/* Certificates Section */}
-        <div>
-          {filteredCertificates.length === 0 ? (
-            <Card className="p-12">
-              <EmptyState
-                icon={getCategoryIcon(activeTab, "h-12 w-12 text-[#002D62] dark:text-blue-400")}
-                title={`Start Building Your "${activeTab}" Portfolio`}
-                description="Upload your certificates, achievement badges, and event proofs here. Our AI will analyze them for your placement readiness report."
-                action={
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
-                    icon={<Upload className="h-4 w-4" />}
-                  >
-                    Upload First Achievement
-                  </Button>
-                }
-              />
+          {/* Left Column: Profile Card, Audit Stats & Guidelines */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* User Profile Card */}
+            <Card className="p-6 bg-gradient-to-br from-[#002D62] to-[#00428c] text-white border-0 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.05] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-md text-white font-black text-xl flex items-center justify-center border border-white/20">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-base font-black leading-tight">{user.fullName}</p>
+                  <p className="text-[11px] font-bold text-blue-200 mt-1 uppercase tracking-wider">{user.department} Department</p>
+                </div>
+              </div>
             </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCertificates.map((cert) => {
-                const isApproved = cert.status === 'Approved';
-                return (
-                  <Card 
-                    key={cert.id} 
-                    hover={true}
-                    className={`overflow-hidden flex flex-col border-2 transition-all ${
-                      isApproved ? 'border-emerald-200/80 dark:border-emerald-800/50' : 'border-slate-200/80 dark:border-slate-700/80'
-                    }`}
-                  >
-                    {/* Thumbnail wrapper */}
-                    <div className="h-44 bg-slate-100 dark:bg-slate-800/60 relative flex items-center justify-center border-b border-slate-100 dark:border-slate-800 overflow-hidden group/thumb">
-                      <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#002d62_1px,transparent_1px)] [background-size:12px_12px]" />
-                      
-                      <div className="w-[85%] h-[80%] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 relative flex flex-col justify-between select-none">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1.5">
-                            <div className="h-2 w-20 bg-slate-300 dark:bg-slate-700 rounded" />
-                            <div className="h-1.5 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
-                          </div>
-                          <div className="h-7 w-7 rounded-full border-2 border-[#002D62]/10 dark:border-blue-400/20 flex items-center justify-center">
-                            {getCategoryIcon(cert.category, "h-3.5 w-3.5 text-[#002D62] dark:text-blue-400")}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-end justify-between">
-                          <div className="space-y-1">
-                            <div className="h-1.5 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
-                            <div className="h-1 w-20 bg-slate-100 dark:bg-slate-800/50 rounded" />
-                          </div>
-                          <div className={`h-9 w-9 rounded-full flex items-center justify-center text-[7px] font-black uppercase rotate-[-12deg] border-2 border-dashed ${
-                            isApproved ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/40' : 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40'
-                          }`}>
-                            {isApproved ? 'VERIFIED' : 'PENDING'}
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Top left status badge */}
-                      <div className="absolute top-3 left-3">
-                        <Badge variant={isApproved ? 'success' : 'warning'} dot={true}>
-                          {cert.status}
-                        </Badge>
-                      </div>
+            {/* Metrics Dashboard Card */}
+            <Card className="p-6 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Credentials Audit</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
+                  <span className="text-2xl font-black text-slate-800 dark:text-white block">{certificates.length}</span>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Total Uploaded</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center">
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">
+                    {certificates.filter(c => c.status === 'Approved').length}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-555 uppercase tracking-widest">Verified</span>
+                </div>
+              </div>
+            </Card>
 
-                      {/* Actions overlay panel shown upon hovering thumbnail */}
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => handleEditOpen(cert)}
-                          title="Edit Submission"
-                          icon={<Edit2 className="h-3.5 w-3.5 text-[#002D62] dark:text-blue-400" />}
-                        />
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => triggerCertificateDeleteConfirm(cert.id)}
-                          title="Delete Submission"
-                          icon={<Trash2 className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />}
-                        />
-                      </div>
-                    </div>
+            {/* Quick Actions / Guidelines */}
+            <Card className="p-6 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Guidelines</h3>
+              <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-2.5 font-semibold">
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 font-extrabold mt-0.5">•</span>
+                  <span>Supported files: PDF, PNG, JPEG (max 5MB).</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 font-extrabold mt-0.5">•</span>
+                  <span>Uploading files automatically updates placement readiness reports.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 font-extrabold mt-0.5">•</span>
+                  <span>Subject to verification checklist before final lock.</span>
+                </li>
+              </ul>
+              <div className="pt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsCustomCategoryModalOpen(true)}
+                  icon={<FolderPlus className="h-4 w-4 text-[#002D62] dark:text-blue-400" />}
+                  className="w-full"
+                >
+                  Create Custom Category
+                </Button>
+              </div>
+            </Card>
+          </div>
 
-                    {/* Details block */}
-                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-3">
-                        <h3 className="font-extrabold text-slate-800 dark:text-white text-base leading-snug line-clamp-1" title={cert.title}>
-                          {cert.title}
-                        </h3>
-                        
-                        <div className="space-y-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                            <span className="truncate text-slate-700 dark:text-slate-300">{cert.issuingOrganization}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                            <span>{cert.startDate} — {cert.endDate}</span>
-                          </div>
-                        </div>
-
-                        {cert.description && (
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                            {cert.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Footer row */}
-                      <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-bold">
-                        <div className="flex items-center gap-1.5 text-slate-400 max-w-[140px] truncate">
-                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-                          <span className="font-mono text-[11px] font-normal truncate">{cert.fileName}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center" title={isApproved ? "Verified & Locked by Staff" : "Editable until staff checklist verification"}>
-                            {isApproved ? (
-                              <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                            ) : (
-                              <Unlock className="h-4 w-4 text-slate-400" />
-                            )}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => handleOpenPreview(cert)}
-                            className="text-[#002D62] dark:text-blue-400 hover:underline font-extrabold shrink-0"
-                          >
-                            View Document →
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+          {/* Right Column: Tab navigation & Certificates view */}
+          <div className="xl:col-span-3 space-y-6">
+            {/* Category tabs container */}
+            <div className="bg-white dark:bg-slate-800/90 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none flex-1">
+                {categories.map((cat) => {
+                  const count = certificates.filter(c => c.category === cat).length;
+                  const isActive = activeTab === cat;
+                  return (
+                    <Button
+                      key={cat}
+                      type="button"
+                      variant={isActive ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setActiveTab(cat)}
+                      className={`shrink-0 ${isActive ? 'shadow-md' : 'border-slate-200/60 dark:border-slate-700/60 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'}`}
+                      icon={getCategoryIcon(cat, "h-4 w-4 shrink-0")}
+                    >
+                      <span>{cat}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        {count}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
 
+            {/* Certificates List / Grid */}
+            <div>
+              {filteredCertificates.length === 0 ? (
+                <Card className="p-12">
+                  <EmptyState
+                    icon={getCategoryIcon(activeTab, "h-12 w-12 text-[#002D62] dark:text-blue-400")}
+                    title={`Start Building Your "${activeTab}" Portfolio`}
+                    description="Upload your certificates, achievement badges, and event proofs here. Our AI will analyze them for your placement readiness report."
+                    action={
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={() => { setFormCategory(activeTab); setIsModalOpen(true); }}
+                        icon={<Upload className="h-4 w-4" />}
+                      >
+                        Upload First Achievement
+                      </Button>
+                    }
+                  />
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredCertificates.map((cert) => {
+                    const isApproved = cert.status === 'Approved';
+                    return (
+                      <Card
+                        key={cert.id}
+                        hover={true}
+                        className={`overflow-hidden flex flex-col border-2 transition-all ${
+                          isApproved ? 'border-emerald-200/80 dark:border-emerald-800/50' : 'border-slate-200/80 dark:border-slate-700/80'
+                        }`}
+                      >
+                        {/* Thumbnail wrapper */}
+                        <div className="h-44 bg-slate-100 dark:bg-slate-800/60 relative flex items-center justify-center border-b border-slate-100 dark:border-slate-800 overflow-hidden group/thumb">
+                          <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#002d62_1px,transparent_1px)] [background-size:12px_12px]" />
+                          
+                          <div className="w-[85%] h-[80%] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 relative flex flex-col justify-between select-none">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1.5">
+                                <div className="h-2 w-20 bg-slate-300 dark:bg-slate-700 rounded" />
+                                <div className="h-1.5 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                              </div>
+                              <div className="h-7 w-7 rounded-full border-2 border-[#002D62]/10 dark:border-blue-400/20 flex items-center justify-center">
+                                {getCategoryIcon(cert.category, "h-3.5 w-3.5 text-[#002D62] dark:text-blue-400")}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-end justify-between">
+                              <div className="space-y-1">
+                                <div className="h-1.5 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                                <div className="h-1 w-20 bg-slate-100 dark:bg-slate-800/50 rounded" />
+                              </div>
+                              <div className={`h-9 w-9 rounded-full flex items-center justify-center text-[7px] font-black uppercase rotate-[-12deg] border-2 border-dashed ${
+                                isApproved ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/40' : 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40'
+                              }`}>
+                                {isApproved ? 'VERIFIED' : 'PENDING'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Top left status badge */}
+                          <div className="absolute top-3 left-3">
+                            <Badge variant={isApproved ? 'success' : 'warning'} dot={true}>
+                              {cert.status}
+                            </Badge>
+                          </div>
+
+                          {/* Actions overlay panel shown upon hovering thumbnail */}
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={() => handleEditOpen(cert)}
+                              title="Edit Submission"
+                              icon={<Edit2 className="h-3.5 w-3.5 text-[#002D62] dark:text-blue-400" />}
+                            />
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={() => triggerCertificateDeleteConfirm(cert.id)}
+                              title="Delete Submission"
+                              icon={<Trash2 className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Details block */}
+                        <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                          <div className="space-y-3">
+                            <h3 className="font-extrabold text-slate-800 dark:text-white text-base leading-snug line-clamp-1" title={cert.title}>
+                              {cert.title}
+                            </h3>
+                            
+                            <div className="space-y-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span className="truncate text-slate-700 dark:text-slate-300">{cert.issuingOrganization}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span>{cert.startDate} — {cert.endDate}</span>
+                              </div>
+                            </div>
+
+                            {cert.description && (
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                {cert.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Footer row */}
+                          <div className="pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-bold">
+                            <div className="flex items-center gap-1.5 text-slate-400 max-w-[140px] truncate">
+                              <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                              <span className="font-mono text-[11px] font-normal truncate">{cert.fileName}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="flex items-center" title={isApproved ? "Verified & Locked by Staff" : "Editable until staff checklist verification"}>
+                                {isApproved ? (
+                                  <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <Unlock className="h-4 w-4 text-slate-400" />
+                                )}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => handleOpenPreview(cert)}
+                                className="text-[#002D62] dark:text-blue-400 hover:underline font-extrabold shrink-0"
+                              >
+                                View Document →
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
       </main>
 
       {/* --- MODAL 1: UPLOAD / EDIT CERTIFICATE FORM MODAL --- */}

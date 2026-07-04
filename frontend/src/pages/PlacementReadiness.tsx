@@ -254,120 +254,128 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
             />
           </Card>
         ) : (
-          <div className="space-y-8">
-            {/* Overall Score & Breakdown */}
-            <Card className="p-8">
-              <div className="flex flex-col xl:flex-row items-center xl:items-start gap-10">
-                <div className="relative w-52 h-52 flex items-center justify-center shrink-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
+            {/* Left Column: Visual score gauge and charts */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Circular Score Gauge */}
+              <Card className="p-6 flex flex-col items-center text-center">
+                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Readiness Score</p>
+                <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
                   <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="104" cy="104" r={64} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth="16" fill="transparent" />
+                    <circle cx="88" cy="88" r={56} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth="12" fill="transparent" />
                     <circle 
-                      cx="104" cy="104" r={64} 
-                      stroke="currentColor" strokeWidth="16" fill="transparent" 
-                      strokeDasharray={2 * Math.PI * 64} 
-                      strokeDashoffset={2 * Math.PI * 64 - (score / 100) * 2 * Math.PI * 64} 
+                      cx="88" cy="88" r={56} 
+                      stroke="currentColor" strokeWidth="12" fill="transparent" 
+                      strokeDasharray={2 * Math.PI * 56} 
+                      strokeDashoffset={2 * Math.PI * 56 - (score / 100) * 2 * Math.PI * 56} 
                       className={`${score >= 80 ? 'text-emerald-500' : score >= 60 ? 'text-blue-500' : 'text-amber-500'} transition-all duration-1000 ease-out`} 
                       strokeLinecap="round" 
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-5xl font-black text-slate-800 dark:text-white">{score}</span>
-                    <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest mt-1">Score</span>
+                    <span className="text-4xl font-black text-slate-800 dark:text-white">{score}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">Quotient</span>
                   </div>
                 </div>
                 
-                <div className="flex-1 text-center xl:text-left w-full">
-                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-                    Status: <span className={`${score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>{analysis.readiness_status}</span>
-                  </h3>
-                  {renderConsolidatedReport(analysis.consolidated_report)}
+                <h3 className="text-lg font-black text-slate-800 dark:text-white mt-4">
+                  Status: <span className={`${score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : score >= 60 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>{analysis.readiness_status}</span>
+                </h3>
+              </Card>
 
-                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
-                      <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Score Breakdown</p>
-                      <div style={{ width: '100%', height: 200 }}>
-                        <ResponsiveContainer>
-                          <BarChart data={getComponentScores(analysis)} layout="vertical" margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                              {getComponentScores(analysis).map((entry: any, index: number) => (
-                                <linearGradient key={`grad-${index}`} id={`colorUv-${index}`} x1="0" y1="0" x2="1" y2="0">
-                                  <stop offset="0%" stopColor={entry.color} stopOpacity={0.8} />
-                                  <stop offset="100%" stopColor={entry.color} stopOpacity={1} />
-                                </linearGradient>
-                              ))}
-                            </defs>
-                            <XAxis type="number" hide domain={[0, 100]} />
-                            <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                            <Bar dataKey="value" radius={[0,4,4,0]} barSize={16}>
-                              {getComponentScores(analysis).map((_entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={`url(#colorUv-${index})`} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex flex-col items-center">
-                      <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 self-start">Skill Radar</p>
-                      <div style={{ width: '100%', height: 200 }}>
-                        <ResponsiveContainer>
-                          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={getComponentScores(analysis)}>
-                            <defs>
-                              <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stopColor="#0b63ff" stopOpacity={0.1}/>
-                                <stop offset="100%" stopColor="#0b63ff" stopOpacity={0.6}/>
-                              </radialGradient>
-                            </defs>
-                            <PolarGrid stroke="#e2e8f0" />
-                            <PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} />
-                            <Radar name="Score" dataKey="value" stroke="#0b63ff" strokeWidth={2} fill="url(#radarGrad)" />
-                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
+              {/* Breakdown Bar Chart */}
+              <Card className="p-6">
+                <p className="text-xs font-black text-slate-705 dark:text-slate-350 uppercase tracking-wider mb-4">Score Breakdown</p>
+                <div style={{ width: '100%', height: 180 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={getComponentScores(analysis)} layout="vertical" margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        {getComponentScores(analysis).map((entry: any, index: number) => (
+                          <linearGradient key={`grad-${index}`} id={`colorUv-${index}`} x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor={entry.color} stopOpacity={0.8} />
+                            <stop offset="100%" stopColor={entry.color} stopOpacity={1} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <XAxis type="number" hide domain={[0, 100]} />
+                      <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }} />
+                      <Bar dataKey="value" radius={[0,4,4,0]} barSize={12}>
+                        {getComponentScores(analysis).map((_entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={`url(#colorUv-${index})`} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-            </Card>
+              </Card>
 
-            {/* Area Contribution Chart */}
-            <Card className="p-8">
-              <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide text-sm mb-6">Area Contribution</h4>
-              <div className="w-full flex justify-center" style={{ height: 260 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={getComponentScores(analysis)}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={65}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {getComponentScores(analysis).map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-wrap justify-center gap-6 mt-6">
-                {getComponentScores(analysis).map((entry: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-2.5">
-                    <span className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
-                    <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{entry.name} ({entry.value}%)</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+              {/* Radar Chart */}
+              <Card className="p-6 flex flex-col items-center">
+                <p className="text-xs font-black text-slate-705 dark:text-slate-350 uppercase tracking-wider mb-2 self-start">Skill Radar</p>
+                <div style={{ width: '100%', height: 180 }}>
+                  <ResponsiveContainer>
+                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={getComponentScores(analysis)}>
+                      <defs>
+                        <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#0b63ff" stopOpacity={0.1}/>
+                          <stop offset="100%" stopColor="#0b63ff" stopOpacity={0.6}/>
+                        </radialGradient>
+                      </defs>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 650 }} />
+                      <Radar name="Score" dataKey="value" stroke="#0b63ff" strokeWidth={1.5} fill="url(#radarGrad)" />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Consolidated Report Sections */}
-            <div className="grid grid-cols-1 gap-6">
+              {/* Area Contribution Pie Chart */}
+              <Card className="p-6">
+                <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide text-xs mb-3">Area Contribution</h4>
+                <div className="w-full flex justify-center" style={{ height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={getComponentScores(analysis)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {getComponentScores(analysis).map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5 mt-2">
+                  {getComponentScores(analysis).map((entry: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full shadow-sm animate-pulse" style={{ backgroundColor: entry.color }} />
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350">{entry.name} ({entry.value}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Column: Reports and detailed texts */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Detailed Consolidated Report Preview card */}
+              <Card className="p-6 bg-white dark:bg-slate-800">
+                <span className="font-extrabold text-[#002D62] dark:text-blue-400 uppercase tracking-wider text-[11px] block mb-2">
+                  Consolidated Summary Details
+                </span>
+                {renderConsolidatedReport(analysis.consolidated_report)}
+              </Card>
+
               {analysis.overall_summary && (
                 <Card className="p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200/80 dark:border-blue-800/50">
                   <h4 className="flex items-center gap-2.5 font-black text-blue-900 dark:text-blue-400 uppercase tracking-wide text-sm mb-3">
@@ -447,7 +455,7 @@ export default function PlacementReadiness({ user, onBackToDashboard }: Placemen
               {analysis.final_verdict && (
                 <Card className="p-6 bg-gradient-to-r from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800/50">
                   <h4 className="font-black text-purple-900 dark:text-purple-400 uppercase tracking-wide mb-3 text-sm">📋 Final Verdict</h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed">{analysis.final_verdict}</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-205 leading-relaxed">{analysis.final_verdict}</p>
                 </Card>
               )}
             </div>
