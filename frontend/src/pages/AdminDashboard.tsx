@@ -349,7 +349,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
   });
 
   return (
-    <PageContainer width="wide">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col transition-colors">
       {/* Toast */}
       {toast && <Toast message={toast} type="success" />}
 
@@ -394,6 +394,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
         }
       />
 
+      <PageContainer width="wide">
       <div className="flex-1 flex flex-col space-y-8">
         {/* ── Summary Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -782,6 +783,22 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
                   ) : null
                 }
               />
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {(['all', 'active', 'blocked'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all capitalize ${
+                    statusFilter === f
+                      ? 'bg-[#002D62] dark:bg-blue-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-[#002D62]/40 dark:hover:border-blue-500'
+                  }`}
+                >
+                  {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Blocked'}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1202,6 +1219,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
           </Modal>
         );
       })()}
-    </PageContainer>
+      </PageContainer>
+    </div>
   );
 }

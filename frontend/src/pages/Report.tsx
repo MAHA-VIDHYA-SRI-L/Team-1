@@ -63,7 +63,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   const downloadPdf = async () => {
     if (!reportRef.current || downloading) return;
     setDownloading(true);
-    let objectUrl: string | null = null;
     try {
       // Temporarily make the report visible at full width for capture
       const el = reportRef.current;
@@ -103,9 +102,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     } catch (e) {
       console.error(e);
     } finally {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
       setDownloading(false);
     }
   };
