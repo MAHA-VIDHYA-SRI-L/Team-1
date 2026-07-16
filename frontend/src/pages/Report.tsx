@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, Download, Loader2, AlertCircle,
+  ArrowLeft, Download, AlertCircle,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,7 +12,11 @@ import {
   fetchSkills,
   fetchInternships,
 } from '../services/api';
-import ThemeToggle from '../components/ThemeToggle';
+import { ThemeToggle } from '../components/ThemeToggle';
+import logoUrl from '../assets/logo.jpg';
+import {
+  Button, Card, SectionLoader, EmptyState, PageHeader
+} from '../components/ui';
 
 interface ReportProps {
   user: { fullName: string; email: string; department?: string };
@@ -25,7 +29,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
   const [profile, setProfile] = useState<any>(null);
   const [academic, setAcademic] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [certifications, setCertifications] = useState<any[]>([]);
+  const [, setCertifications] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [internships, setInternships] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,19 +112,29 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center gap-2 transition-colors duration-300">
-        <Loader2 className="h-5 w-5 animate-spin text-[#002D62] dark:text-blue-400" />
-        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Building report...</span>
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] p-6 flex items-center justify-center transition-colors duration-300">
+        <Card className="p-12 max-w-md w-full shadow-lg">
+          <SectionLoader message="Building report..." />
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
-        <AlertCircle className="h-8 w-8 text-red-400" />
-        <p className="text-sm text-slate-600 dark:text-slate-400">{error}</p>
-        <button onClick={onBackToDashboard} className="text-xs font-bold text-[#002D62] dark:text-blue-400 underline">Back</button>
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] p-6 flex items-center justify-center transition-colors duration-300">
+        <Card className="p-12 max-w-md w-full shadow-lg">
+          <EmptyState
+            icon={<AlertCircle className="h-12 w-12 text-red-500" />}
+            title="Report Error"
+            description={error}
+            action={
+              <Button variant="secondary" size="sm" onClick={onBackToDashboard}>
+                Back to Dashboard
+              </Button>
+            }
+          />
+        </Card>
       </div>
     );
   }
@@ -151,24 +165,14 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
 
   const isPlaced = academic?.placementStatus === 'Placed';
 
-  const certsByCategory = certifications.reduce((acc: Record<string, any[]>, c: any) => {
-    const cat = c.category || 'General';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(c);
-    return acc;
-  }, {});
+
 
   // ── Divider ──
-  const HR = () => <div style={{ borderTop: '1px solid #e2e8f0', margin: '12px 0' }} />;
+  const HR = () => <div className="my-3 border-t border-slate-200 dark:border-slate-700" />;
 
   // ── Section heading ──
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
-      background: '#f1f5f9', color: '#002D62', padding: '8px 14px',
-      fontSize: 10, fontWeight: 800, letterSpacing: 1.2,
-      textTransform: 'uppercase', marginBottom: 12, borderRadius: 10,
-      borderLeft: '4px solid #002D62', display: 'flex', alignItems: 'center'
-    }}>
+    <div className="mb-3 flex items-center rounded-xl border-l-4 border-[#002D62] bg-slate-100 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#002D62] dark:bg-slate-800 dark:text-blue-400">
       {title}
     </div>
   );
@@ -178,48 +182,77 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     try {
       if (text.trim().startsWith('{')) {
         const obj = JSON.parse(text);
-        const sections = [
-          { title: 'Overall Summary', body: obj.overall_summary },
-          { title: 'Academic Analysis', body: obj.academic_analysis },
-          { title: 'Technical & Projects', body: `${obj.technical_analysis || ''} ${obj.project_analysis || ''}`.trim() },
-          { title: 'Recruiter Impression', body: obj.recruiter_impression },
-          { title: 'Final Verdict', body: obj.final_verdict }
-        ].filter(s => s.body && s.body !== 'Analysis unavailable.');
-
-        if (sections.length > 0) {
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {sections.map((sec, idx) => (
-                <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                  <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
-                    • {sec.title}
-                  </strong>
-                  <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{sec.body}</span>
-                </div>
-              ))}
-            </div>
-          );
-        }
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
+            {obj.overall_summary && (
+              <p style={{ margin: 0, lineHeight: 1.6 }}>
+                {obj.overall_summary}
+              </p>
+            )}
+            {(obj.academic_analysis || obj.technical_analysis || obj.project_analysis) && (
+              <p style={{ margin: 0, lineHeight: 1.6 }}>
+                {obj.academic_analysis || ''} {obj.technical_analysis || ''} {obj.project_analysis || ''}
+              </p>
+            )}
+            {(obj.recruiter_impression || obj.final_verdict) && (
+              <p style={{ margin: 0, lineHeight: 1.6 }}>
+                {obj.recruiter_impression || ''} {obj.final_verdict || ''}
+              </p>
+            )}
+            
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', borderTop: '1px solid #cbd5e1', fontSize: '10px' }}>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '8px 0', verticalAlign: 'top', width: '120px' }}>
+                    <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Key Strengths</strong>
+                  </td>
+                  <td style={{ padding: '8px 0', color: '#334155', lineHeight: 1.6 }}>
+                    {obj.strengths || analysis?.strengths || 'N/A'}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '8px 0', verticalAlign: 'top', width: '120px' }}>
+                    <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Areas to Improve</strong>
+                  </td>
+                  <td style={{ padding: '8px 0', color: '#334155', lineHeight: 1.6 }}>
+                    {obj.weaknesses || analysis?.weaknesses || 'N/A'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '8px 0', verticalAlign: 'top', width: '120px' }}>
+                    <strong style={{ color: '#002D62', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Recommendations</strong>
+                  </td>
+                  <td style={{ padding: '8px 0', color: '#334155', lineHeight: 1.6 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {(obj.recommendations || analysis?.recommendations || '').split(/\d+\.\s+/).map((r: string) => r.trim()).filter(Boolean).map((rec: string, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', gap: '6px' }}>
+                          <span style={{ fontWeight: 700, color: '#002D62' }}>{idx + 1}.</span>
+                          <span>{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
       }
-    } catch (e) {
+    } catch {
       // fallback to text parsing
     }
     const cleaned = text.replace(/^#\s*Placement Analysis.*?(\n|$)/i, '').trim();
     if (cleaned.includes('##')) {
       const sections = cleaned.split(/##\s+/).map(s => s.trim()).filter(Boolean);
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
           {sections.slice(0, 3).map((sec, idx) => {
             const lines = sec.split('\n');
-            const title = lines[0].replace(/[:.#]/g, '').trim();
             const body = lines.slice(1).join(' ').trim() || sec.replace(/^[^.\n]+[:.]?\s*/, '');
             return (
-              <div key={idx} style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <strong style={{ color: '#002D62', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
-                  • {title}
-                </strong>
-                <span style={{ color: '#334155', fontSize: 10, lineHeight: 1.6 }}>{body}</span>
-              </div>
+              <p key={idx} style={{ margin: 0, lineHeight: 1.6 }}>
+                {body}
+              </p>
             );
           })}
         </div>
@@ -227,46 +260,56 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     }
     const paragraphs = cleaned.split(/\n\n+/).filter(Boolean);
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '10.5px', color: '#1e293b', textAlign: 'justify' }}>
         {paragraphs.slice(0, 3).map((p, idx) => (
-          <p key={idx} style={{ margin: 0, lineHeight: 1.6, color: '#334155' }}>{p.replace(/#/g, '').trim()}</p>
+          <p key={idx} style={{ margin: 0, lineHeight: 1.6 }}>
+            {p.replace(/#/g, '').trim()}
+          </p>
         ))}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 dark:bg-slate-950 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] font-sans transition-colors duration-300 flex flex-col">
 
       {/* ── Toolbar (not captured in PDF) ── */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm transition-colors duration-300">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ArrowLeft size={13} /> Back
-          </button>
-          <div>
-            <div className="text-sm font-black text-[#002D62] dark:text-blue-400 tracking-wider">PLACEMATE</div>
-            <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">PLACEMENT READINESS REPORT</div>
+      <PageHeader
+        logo={
+          <div className="h-10 w-10 rounded-2xl overflow-hidden ring-2 ring-slate-200/80 dark:ring-slate-700 shadow-sm shrink-0 bg-white p-0.5">
+            <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="Placemate Logo" />
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <button
-            onClick={downloadPdf}
-            disabled={downloading}
-            className={`flex items-center gap-2 px-4 py-2 ${downloading ? 'bg-slate-500' : 'bg-[#002D62] dark:bg-blue-600 hover:bg-[#001c3d] dark:hover:bg-blue-500'} text-white rounded-xl text-xs font-bold transition-all shadow-sm disabled:cursor-not-allowed`}
-          >
-            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            {downloading ? 'Generating PDF...' : 'Download PDF'}
-          </button>
-        </div>
-      </div>
+        }
+        title="Placemate"
+        badge="Placement Readiness Report"
+        subtitle="Official Candidate Summary"
+        actions={
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onBackToDashboard}
+              icon={<ArrowLeft className="h-4 w-4" />}
+            >
+              Back to Dashboard
+            </Button>
+            <ThemeToggle variant="button" />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={downloadPdf}
+              disabled={downloading}
+              loading={downloading}
+              icon={<Download className="h-4 w-4" />}
+            >
+              Download PDF
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── A4 Paper ── */}
-      <div style={{ padding: '32px 16px', display: 'flex', justifyContent: 'center' }}>
+      <div className="flex-1 flex justify-center py-10 px-4 bg-slate-100 dark:bg-slate-900/60 overflow-x-auto shadow-inner">
         <div
           ref={reportRef}
           style={{
@@ -349,9 +392,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                   )}
                   <div style={{ display: 'flex', gap: 16, marginTop: 4, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 10, color: '#475569' }}>
-                      <strong style={{ color: '#1e293b' }}>Certifications:</strong> {certifications.length}
-                    </span>
-                    <span style={{ fontSize: 10, color: '#475569' }}>
                       <strong style={{ color: '#1e293b' }}>Skills:</strong> {skills.length}
                     </span>
                     <span style={{ fontSize: 10, color: '#475569' }}>
@@ -382,81 +422,79 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
             </>
           )}
 
-          {/* ══ ANALYSIS ══ */}
-          {analysis && (analysis.strengths || analysis.weaknesses || analysis.recommendations) && (
-            <>
-              <SectionHead title="AI Analysis Summary" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
-                {analysis.strengths && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#166534', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>✓ Strengths</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.strengths}</div>
-                  </div>
-                )}
-                {analysis.weaknesses && (
-                  <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#9a3412', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>⚠ Areas to Improve</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.weaknesses}</div>
-                  </div>
-                )}
-                {analysis.recommendations && (
-                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 4, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#1e40af', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>→ Recommendations</div>
-                    <div style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.7 }}>{analysis.recommendations}</div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
           {/* ══ ACADEMIC DETAILS ══ */}
-          {academic && (
-            <>
-              <SectionHead title="Academic Details" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                {[
-                  { label: '10th %', value: academic.tenthPercentage },
-                  { label: '12th %', value: academic.twelfthPercentage },
-                  { label: 'Diploma %', value: academic.diplomaPercentage },
-                  { label: 'UG CGPA', value: academic.ugCgpa },
-                  { label: 'PG CGPA', value: academic.pgCgpa },
-                  { label: 'Degree', value: academic.graduationStanding },
-                  { label: 'UG College', value: academic.ugCollegeName },
-                  { label: 'Board', value: academic.boardOfStudy },
-                ].filter(i => i.value && i.value !== '').map(item => (
-                  <div key={item.label} style={{
-                    background: '#f8fafc', border: '1px solid #e2e8f0',
-                    borderRadius: 10, padding: '10px 12px',
-                  }}>
-                    <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>{item.label}</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#1e293b', marginTop: 2 }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
+          {academic && (() => {
+            const items = [
+              { label: '10th Marks', value: academic.tenthPercentage ? `${academic.tenthPercentage}%` : null },
+              { label: '12th Marks', value: academic.twelfthPercentage ? `${academic.twelfthPercentage}%` : null },
+              { label: 'Diploma Marks', value: academic.diplomaPercentage ? `${academic.diplomaPercentage}%` : null },
+              { label: 'UG CGPA', value: academic.ugCgpa },
+              { label: 'PG CGPA', value: academic.pgCgpa },
+              { label: 'Graduation Standing', value: academic.graduationStanding },
+              { label: 'UG College Name', value: academic.ugCollegeName },
+              { label: 'Board of Study', value: academic.boardOfStudy },
+            ].filter(i => i.value && i.value !== '');
 
-              {/* SGPA Table */}
-              {sgpaFilled.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
-                    Semester SGPA
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {sgpaValues.map((v, i) => (
-                      <div key={i} style={{
-                        flex: 1, textAlign: 'center', padding: '6px 4px',
-                        background: v ? (parseFloat(v) >= 8 ? '#d1fae5' : parseFloat(v) >= 6.5 ? '#dbeafe' : '#fff7ed') : '#f8fafc',
-                        border: `1px solid ${v ? (parseFloat(v) >= 8 ? '#6ee7b7' : parseFloat(v) >= 6.5 ? '#93c5fd' : '#fed7aa') : '#e2e8f0'}`,
-                        borderRadius: 8, opacity: v ? 1 : 0.4,
-                      }}>
-                        <div style={{ fontSize: 7.5, color: '#94a3b8', fontWeight: 700 }}>S{i + 1}</div>
-                        <div style={{ fontSize: 11, fontWeight: 900, color: '#1e293b', marginTop: 1 }}>{v || '—'}</div>
-                      </div>
+            const rows = [];
+            for (let i = 0; i < items.length; i += 2) {
+              rows.push([items[i], items[i + 1] || null]);
+            }
+
+            return (
+              <>
+                <SectionHead title="Academic Details" />
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16, border: '1px solid #e2e8f0', fontSize: '10px' }}>
+                  <tbody>
+                    {rows.map((row, rIdx) => (
+                      <tr key={rIdx} style={{ borderBottom: rIdx < rows.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                        <td style={{ padding: '8px 10px', background: '#f8fafc', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', width: '25%' }}>
+                          {row[0].label}
+                        </td>
+                        <td style={{ padding: '8px 10px', fontWeight: 800, color: '#1e293b', borderRight: '1px solid #e2e8f0', width: '25%' }}>
+                          {row[0].value}
+                        </td>
+                        <td style={{ padding: '8px 10px', background: row[1] ? '#f8fafc' : '#ffffff', fontWeight: 700, color: '#475569', borderRight: '1px solid #e2e8f0', width: '25%' }}>
+                          {row[1]?.label || ''}
+                        </td>
+                        <td style={{ padding: '8px 10px', fontWeight: 800, color: '#1e293b', width: '25%' }}>
+                          {row[1]?.value || ''}
+                        </td>
+                      </tr>
                     ))}
+                  </tbody>
+                </table>
+
+                {/* SGPA Table */}
+                {sgpaFilled.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+                      Semester SGPA
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '10px', textAlign: 'center' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          {sgpaValues.map((_, idx) => (
+                            <th key={idx} style={{ padding: '6px 4px', fontWeight: 700, color: '#475569', borderRight: idx < sgpaValues.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                              Sem {idx + 1}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          {sgpaValues.map((v, idx) => (
+                            <td key={idx} style={{ padding: '8px 4px', fontWeight: 800, color: '#1e293b', borderRight: idx < sgpaValues.length - 1 ? '1px solid #e2e8f0' : 'none', background: v ? (parseFloat(v) >= 8 ? '#f0fdf4' : parseFloat(v) >= 6.5 ? '#eff6ff' : '#fff7ed') : '#ffffff' }}>
+                              {v || '—'}
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            );
+          })()}
 
           {/* ══ SKILLS ══ */}
           {skills.length > 0 && (
@@ -493,51 +531,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
                       <div style={{ fontSize: 9.5, color: '#64748b' }}>
                         {intern.company_name}{intern.duration ? ` · ${intern.duration}` : ''}
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ══ CERTIFICATIONS ══ */}
-          {certifications.length > 0 && (
-            <>
-              <SectionHead title={`Certifications & Achievements (${certifications.length})`} />
-              <div style={{ marginBottom: 20 }}>
-                {Object.entries(certsByCategory).map(([cat, certs]) => (
-                  <div key={cat} style={{ marginBottom: 12 }}>
-                    <div style={{
-                      fontSize: 9, fontWeight: 800, color: '#475569',
-                      textTransform: 'uppercase', letterSpacing: 0.8,
-                      borderBottom: '1px solid #f1f5f9', paddingBottom: 4, marginBottom: 6,
-                    }}>
-                      {cat} ({(certs as any[]).length})
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                      {(certs as any[]).map((cert: any, i: number) => (
-                        <div key={cert.id ?? i} style={{
-                          padding: '10px 12px', background: '#f8fafc',
-                          border: '1px solid #e2e8f0', borderRadius: 10,
-                        }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: '#1e293b' }}>{cert.certification_name}</div>
-                          <div style={{ fontSize: 9, color: '#64748b', marginTop: 1 }}>{cert.issuer}</div>
-                          {cert.start_date && (
-                            <div style={{ fontSize: 8.5, color: '#94a3b8', marginTop: 1 }}>
-                              {cert.start_date}{cert.end_date ? ` — ${cert.end_date}` : ''}
-                            </div>
-                          )}
-                          <span style={{
-                            display: 'inline-block', marginTop: 3,
-                            padding: '1px 6px', borderRadius: 3, fontSize: 8,
-                            fontWeight: 700, textTransform: 'uppercase',
-                            background: cert.status?.toLowerCase() === 'approved' ? '#d1fae5' : '#fff7ed',
-                            color: cert.status?.toLowerCase() === 'approved' ? '#065f46' : '#c2410c',
-                          }}>
-                            {cert.status || 'Pending'}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 ))}

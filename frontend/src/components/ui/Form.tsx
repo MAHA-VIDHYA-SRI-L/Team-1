@@ -48,29 +48,48 @@ export function FieldError({ message }: { message?: string }) {
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   icon?: React.ReactNode;
+  label?: string;
+  rightElement?: React.ReactNode;
 }
 
-export function Input({ error, icon, className = '', ...props }: InputProps) {
-  return (
-    <div className="relative">
-      {icon && (
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
-          {icon}
-        </span>
-      )}
-      <input
-        {...props}
-        className={[
-          inputBase,
-          'py-2.5 shadow-sm',
-          icon ? 'pl-10 pr-4' : 'px-3.5',
-          error ? errorBase : '',
-          className,
-        ].join(' ')}
-      />
-    </div>
-  );
-}
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ error, icon, label, rightElement, className = '', id, ...props }, ref) => {
+    return (
+      <div className="space-y-1.5 w-full">
+        {label && (
+          <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            {label}
+          </label>
+        )}
+        <div className="relative">
+          {icon && (
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+              {icon}
+            </span>
+          )}
+          <input
+            {...props}
+            ref={ref}
+            id={id}
+            className={[
+              inputBase,
+              'py-2.5 shadow-sm',
+              icon ? 'pl-10' : 'px-3.5',
+              rightElement ? 'pr-10' : 'pr-4',
+              error ? errorBase : '',
+              className,
+            ].join(' ')}
+          />
+          {rightElement && (
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightElement}</span>
+          )}
+        </div>
+        {error && <FieldError message={error} />}
+      </div>
+    );
+  }
+);
+Input.displayName = 'Input';
 
 // ── Textarea ───────────────────────────────────────────────────────────────
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -94,20 +113,34 @@ export function Textarea({ error, className = '', ...props }: TextareaProps) {
 // ── Select ─────────────────────────────────────────────────────────────────
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
+  label?: string;
 }
 
-export function Select({ error, className = '', children, ...props }: SelectProps) {
-  return (
-    <select
-      {...props}
-      className={[
-        inputBase,
-        'px-3.5 py-2.5 shadow-sm cursor-pointer',
-        error ? errorBase : '',
-        className,
-      ].join(' ')}
-    >
-      {children}
-    </select>
-  );
-}
+export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+  ({ error, label, className = '', id, children, ...props }, ref) => {
+    return (
+      <div className="space-y-1.5 w-full">
+        {label && (
+          <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            {label}
+          </label>
+        )}
+        <select
+          {...props}
+          ref={ref}
+          id={id}
+          className={[
+            inputBase,
+            'px-3.5 py-2.5 shadow-sm cursor-pointer',
+            error ? errorBase : '',
+            className,
+          ].join(' ')}
+        >
+          {children}
+        </select>
+        {error && <FieldError message={error} />}
+      </div>
+    );
+  }
+);
+Select.displayName = 'Select';

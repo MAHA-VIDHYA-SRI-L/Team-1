@@ -35,26 +35,80 @@ export function PageContainer({ children, className = '', width = 'default' }: P
 // ── PageHeader ─────────────────────────────────────────────────────────────
 // Consistent page-level heading block
 interface PageHeaderProps {
+  logo?: React.ReactNode;
   title: string;
   subtitle?: string;
+  badge?: string;
   action?: React.ReactNode;
+  actions?: React.ReactNode;
+  statusDot?: boolean;
   className?: string;
 }
 
-export function PageHeader({ title, subtitle, action, className = '' }: PageHeaderProps) {
+export function PageHeader({
+  logo,
+  title,
+  subtitle,
+  badge,
+  action,
+  actions,
+  statusDot = false,
+  className = '',
+}: PageHeaderProps) {
+  const finalAction = action || actions;
+  
+  if (logo || finalAction) {
+    return (
+      <header className="bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-40 px-6 sm:px-10 py-4 shadow-sm transition-colors w-full">
+        <div className="max-w-[1600px] w-full mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            {logo}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-black text-[#002D62] dark:text-blue-400 tracking-wider uppercase leading-none">
+                  {title}
+                </h1>
+                {badge && (
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#002D62]/10 dark:bg-blue-900/40 text-[#002D62] dark:text-blue-300 border border-[#002D62]/20 dark:border-blue-700/50 uppercase tracking-widest">
+                    {badge}
+                  </span>
+                )}
+              </div>
+              {subtitle && (
+                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            {statusDot && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">System Live</span>
+              </div>
+            )}
+            {finalAction && <div className="shrink-0">{finalAction}</div>}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <div className={['flex items-start justify-between gap-4', className].join(' ')}>
-      <div>
-        <h1 className="text-lg font-black text-slate-800 dark:text-white tracking-tight leading-none">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-            {subtitle}
-          </p>
-        )}
+    <div className={['flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80 dark:border-slate-800/80', className].join(' ')}>
+      <div className="flex items-center gap-3.5">
+        <div>
+          <h1 className="text-lg font-black text-[#002D62] dark:text-blue-400 tracking-tight leading-none uppercase">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
-      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -113,11 +167,24 @@ interface StatCardProps {
   icon?: React.ReactNode;
   iconBg?: string;
   trend?: React.ReactNode;
+  footer?: React.ReactNode;
+  accentColor?: string;
   className?: string;
   onClick?: () => void;
 }
 
-export function StatCard({ label, value, icon, iconBg = 'bg-[#002D62]/10 dark:bg-blue-900/30', trend, className = '', onClick }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  icon,
+  iconBg = 'bg-[#002D62]/10 dark:bg-blue-900/30',
+  trend,
+  footer,
+  accentColor = '',
+  className = '',
+  onClick,
+}: StatCardProps) {
+  const finalFooter = footer || trend;
   return (
     <div
       onClick={onClick}
@@ -140,12 +207,12 @@ export function StatCard({ label, value, icon, iconBg = 'bg-[#002D62]/10 dark:bg
           </p>
         </div>
         {icon && (
-          <div className={['p-2.5 rounded-xl', iconBg].join(' ')}>
+          <div className={['p-2.5 rounded-xl flex items-center justify-center shrink-0', iconBg, accentColor].join(' ')}>
             {icon}
           </div>
         )}
       </div>
-      {trend && <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/80">{trend}</div>}
+      {finalFooter && <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/80">{finalFooter}</div>}
     </div>
   );
 }

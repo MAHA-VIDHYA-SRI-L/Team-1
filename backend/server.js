@@ -43,6 +43,8 @@ app.use("/api/student/analyze", analysisRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/admin", adminRoutes);
 
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

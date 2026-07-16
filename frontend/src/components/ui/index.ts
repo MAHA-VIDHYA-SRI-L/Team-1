@@ -11,7 +11,7 @@ export { Input, Textarea, Select, Label, FieldError } from './Form';
 
 export { Modal } from './Modal';
 
-export { Table, Thead, Tbody, Th, Tr, Td } from './Table';
+export { Table, Thead, Tbody, Th, Tr, Td, TableRow } from './Table';
 
 export {
   Spinner,
@@ -27,6 +27,8 @@ export { EmptyState, ConfirmDialog } from './EmptyState';
 export { PageContainer, PageHeader, SectionCard, StatCard } from './Layout';
 
 export { InfoTile } from './InfoTile';
+
+export { Toast, FormError } from './Feedback';
 
 // Re-export existing components that are already part of the system
 export { default as ThemeToggle } from '../ThemeToggle';
