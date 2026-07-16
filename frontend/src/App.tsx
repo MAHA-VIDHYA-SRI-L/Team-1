@@ -56,70 +56,121 @@ export default function App() {
     });
   };
 
+  // Restore impersonated student from sessionStorage if present
+  const [impersonatedStudent, setImpersonatedStudent] = useState<UserSessionData | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('_pm_impersonate_student');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleExitImpersonation = () => {
+    sessionStorage.removeItem('_pm_impersonate_student');
+    sessionStorage.removeItem('_pm_impersonate_student_id');
+    setImpersonatedStudent(null);
+    setStudentSubPage('home');
+  };
+
   const handleLogout = () => {
     clearTokens();
     sessionStorage.removeItem('_pm_session');
+    sessionStorage.removeItem('_pm_impersonate_student');
+    sessionStorage.removeItem('_pm_impersonate_student_id');
     setIsAuthenticated(false);
     setUserRole(null);
     setActiveUser(null);
+    setImpersonatedStudent(null);
   };
 
-  if (isAuthenticated && activeUser) {
+  const effectiveRole = impersonatedStudent ? 'student' : userRole;
+  const effectiveUser = impersonatedStudent ? impersonatedStudent : activeUser;
+
+  if (isAuthenticated && effectiveUser) {
     // --- 1. STUDENT DOMAIN ---
-    if (userRole === 'student') {
+    if (effectiveRole === 'student') {
       
       // Route 1: Badges Page
       if (studentSubPage === 'badges') {
         return (
-          <Badges 
-            user={{ 
-              fullName: activeUser.fullName,
-              email: activeUser.email,
-              department: activeUser.department || 'CSE'
-            }} 
-            onBackToDashboard={() => setStudentSubPage('home')}
-          />
+          <div className="min-h-screen flex flex-col">
+            {impersonatedStudent && (
+              <ImpersonationBanner studentName={impersonatedStudent.fullName} onExit={handleExitImpersonation} />
+            )}
+            <div className="flex-1">
+              <Badges 
+                user={{ 
+                  fullName: effectiveUser.fullName,
+                  email: effectiveUser.email,
+                  department: effectiveUser.department || 'CSE'
+                }} 
+                onBackToDashboard={() => setStudentSubPage('home')}
+              />
+            </div>
+          </div>
         );
       }
 
       // Route 2: Placement Readiness (AI analysis page)
       if (studentSubPage === 'placement') {
         return (
-          <PlacementReadiness
-            user={{
-              fullName: activeUser.fullName,
-              email: activeUser.email,
-              department: activeUser.department || 'CSE'
-            }}
-            onBackToDashboard={() => setStudentSubPage('home')}
-          />
+          <div className="min-h-screen flex flex-col">
+            {impersonatedStudent && (
+              <ImpersonationBanner studentName={impersonatedStudent.fullName} onExit={handleExitImpersonation} />
+            )}
+            <div className="flex-1">
+              <PlacementReadiness
+                user={{
+                  fullName: effectiveUser.fullName,
+                  email: effectiveUser.email,
+                  department: effectiveUser.department || 'CSE'
+                }}
+                onBackToDashboard={() => setStudentSubPage('home')}
+              />
+            </div>
+          </div>
         );
       }
 
       // Route 3: Formal Placement Report Page
       if (studentSubPage === 'report') {
         return (
-          <ReportPage
-            user={{
-              fullName: activeUser.fullName,
-              email: activeUser.email,
-              department: activeUser.department || 'CSE'
-            }}
-            onBackToDashboard={() => setStudentSubPage('home')}
-          />
+          <div className="min-h-screen flex flex-col">
+            {impersonatedStudent && (
+              <ImpersonationBanner studentName={impersonatedStudent.fullName} onExit={handleExitImpersonation} />
+            )}
+            <div className="flex-1">
+              <ReportPage
+                user={{
+                  fullName: effectiveUser.fullName,
+                  email: effectiveUser.email,
+                  department: effectiveUser.department || 'CSE'
+                }}
+                onBackToDashboard={() => setStudentSubPage('home')}
+              />
+            </div>
+          </div>
         );
       }
 
-      // Route 3: Default Student Home Dashboard
+      // Route 4: Default Student Home Dashboard
       return (
-        <StudentDashboard
-          user={activeUser}
-          onLogout={handleLogout}
-          onNavigateToBadges={() => setStudentSubPage('badges')}
-          onNavigateToPlacement={() => setStudentSubPage('placement')}
-          onNavigateToReport={() => setStudentSubPage('report')}
-          onDepartmentLoaded={handleDepartmentLoaded}
-        />
+        <div className="min-h-screen flex flex-col">
+          {impersonatedStudent && (
+            <ImpersonationBanner studentName={impersonatedStudent.fullName} onExit={handleExitImpersonation} />
+          )}
+          <div className="flex-1 flex flex-col">
+            <StudentDashboard
+              user={effectiveUser}
+              onLogout={impersonatedStudent ? handleExitImpersonation : handleLogout}
+              onNavigateToBadges={() => setStudentSubPage('badges')}
+              onNavigateToPlacement={() => setStudentSubPage('placement')}
+              onNavigateToReport={() => setStudentSubPage('report')}
+              onDepartmentLoaded={handleDepartmentLoaded}
+            />
+          </div>
+        </div>
       );
     }
     
@@ -128,14 +179,14 @@ export default function App() {
       if (staffSubPage === 'report') {
         return (
           <StaffReport
-            user={activeUser}
+            user={activeUser!}
             onBack={() => setStaffSubPage('home')}
           />
         );
       }
       return (
         <StaffDashboard
-          user={activeUser}
+          user={activeUser!}
           onLogout={handleLogout}
           onNavigateToReport={() => setStaffSubPage('report')}
         />
@@ -144,9 +195,35 @@ export default function App() {
 
     // --- 3. ADMIN DOMAIN ---
     if (userRole === 'admin') {
-      return <AdminDashboard user={activeUser} onLogout={handleLogout} />;
+      return (
+        <AdminDashboard 
+          user={activeUser!} 
+          onLogout={handleLogout} 
+          onImpersonate={(student) => {
+            sessionStorage.setItem('_pm_impersonate_student', JSON.stringify(student));
+            sessionStorage.setItem('_pm_impersonate_student_id', student.id);
+            setImpersonatedStudent(student);
+            setStudentSubPage('home');
+          }}
+        />
+      );
     }
   }
 
   return <Login onLoginSuccess={handleLoginSuccess} />;
 }
+
+const ImpersonationBanner = ({ studentName, onExit }: { studentName: string; onExit: () => void }) => (
+  <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold sticky top-0 z-50 shadow-md">
+    <div className="flex items-center gap-2">
+      <span className="animate-pulse bg-white text-orange-600 px-1.5 py-0.5 rounded text-[10px] font-black uppercase">ADMIN VIEW</span>
+      <span>Impersonating student <span className="underline font-black">{studentName}</span> dashboard. You have full view and edit privileges.</span>
+    </div>
+    <button 
+      onClick={onExit}
+      className="bg-white/20 hover:bg-white text-white hover:text-orange-600 border border-white/30 hover:border-transparent px-3 py-1 rounded-lg transition-all font-black uppercase text-[10px] tracking-wider cursor-pointer"
+    >
+      Exit Portal
+    </button>
+  </div>
+);
