@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   BadgeCheck,
-  Clock,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -19,7 +18,7 @@ import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../ser
 import { ThemeToggle } from '../components/ThemeToggle';
 import logoUrl from '../assets/logo.jpg';
 import {
-  Button, Card, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
+  Button, Badge, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader, PageContainer
 } from '../components/ui';
 
 interface StaffReportProps {
@@ -229,24 +228,18 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
         }
       />
 
-      <div className="flex-1 max-w-[1600px] w-full mx-auto p-6 sm:p-10 space-y-8">
+      <PageContainer width="wide">
 
         {/* ── Loading ── */}
-        {loading && (
-          <Card className="p-12">
-            <SectionLoader message="Loading student data..." />
-          </Card>
-        )}
+        {loading && <SectionLoader message="Loading student data..." />}
 
         {/* ── Error ── */}
         {fetchError && (
-          <Card className="p-12">
-            <EmptyState
-              icon={<XCircle className="h-12 w-12 text-red-500" />}
-              title="Failed to load students"
-              description={fetchError}
-            />
-          </Card>
+          <EmptyState
+            icon={<XCircle className="h-8 w-8" />}
+            title="Failed to Load Students"
+            description={fetchError}
+          />
         )}
 
         {!loading && !fetchError && (
@@ -305,7 +298,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                 ) : null
               }
             >
-              <div className="p-6 space-y-6">
+              <div className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
 
                   {/* Search */}
@@ -405,18 +398,16 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
 
             {/* ── Table ── */}
             {filteredStudents.length === 0 ? (
-              <Card className="p-12">
-                <EmptyState
-                  icon={<Filter className="h-12 w-12 text-slate-300 dark:text-slate-600" />}
-                  title="No Records Match Your Filters"
-                  description="Try adjusting your search or filter criteria."
-                  action={
-                    <Button variant="secondary" size="sm" onClick={clearFilters}>
-                      Clear All Filters
-                    </Button>
-                  }
-                />
-              </Card>
+              <EmptyState
+                icon={<Filter className="h-8 w-8" />}
+                title="No Records Match Your Filters"
+                description="Try adjusting your search or filter criteria."
+                action={
+                  <Button variant="secondary" size="sm" onClick={clearFilters}>
+                    Clear All Filters
+                  </Button>
+                }
+              />
             ) : (
               <SectionCard title="Student Directory" subtitle="Sorted and filtered list of student records" noPadding>
                 <Table headers={tableHeaders}>
@@ -454,16 +445,12 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                       </Td>
 
                       <Td>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-lg whitespace-nowrap ${
-                          s.status === 'Placed'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-orange-50 dark:bg-orange-950/40 text-orange-500 dark:text-orange-400'
-                        }`}>
-                          {s.status === 'Placed'
-                            ? <CheckCircle2 className="h-3 w-3" />
-                            : <XCircle className="h-3 w-3" />}
+                        <Badge
+                          variant={s.status === 'Placed' ? 'success' : 'warning'}
+                          dot
+                        >
                           {s.status}
-                        </span>
+                        </Badge>
                       </Td>
 
                       <Td>
@@ -486,27 +473,15 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                       </Td>
 
                       <Td>
-                        {s.isVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                            <BadgeCheck className="h-4 w-4" /> Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-amber-500 dark:text-amber-400 whitespace-nowrap">
-                            <Clock className="h-4 w-4" /> Pending
-                          </span>
-                        )}
+                        <Badge variant={s.isVerified ? 'info' : 'warning'} dot>
+                          {s.isVerified ? 'Verified' : 'Pending'}
+                        </Badge>
                       </Td>
 
                       <Td>
-                        {s.placementVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                            <CheckCircle2 className="h-4 w-4" /> Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-slate-400 whitespace-nowrap">
-                            <Clock className="h-4 w-4" /> Pending
-                          </span>
-                        )}
+                        <Badge variant={s.placementVerified ? 'success' : 'muted'} dot>
+                          {s.placementVerified ? 'Verified' : 'Pending'}
+                        </Badge>
                       </Td>
                     </TableRow>
                   ))}
@@ -530,7 +505,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
             )}
           </>
         )}
-      </div>
+      </PageContainer>
     </div>
   );
 }

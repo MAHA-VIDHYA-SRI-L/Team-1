@@ -21,9 +21,10 @@ interface StaffDashboardProps {
   };
   onLogout: () => void;
   onNavigateToReport?: () => void;
+  onBackToAdmin?: () => void;
 }
 
-export default function StaffDashboard({ user, onLogout, onNavigateToReport }: StaffDashboardProps) {
+export default function StaffDashboard({ user, onLogout, onNavigateToReport, onBackToAdmin }: StaffDashboardProps) {
   const [showDeptBreakdown, setShowDeptBreakdown] = useState<boolean>(false);
   
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -105,6 +106,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   // Student profile modal
   const [viewStudent, setViewStudent] = useState<any>(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState<string | null>(null);
   const [certUpdatingId, setCertUpdatingId] = useState<string | null>(null);
 
   const handleCertStatus = async (certId: string, status: 'approved' | 'rejected') => {
@@ -126,12 +128,13 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
 
   const handleViewStudent = async (id: string) => {
     setViewStudent(null);
+    setViewError(null);
     setViewLoading(true);
     try {
       const data = await fetchStaffStudentById(id);
       setViewStudent(data);
     } catch (e: any) {
-      alert('Failed to load student profile: ' + e.message);
+      setViewError(e.message || 'Failed to load student profile.');
     } finally {
       setViewLoading(false);
     }
@@ -232,53 +235,64 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col transition-colors text-slate-800 dark:text-slate-100">
 
-      <header className="bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-colors">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-base text-slate-900 dark:text-white tracking-tight">Placemate</span>
-            <Badge variant="brand">Staff Portal</Badge>
-          </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        title="Placemate"
+        badge="Staff Portal"
+        subtitle="Live Placement Analytics & Roster Management"
+        actions={
+          <div className="flex items-center gap-3">
             <ThemeToggle variant="button" />
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 hidden sm:block">{user.fullName}</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:block">
+              Welcome, <span className="font-extrabold text-slate-800 dark:text-slate-100">{user.fullName}</span>
+            </span>
+            {onBackToAdmin && (
+              <Button variant="secondary" size="sm" icon={<LogOut className="h-3.5 w-3.5" />} onClick={onBackToAdmin}>
+                <span className="hidden md:inline">Admin Console</span>
+              </Button>
+            )}
             {onNavigateToReport && (
               <Button variant="secondary" size="sm" icon={<FileText className="h-3.5 w-3.5" />} onClick={onNavigateToReport}>
-                Reports
+                <span className="hidden sm:inline">Reports</span>
               </Button>
             )}
             <Button variant="success" size="sm" icon={<Download className="h-3.5 w-3.5" />} onClick={() => exportRosterToCSV(students)}>
               <span className="hidden md:inline">Export CSV</span>
             </Button>
-            <Button variant="danger" size="sm" icon={<LogOut className="h-3.5 w-3.5" />} onClick={onLogout}>
-              Sign Out
-            </Button>
+            {!onBackToAdmin && (
+              <Button variant="danger" size="sm" icon={<LogOut className="h-3.5 w-3.5" />} onClick={onLogout}>
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            )}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <PageContainer width="wide">
-
-        <PageHeader
-          title="Staff Dashboard"
-          subtitle="Live Placement Analytics & Roster Management"
-        />
 
         {loading && <SectionLoader message="Loading student roster..." />}
 
         {fetchError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-bold px-4 py-3 rounded-xl">
-            Failed to load students: {fetchError}
-          </div>
+          <EmptyState
+            icon={<XCircle className="h-8 w-8" />}
+            title="Failed to Load Student Roster"
+            description={fetchError}
+            action={
+              <Button variant="secondary" size="sm" onClick={() => { setFetchError(null); setLoading(true); loadStudents(); }}>
+                Retry
+              </Button>
+            }
+          />
         )}
 
         {!loading && !fetchError && <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             
           <StatCard
             label="Total Enrolled Students"
             value={totalStudents}
-            icon={<Users className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-[#002D62] to-[#00428c]"
+            icon={<Users className="h-6 w-6" />}
+            iconBg="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50"
+            accentColor="text-[#002D62] dark:text-blue-400"
             onClick={() => setShowDeptBreakdown(!showDeptBreakdown)}
             trend={
               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
@@ -299,8 +313,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
           <StatCard
             label="Students Placed Successfully"
             value={placedStudents.length}
-            icon={<Briefcase className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700"
+            icon={<Briefcase className="h-6 w-6" />}
+            iconBg="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50"
+            accentColor="text-emerald-600 dark:text-emerald-400"
             trend={
               <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
                 <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Placement Concentration</p>
@@ -321,8 +336,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
           <StatCard
             label="Remaining Bench Strength"
             value={unplacedStudents.length}
-            icon={<XCircle className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-orange-500 to-amber-600"
+            icon={<XCircle className="h-6 w-6" />}
+            iconBg="bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/50"
+            accentColor="text-orange-600 dark:text-orange-400"
             trend={
               <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
                 <p className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider">Unplaced by Dept</p>
@@ -339,8 +355,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
           <StatCard
             label="Verified Student Profiles"
             value={students.filter(s => s.isVerified).length}
-            icon={<ShieldCheck className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-blue-600 to-indigo-700"
+            icon={<ShieldCheck className="h-6 w-6" />}
+            iconBg="bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800/50"
+            accentColor="text-violet-600 dark:text-violet-400"
             trend={
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
                 <span>Verification Ratio</span>
@@ -353,16 +370,13 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
 
         </div>
 
-        <div>
-          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase px-1 block mb-3">
-            <span className="inline-flex items-center gap-1.5"><BarChart2 className="h-3.5 w-3.5" />Placement Analytics Charts</span>
-          </span>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <SectionCard title="Placement Analytics" action={<BarChart2 className="h-4 w-4 text-[#002D62] dark:text-blue-400" />} noPadding>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700/80 rounded-b-2xl overflow-hidden">
 
-            <div className="lg:col-span-2 bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Placed vs Not Placed by Department</p>
+            <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] p-5">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Placed vs Not Placed by Department</p>
               {deptChartData.length === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium py-8 text-center">No department data available.</p>
+                <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Department Data" description="Data will appear once students are loaded." />
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={deptChartData} barCategoryGap="30%">
@@ -376,10 +390,10 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
               )}
             </div>
 
-            <div className="bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm flex flex-col">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Overall Placement Ratio</p>
+            <div className="bg-white dark:bg-[#1E293B] p-5 flex flex-col">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Overall Placement Ratio</p>
               {totalStudents === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium py-8 text-center">No data yet.</p>
+                <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Placement Data" description="Placement ratios will appear once students are loaded." />
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
@@ -393,10 +407,10 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
               )}
             </div>
 
-            <div className="lg:col-span-3 bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Readiness Score Distribution</p>
+            <div className="lg:col-span-3 bg-white dark:bg-[#1E293B] p-5">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Readiness Score Distribution</p>
               {totalStudents === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium py-8 text-center">No data yet.</p>
+                <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Readiness Data" description="Score distribution will appear once students are loaded." />
               ) : (
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={readinessDistData} barCategoryGap="40%">
@@ -410,7 +424,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
             </div>
 
           </div>
-        </div>
+        </SectionCard>
 
         <div className="space-y-4">
 
@@ -482,7 +496,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
 
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold text-slate-500">Filtered Results ({filteredStudents.length} matching)</span>
+              <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} found</span>
               <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
@@ -633,65 +647,100 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
       </PageContainer>
 
       <Modal
-        open={!!(viewStudent || viewLoading)}
-        onClose={() => setViewStudent(null)}
+        open={!!(viewStudent || viewLoading || viewError)}
+        onClose={() => { setViewStudent(null); setViewError(null); }}
         title="Student Profile"
-        maxWidth="max-w-lg"
+        maxWidth="max-w-2xl"
       >
         {viewLoading ? (
           <SectionLoader message="Loading profile..." />
+        ) : viewError ? (
+          <EmptyState
+            icon={<XCircle className="h-8 w-8" />}
+            title="Failed to Load Profile"
+            description={viewError}
+          />
         ) : viewStudent && (() => {
           const p = viewStudent.profile;
           const a = viewStudent.academic;
           return (
             <div className="space-y-4 text-[13px]">
-                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-2 border border-slate-100 dark:border-slate-700/60">
-                    <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-2">Personal Details</p>
-                    {[['Name', p.full_name], ['Register No', p.register_no], ['Department', p.branch], ['Degree', p.degree], ['Year', p.current_year], ['Semester', p.current_semester], ['Pass Out Year', p.pass_out_year], ['DOB', p.dob]].map(([k, v]) => v && (
-                      <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/80 pb-1">
-                        <span className="font-semibold text-slate-400 dark:text-slate-400">{k}</span>
-                        <span className="text-slate-700 dark:text-slate-200 font-bold">{v}</span>
-                      </div>
-                    ))}
-                    {p.linkedin_url && (
-                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/80 pb-1">
-                        <span className="font-semibold text-slate-400 dark:text-slate-400">LinkedIn</span>
-                        <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 font-bold text-xs truncate max-w-[180px]">View Profile</a>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-2 border border-slate-100 dark:border-slate-700/60">
-                    <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-2">Contact</p>
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Mail className="h-3.5 w-3.5" /><span>{p.email}</span></div>
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Phone className="h-3.5 w-3.5" /><span>{p.phone || '—'}</span></div>
-                    {p.alternative_phone && <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Phone className="h-3.5 w-3.5" /><span>{p.alternative_phone} (Alt)</span></div>}
-                    {p.address && <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300"><MapPin className="h-3.5 w-3.5 mt-0.5" /><span>{[p.address, p.district, p.state_name, p.pin_code].filter(Boolean).join(', ')}</span></div>}
-                  </div>
+                  {/* ── Personal Information ── */}
+                  <SectionCard title="Personal Information">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                  {a && (
-                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-2 border border-slate-100 dark:border-slate-700/60">
-                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-2">Academic Records</p>
-                      {[['10th School', a.tenth_school], ['10th %', a.tenth_percentage], ['12th School', a.twelfth_school], ['12th %', a.twelfth_percentage], ['Diploma %', a.diploma_percentage], ['UG College', a.ug_college], ['UG CGPA', a.ug_cgpa], ['PG College', a.pg_college], ['PG CGPA', a.pg_cgpa], ['Placement', a.placement_status], ['Company', a.company_name]].map(([k, v]) => v != null && v !== '' && (
-                        <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/80 pb-1">
-                          <span className="font-semibold text-slate-400 dark:text-slate-400">{k}</span>
-                          <span className="text-slate-700 dark:text-slate-200 font-bold">{String(v)}</span>
-                        </div>
-                      ))}
-                      {Array.isArray(a.sgpa_values) && a.sgpa_values.some((v: string) => v) && (
-                        <div className="pt-2">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">SGPA per Semester</p>
-                          <div className="grid grid-cols-4 gap-1.5">
-                            {a.sgpa_values.map((v: string, i: number) => (
-                              <div key={i} className={`p-2 rounded-lg text-center border ${v ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800/50' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-700 opacity-40'}`}>
-                                <span className="text-[9px] text-slate-400 block">S{i+1}</span>
-                                <span className="text-xs font-black text-[#002D62] dark:text-blue-300">{v || '—'}</span>
-                              </div>
-                            ))}
+                      <Card>
+                        <CardBody className="space-y-2">
+                          <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-1">Identity</p>
+                          {[['Name', p.full_name], ['Register No', p.register_no], ['Department', p.branch], ['Degree', p.degree], ['Year', p.current_year], ['Semester', p.current_semester], ['Pass Out Year', p.pass_out_year], ['DOB', p.dob]].map(([k, v]) => v && (
+                            <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                              <span className="text-xs font-semibold text-slate-400">{k}</span>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{v}</span>
+                            </div>
+                          ))}
+                          {p.linkedin_url && (
+                            <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                              <span className="text-xs font-semibold text-slate-400">LinkedIn</span>
+                              <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">View Profile</a>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+
+                      <Card>
+                        <CardBody className="space-y-3">
+                          <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-1">Contact</p>
+                          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                            <Mail className="h-3.5 w-3.5 shrink-0" /><span>{p.email}</span>
                           </div>
-                        </div>
-                      )}
+                          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                            <Phone className="h-3.5 w-3.5 shrink-0" /><span>{p.phone || '—'}</span>
+                          </div>
+                          {p.alternative_phone && (
+                            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                              <Phone className="h-3.5 w-3.5 shrink-0" /><span>{p.alternative_phone} (Alt)</span>
+                            </div>
+                          )}
+                          {p.address && (
+                            <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                              <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span>{[p.address, p.district, p.state_name, p.pin_code].filter(Boolean).join(', ')}</span>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+
                     </div>
+                  </SectionCard>
+
+                  {/* ── Academic Information ── */}
+                  {a && (
+                    <SectionCard title="Academic Information">
+                      <Card>
+                        <CardBody className="space-y-2">
+                          {[['10th School', a.tenth_school], ['10th %', a.tenth_percentage], ['12th School', a.twelfth_school], ['12th %', a.twelfth_percentage], ['Diploma %', a.diploma_percentage], ['UG College', a.ug_college], ['UG CGPA', a.ug_cgpa], ['PG College', a.pg_college], ['PG CGPA', a.pg_cgpa], ['Placement', a.placement_status], ['Company', a.company_name]].map(([k, v]) => v != null && v !== '' && (
+                            <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                              <span className="text-xs font-semibold text-slate-400">{k}</span>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{String(v)}</span>
+                            </div>
+                          ))}
+                          {Array.isArray(a.sgpa_values) && a.sgpa_values.some((v: string) => v) && (
+                            <div className="pt-3">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">SGPA per Semester</p>
+                              <div className="grid grid-cols-4 gap-1.5">
+                                {a.sgpa_values.map((v: string, i: number) => (
+                                  <div key={i} className={`p-2 rounded-lg text-center border ${v ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800/50' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-700 opacity-40'}`}>
+                                    <span className="text-[9px] text-slate-400 block">S{i+1}</span>
+                                    <span className="text-xs font-black text-[#002D62] dark:text-blue-300">{v || '—'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    </SectionCard>
                   )}
 
                   {Array.isArray(viewStudent.skills) && viewStudent.skills.length > 0 && (
@@ -749,62 +798,93 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport }: S
                   )}
 
                   {Array.isArray(viewStudent.internships) && viewStudent.internships.length > 0 && (
-                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-3 border border-slate-100 dark:border-slate-700/60">
-                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider">Internships</p>
-                      {viewStudent.internships.map((intern: any, i: number) => (
-                        <div key={i} className="border-b border-slate-100 dark:border-slate-700/80 pb-2 last:border-0 last:pb-0">
-                          <p className="font-bold text-slate-700 dark:text-slate-200 text-xs">{intern.role} @ {intern.company_name}</p>
-                          {intern.duration && <p className="text-[11px] text-slate-500 dark:text-slate-400">{intern.duration}</p>}
-                          {intern.certificate_url && (
-                            <a href={intern.certificate_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">View Certificate</a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <SectionCard title="Internships">
+                      <div className="space-y-3">
+                        {viewStudent.internships.map((intern: any, i: number) => (
+                          <Card key={i}>
+                            <CardBody className="space-y-1.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{intern.role}</p>
+                                <Badge variant="muted">{intern.company_name}</Badge>
+                              </div>
+                              {intern.duration && (
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">{intern.duration}</p>
+                              )}
+                              {intern.certificate_url && (
+                                <a href={intern.certificate_url} target="_blank" rel="noreferrer"
+                                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                                  <Eye className="h-3 w-3" /> View Certificate
+                                </a>
+                              )}
+                            </CardBody>
+                          </Card>
+                        ))}
+                      </div>
+                    </SectionCard>
                   )}
 
                   {viewStudent.resume?.resume_url && (
-                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-100 dark:border-slate-700/60">
-                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-2">Resume</p>
-                      <a href={viewStudent.resume.resume_url} target="_blank" rel="noreferrer"
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
-                        <Eye className="h-3.5 w-3.5" /> View / Download Resume
-                      </a>
-                    </div>
+                    <SectionCard title="Resume">
+                      <Card>
+                        <CardBody className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                            <FileText className="h-4 w-4 text-[#002D62] dark:text-blue-400 shrink-0" />
+                            <span className="font-semibold">Resume Document</span>
+                          </div>
+                          <a href={viewStudent.resume.resume_url} target="_blank" rel="noreferrer"
+                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0">
+                            <Eye className="h-3.5 w-3.5" /> View / Download
+                          </a>
+                        </CardBody>
+                      </Card>
+                    </SectionCard>
                   )}
 
                   {viewStudent.analysis && (
-                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-2 border border-slate-100 dark:border-slate-700/60">
-                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-1">Placement Readiness Analysis</p>
-                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/80 pb-1">
-                        <span className="font-semibold text-slate-400 dark:text-slate-400">Readiness Score</span>
-                        <span className="font-black text-[#002D62] dark:text-blue-400">{viewStudent.analysis.readiness_score}%</span>
+                    <SectionCard title="AI Placement Analysis">
+                      <div className="space-y-3">
+
+                        <Card>
+                          <CardBody className="flex items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Readiness Score</p>
+                              <p className="text-2xl font-black text-[#002D62] dark:text-blue-400">{viewStudent.analysis.readiness_score}%</p>
+                            </div>
+                            {viewStudent.analysis.readiness_status && (
+                              <Badge variant="info">{viewStudent.analysis.readiness_status}</Badge>
+                            )}
+                          </CardBody>
+                        </Card>
+
+                        {viewStudent.analysis.strengths && (
+                          <Card>
+                            <CardBody className="space-y-1.5">
+                              <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Strengths</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudent.analysis.strengths}</p>
+                            </CardBody>
+                          </Card>
+                        )}
+
+                        {viewStudent.analysis.weaknesses && (
+                          <Card>
+                            <CardBody className="space-y-1.5">
+                              <p className="text-[10px] font-black text-orange-500 dark:text-orange-400 uppercase tracking-wider">Weaknesses</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudent.analysis.weaknesses}</p>
+                            </CardBody>
+                          </Card>
+                        )}
+
+                        {viewStudent.analysis.recommendations && (
+                          <Card>
+                            <CardBody className="space-y-1.5">
+                              <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Recommendations</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudent.analysis.recommendations}</p>
+                            </CardBody>
+                          </Card>
+                        )}
+
                       </div>
-                      {viewStudent.analysis.readiness_status && (
-                        <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/80 pb-1">
-                          <span className="font-semibold text-slate-400 dark:text-slate-400">Status</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-200">{viewStudent.analysis.readiness_status}</span>
-                        </div>
-                      )}
-                      {viewStudent.analysis.strengths && (
-                        <div>
-                          <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase mt-2 mb-1">Strengths</p>
-                          <p className="text-xs text-slate-600 dark:text-slate-300">{viewStudent.analysis.strengths}</p>
-                        </div>
-                      )}
-                      {viewStudent.analysis.weaknesses && (
-                        <div>
-                          <p className="text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase mt-2 mb-1">Weaknesses</p>
-                          <p className="text-xs text-slate-600 dark:text-slate-300">{viewStudent.analysis.weaknesses}</p>
-                        </div>
-                      )}
-                      {viewStudent.analysis.recommendations && (
-                        <div>
-                          <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase mt-2 mb-1">Recommendations</p>
-                          <p className="text-xs text-slate-600 dark:text-slate-300">{viewStudent.analysis.recommendations}</p>
-                        </div>
-                      )}
-                    </div>
+                    </SectionCard>
                   )}
 
                   <div className="flex items-center gap-2">

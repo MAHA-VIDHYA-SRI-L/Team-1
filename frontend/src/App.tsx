@@ -27,6 +27,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<'student' | 'staff' | 'admin' | null>(savedSession?.role ?? null);
   const [studentSubPage, setStudentSubPage] = useState<'home' | 'badges' | 'placement' | 'report'>('home');
   const [staffSubPage, setStaffSubPage] = useState<'home' | 'report'>('home');
+  const [adminSubPage, setAdminSubPage] = useState<'home' | 'staff-home' | 'staff-report'>('home');
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(savedSession?.user ?? null);
 
   useEffect(() => {
@@ -195,10 +196,29 @@ export default function App() {
 
     // --- 3. ADMIN DOMAIN ---
     if (userRole === 'admin') {
+      if (adminSubPage === 'staff-report') {
+        return (
+          <StaffReport
+            user={activeUser!}
+            onBack={() => setAdminSubPage('staff-home')}
+          />
+        );
+      }
+      if (adminSubPage === 'staff-home') {
+        return (
+          <StaffDashboard
+            user={activeUser!}
+            onLogout={handleLogout}
+            onNavigateToReport={() => setAdminSubPage('staff-report')}
+            onBackToAdmin={() => setAdminSubPage('home')}
+          />
+        );
+      }
       return (
-        <AdminDashboard 
-          user={activeUser!} 
-          onLogout={handleLogout} 
+        <AdminDashboard
+          user={activeUser!}
+          onLogout={handleLogout}
+          onNavigateToStaff={() => setAdminSubPage('staff-home')}
           onImpersonate={(student) => {
             sessionStorage.setItem('_pm_impersonate_student', JSON.stringify(student));
             sessionStorage.setItem('_pm_impersonate_student_id', student.id);

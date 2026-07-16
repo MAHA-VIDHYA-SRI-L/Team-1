@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import {
   Users, UserCheck, Plus, Trash2, Ban, CheckCircle2, Eye, LogOut, Edit2,
-  AlertCircle, User, Hash, Phone, Mail, ShieldCheck, Search, UserX, X,
-  LayoutDashboard
+  AlertCircle, User, Hash, Phone, Mail, Search, X,
+  LayoutDashboard, GraduationCap, Briefcase, BadgeCheck, Clock,
+  FileText, BarChart2, ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell
@@ -19,6 +21,7 @@ interface AdminDashboardProps {
   user: AdminUser;
   onLogout: () => void;
   onImpersonate?: (student: { id: string; fullName: string; email: string; idNumber?: string; contactNo?: string; department?: string }) => void;
+  onNavigateToStaff?: () => void;
 }
 
 interface Student {
@@ -28,6 +31,7 @@ interface Student {
   email: string;
   phone: string;
   is_blocked: boolean;
+  is_verified?: boolean;
   placement_status?: string;
   readiness_score?: number;
   ug_cgpa?: number;
@@ -62,7 +66,7 @@ const validateStaff = (f: typeof BLANK_STAFF) => {
   return '';
 };
 
-export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminDashboardProps) {
+export default function AdminDashboard({ user, onLogout, onImpersonate, onNavigateToStaff }: AdminDashboardProps) {
   const [tab, setTab] = useState<'students' | 'staff'>('students');
   const [students, setStudents] = useState<Student[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -113,6 +117,61 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
 
     return { metricsData, distributionData };
   }, [students]);
+
+  // Verification queue: unverified, unblocked students
+  const verificationQueue = useMemo(
+    () => students.filter(s => !s.is_verified && !s.is_blocked),
+    [students]
+  );
+
+  // Recent activity: derive from last 5 students + last 3 staff (newest first from API)
+  const recentActivity = useMemo(() => {
+    const items: { title: string; sub: string; badge: string; badgeCls: string; icon: ReactNode; iconBg: string }[] = [];
+
+    students.slice(0, 4).forEach(s => {
+      if (s.placement_status === 'Placed') {
+        items.push({
+          title: s.full_name,
+          sub: s.email,
+          badge: 'Placed',
+          badgeCls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400',
+          icon: <Briefcase className="h-3.5 w-3.5" />,
+          iconBg: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+        });
+      } else if (s.is_verified) {
+        items.push({
+          title: s.full_name,
+          sub: s.email,
+          badge: 'Verified',
+          badgeCls: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+          icon: <BadgeCheck className="h-3.5 w-3.5" />,
+          iconBg: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+        });
+      } else {
+        items.push({
+          title: s.full_name,
+          sub: s.email,
+          badge: 'Registered',
+          badgeCls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
+          icon: <Users className="h-3.5 w-3.5" />,
+          iconBg: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
+        });
+      }
+    });
+
+    staff.slice(0, 2).forEach(s => {
+      items.push({
+        title: s.full_name,
+        sub: s.email,
+        badge: 'Staff',
+        badgeCls: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+        icon: <UserCheck className="h-3.5 w-3.5" />,
+        iconBg: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+      });
+    });
+
+    return items.slice(0, 6);
+  }, [students, staff]);
 
   // modal state
   const [modal, setModal] = useState<'add-student' | 'add-staff' | 'view-student' | 'view-staff' | 'edit-student' | 'edit-staff' | null>(null);
@@ -290,7 +349,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
   });
 
   return (
-    <PageContainer width="wide">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col transition-colors">
       {/* Toast */}
       {toast && <Toast message={toast} type="success" />}
 
@@ -311,6 +370,17 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
             <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block font-medium">
               Welcome, <span className="font-extrabold text-slate-800 dark:text-slate-100">{user.fullName}</span>
             </span>
+            {onNavigateToStaff && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onNavigateToStaff}
+                title="Placement Portal"
+                icon={<GraduationCap className="h-3.5 w-3.5" />}
+              >
+                <span className="hidden sm:inline">Placement Portal</span>
+              </Button>
+            )}
             <Button
               variant="danger"
               size="sm"
@@ -324,67 +394,194 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
         }
       />
 
+      <PageContainer width="wide">
       <div className="flex-1 flex flex-col space-y-8">
+        {/* ── Summary Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <StatCard
-            label="Student Users"
+            label="Total Students"
             value={students.length}
             icon={<Users className="h-6 w-6" />}
             iconBg="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50"
             accentColor="text-blue-600 dark:text-blue-400"
             footer={
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Placement Ready Accounts</span>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-400 dark:text-slate-500">Active</span>
+                <span className="text-blue-600 dark:text-blue-400">{students.filter(s => !s.is_blocked).length} accounts</span>
               </div>
             }
           />
           <StatCard
-            label="Staff Users"
+            label="Total Staff"
             value={staff.length}
             icon={<UserCheck className="h-6 w-6" />}
             iconBg="bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/50"
             accentColor="text-orange-600 dark:text-orange-400"
             footer={
-              <div className="flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500" />
-                <span>Verified Placement Officers</span>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-400 dark:text-slate-500">Active</span>
+                <span className="text-orange-600 dark:text-orange-400">{staff.filter(s => !s.is_blocked).length} officers</span>
               </div>
             }
           />
           <StatCard
-            label="Unblocked Users"
-            value={students.filter(s => !s.is_blocked).length + staff.filter(s => !s.is_blocked).length}
-            icon={<ShieldCheck className="h-6 w-6" />}
+            label="Verified Students"
+            value={students.filter(s => s.is_verified).length}
+            icon={<BadgeCheck className="h-6 w-6" />}
             iconBg="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50"
             accentColor="text-emerald-600 dark:text-emerald-400"
             footer={
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Active Operational Accounts</span>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-400 dark:text-slate-500">Pending</span>
+                <span className="text-amber-600 dark:text-amber-400">{students.filter(s => !s.is_verified && !s.is_blocked).length} awaiting</span>
               </div>
             }
           />
           <StatCard
-            label="Blocked Users"
-            value={students.filter(s => s.is_blocked).length + staff.filter(s => s.is_blocked).length}
-            icon={<UserX className="h-6 w-6" />}
-            iconBg="bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800/50"
-            accentColor="text-rose-600 dark:text-rose-400"
+            label="Placed Students"
+            value={students.filter(s => s.placement_status === 'Placed').length}
+            icon={<Briefcase className="h-6 w-6" />}
+            iconBg="bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800/50"
+            accentColor="text-violet-600 dark:text-violet-400"
             footer={
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />
-                <span>Restricted Access Accounts</span>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-400 dark:text-slate-500">Rate</span>
+                <span className="text-violet-600 dark:text-violet-400">
+                  {students.length > 0 ? Math.round((students.filter(s => s.placement_status === 'Placed').length / students.length) * 100) : 0}% placed
+                </span>
               </div>
             }
           />
+        </div>
+
+        {/* ── Quick Actions | Recent Activity | Verification Queue ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* Quick Actions */}
+          <SectionCard title="Quick Actions" subtitle="Common admin operations">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: 'Add Student',
+                  icon: <Users className="h-5 w-5" />,
+                  color: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800/50',
+                  action: () => { setTab('students'); setFormError(''); setStudentForm(BLANK_STUDENT); setModal('add-student'); },
+                },
+                {
+                  label: 'Add Staff',
+                  icon: <UserCheck className="h-5 w-5" />,
+                  color: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800/50',
+                  action: () => { setTab('staff'); setFormError(''); setStaffForm(BLANK_STAFF); setModal('add-staff'); },
+                },
+                {
+                  label: 'View Reports',
+                  icon: <FileText className="h-5 w-5" />,
+                  color: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/50',
+                  action: onNavigateToStaff,
+                },
+                {
+                  label: 'Analytics',
+                  icon: <BarChart2 className="h-5 w-5" />,
+                  color: 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800/50',
+                  action: onNavigateToStaff,
+                },
+              ].map(({ label, icon, color, action }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  disabled={!action}
+                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border font-bold text-xs transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${color}`}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Recent Activity */}
+          <SectionCard title="Recent Activity" subtitle="Latest system events">
+            <div className="space-y-1">
+              {recentActivity.length === 0 ? (
+                <EmptyState
+                  icon={<Clock className="h-6 w-6" />}
+                  title="No Recent Activity"
+                  description="Activity will appear as students and staff are provisioned."
+                />
+              ) : (
+                recentActivity.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2.5 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+                    <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${item.iconBg}`}>
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-tight truncate">{item.title}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{item.sub}</p>
+                    </div>
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 mt-0.5 ${item.badgeCls}`}>{item.badge}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Verification Queue */}
+          <SectionCard
+            title="Verification Queue"
+            subtitle={`${verificationQueue.length} student${verificationQueue.length !== 1 ? 's' : ''} pending`}
+            action={
+              verificationQueue.length > 0 ? (
+                <span className="flex items-center justify-center h-5 w-5 rounded-full bg-amber-500 text-white text-[9px] font-black">
+                  {verificationQueue.length}
+                </span>
+              ) : null
+            }
+          >
+            <div className="space-y-1">
+              {verificationQueue.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400">All students verified</p>
+                </div>
+              ) : (
+                verificationQueue.slice(0, 5).map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+                    <div className="h-7 w-7 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/50 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-[10px] shrink-0">
+                      {s.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate leading-tight">{s.full_name}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{s.register_no}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Clock className="h-3 w-3 text-amber-500" />
+                      <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase">Pending</span>
+                    </div>
+                  </div>
+                ))
+              )}
+              {verificationQueue.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => { setTab('students'); setSearchQuery(''); }}
+                  className="w-full flex items-center justify-center gap-1.5 pt-2 text-[10px] font-black text-[#002D62] dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  <ArrowRight className="h-3 w-3" />
+                  View all {verificationQueue.length} pending
+                </button>
+              )}
+            </div>
+          </SectionCard>
         </div>
 
         {/* Placement Insights (Charts) */}
         {students.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Chart 1: Metrics */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-md flex flex-col h-[340px]">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-sm flex flex-col h-[340px]">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800 dark:text-white">Placement Metrics Overview</h3>
@@ -457,7 +654,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
             </div>
 
             {/* Chart 2: Placed vs Not Placed */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-md flex flex-col h-[340px]">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-sm flex flex-col h-[340px]">
               <div className="mb-4">
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">Placement Distribution</h3>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Ratio of placed vs unplaced student accounts</p>
@@ -586,6 +783,22 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
                   ) : null
                 }
               />
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {(['all', 'active', 'blocked'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all capitalize ${
+                    statusFilter === f
+                      ? 'bg-[#002D62] dark:bg-blue-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-[#002D62]/40 dark:hover:border-blue-500'
+                  }`}
+                >
+                  {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Blocked'}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -952,13 +1165,18 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
                 {[
                   ['Email Address', s.email],
                   ['Contact Phone', s.phone],
-                  ['Account State', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
                 ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between py-2.5">
+                  <div key={k} className="flex justify-between items-center py-2.5">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{k}</span>
                     <span className="font-semibold text-slate-700 dark:text-slate-200">{v}</span>
                   </div>
                 ))}
+                <div className="flex justify-between items-center py-2.5">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account State</span>
+                  <Badge variant={s.is_blocked ? 'danger' : 'success'} dot>
+                    {s.is_blocked ? 'Blocked' : 'Active'}
+                  </Badge>
+                </div>
               </div>
             </div>
           </Modal>
@@ -984,18 +1202,24 @@ export default function AdminDashboard({ user, onLogout, onImpersonate }: AdminD
                 {[
                   ['Email Address', s.email],
                   ['Contact Phone', s.phone],
-                  ['Account State', s.is_blocked ? '🔴 Blocked' : '🟢 Active']
                 ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between py-2.5">
+                  <div key={k} className="flex justify-between items-center py-2.5">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{k}</span>
                     <span className="font-semibold text-slate-700 dark:text-slate-200">{v}</span>
                   </div>
                 ))}
+                <div className="flex justify-between items-center py-2.5">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account State</span>
+                  <Badge variant={s.is_blocked ? 'danger' : 'success'} dot>
+                    {s.is_blocked ? 'Blocked' : 'Active'}
+                  </Badge>
+                </div>
               </div>
             </div>
           </Modal>
         );
       })()}
-    </PageContainer>
+      </PageContainer>
+    </div>
   );
 }
