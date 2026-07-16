@@ -111,10 +111,20 @@ const apiFetch = async (input: string, init?: RequestInit): Promise<Response> =>
   const method = (init?.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
 
+  // Support Admin student impersonation headers
+  const impersonateId = sessionStorage.getItem('_pm_impersonate_student_id');
+  const finalInit = { ...init };
+  if (impersonateId) {
+    const headers = { ...(init?.headers as Record<string, string> || {}) };
+    headers['x-impersonate-student-id'] = impersonateId;
+    headers['x-admin-key'] = import.meta.env.VITE_ADMIN_KEY || '';
+    finalInit.headers = headers;
+  }
+
   if (!isGet) {
     clearApiCache(); // Automatically invalidate cache on mutations
   } else {
-    const cacheKey = `${input}|${_authToken}`;
+    const cacheKey = `${input}|${_authToken}|${impersonateId || ''}`;
     const cached = _apiCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return new Response(cached.text, { status: 200, statusText: 'OK', headers: { 'Content-Type': 'application/json' } });
@@ -125,18 +135,15 @@ const apiFetch = async (input: string, init?: RequestInit): Promise<Response> =>
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
-    let res = await fetch(input, { ...init, signal: controller.signal });
+    let res = await fetch(input, { ...finalInit, signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (res.status === 401 && _refreshToken) {
       const refreshed = await tryRefresh();
       if (refreshed) {
         // Rebuild auth header with new token
-        const newInit: RequestInit = {
-          ...init,
-          headers: { ...(init?.headers as Record<string, string> || {}), Authorization: `Bearer ${_authToken}` },
-        };
-        res = await fetch(input, newInit);
+        const headers = { ...(finalInit.headers as Record<string, string> || {}), Authorization: `Bearer ${_authToken}` };
+        res = await fetch(input, { ...finalInit, headers });
       }
     }
     if (res.status === 401) {
@@ -144,7 +151,7 @@ const apiFetch = async (input: string, init?: RequestInit): Promise<Response> =>
     }
     if (res.ok && isGet) {
       const text = await res.clone().text();
-      const cacheKey = `${input}|${_authToken}`;
+      const cacheKey = `${input}|${_authToken}|${impersonateId || ''}`;
       _apiCache.set(cacheKey, { text, expiresAt: Date.now() + API_CACHE_TTL_MS });
     }
     return res;
