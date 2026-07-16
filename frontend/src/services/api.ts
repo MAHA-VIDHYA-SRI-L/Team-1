@@ -231,7 +231,8 @@ export const blockStudent = async (id: string, is_blocked: boolean) => {
   return res.json();
 };
 
-export const fetchCertifications = async () => {
+export const fetchCertifications = async (bustCache = false) => {
+  if (bustCache) clearApiCache();
   const res = await apiFetch(`${BASE_URL}/student/certifications`, { headers: authHeaders() });
   if (!res.ok) throw new Error((await res.json()).error);
   return res.json();
