@@ -18,7 +18,7 @@ import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../ser
 import { ThemeToggle } from '../components/ThemeToggle';
 import logoUrl from '../assets/logo.jpg';
 import {
-  Button, Card, Badge, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
+  Button, Badge, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader, PageContainer
 } from '../components/ui';
 
 interface StaffReportProps {
@@ -228,20 +228,18 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
         }
       />
 
-      <div className="flex-1 max-w-[1600px] w-full mx-auto p-6 sm:p-10 space-y-8">
+      <PageContainer width="wide">
 
         {/* ── Loading ── */}
         {loading && <SectionLoader message="Loading student data..." />}
 
         {/* ── Error ── */}
         {fetchError && (
-          <Card className="p-12">
-            <EmptyState
-              icon={<XCircle className="h-12 w-12 text-red-500" />}
-              title="Failed to load students"
-              description={fetchError}
-            />
-          </Card>
+          <EmptyState
+            icon={<XCircle className="h-8 w-8" />}
+            title="Failed to Load Students"
+            description={fetchError}
+          />
         )}
 
         {!loading && !fetchError && (
@@ -300,7 +298,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                 ) : null
               }
             >
-              <div className="p-6 space-y-6">
+              <div className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
 
                   {/* Search */}
@@ -400,18 +398,16 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
 
             {/* ── Table ── */}
             {filteredStudents.length === 0 ? (
-              <Card className="p-12">
-                <EmptyState
-                  icon={<Filter className="h-12 w-12 text-slate-300 dark:text-slate-600" />}
-                  title="No Records Match Your Filters"
-                  description="Try adjusting your search or filter criteria."
-                  action={
-                    <Button variant="secondary" size="sm" onClick={clearFilters}>
-                      Clear All Filters
-                    </Button>
-                  }
-                />
-              </Card>
+              <EmptyState
+                icon={<Filter className="h-8 w-8" />}
+                title="No Records Match Your Filters"
+                description="Try adjusting your search or filter criteria."
+                action={
+                  <Button variant="secondary" size="sm" onClick={clearFilters}>
+                    Clear All Filters
+                  </Button>
+                }
+              />
             ) : (
               <SectionCard title="Student Directory" subtitle="Sorted and filtered list of student records" noPadding>
                 <Table headers={tableHeaders}>
@@ -509,7 +505,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
             )}
           </>
         )}
-      </div>
+      </PageContainer>
     </div>
   );
 }

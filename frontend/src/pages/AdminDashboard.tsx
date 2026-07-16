@@ -580,7 +580,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
         {students.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Chart 1: Metrics */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-md flex flex-col h-[340px]">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-sm flex flex-col h-[340px]">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800 dark:text-white">Placement Metrics Overview</h3>
@@ -653,7 +653,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
             </div>
 
             {/* Chart 2: Placed vs Not Placed */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-md flex flex-col h-[340px]">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/80 shadow-sm flex flex-col h-[340px]">
               <div className="mb-4">
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">Placement Distribution</h3>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Ratio of placed vs unplaced student accounts</p>

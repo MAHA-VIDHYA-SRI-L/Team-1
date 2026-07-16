@@ -235,15 +235,16 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] flex flex-col transition-colors text-slate-800 dark:text-slate-100">
 
-      <header className="bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-colors">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-base text-slate-900 dark:text-white tracking-tight">Placemate</span>
-            <Badge variant="brand">Staff Portal</Badge>
-          </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        title="Placemate"
+        badge="Staff Portal"
+        subtitle="Live Placement Analytics & Roster Management"
+        actions={
+          <div className="flex items-center gap-3">
             <ThemeToggle variant="button" />
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 hidden sm:block">{user.fullName}</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:block">
+              Welcome, <span className="font-extrabold text-slate-800 dark:text-slate-100">{user.fullName}</span>
+            </span>
             {onBackToAdmin && (
               <Button variant="secondary" size="sm" icon={<LogOut className="h-3.5 w-3.5" />} onClick={onBackToAdmin}>
                 <span className="hidden md:inline">Admin Console</span>
@@ -251,7 +252,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
             )}
             {onNavigateToReport && (
               <Button variant="secondary" size="sm" icon={<FileText className="h-3.5 w-3.5" />} onClick={onNavigateToReport}>
-                Reports
+                <span className="hidden sm:inline">Reports</span>
               </Button>
             )}
             <Button variant="success" size="sm" icon={<Download className="h-3.5 w-3.5" />} onClick={() => exportRosterToCSV(students)}>
@@ -259,19 +260,14 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
             </Button>
             {!onBackToAdmin && (
               <Button variant="danger" size="sm" icon={<LogOut className="h-3.5 w-3.5" />} onClick={onLogout}>
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             )}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <PageContainer width="wide">
-
-        <PageHeader
-          title="Staff Dashboard"
-          subtitle="Live Placement Analytics & Roster Management"
-        />
 
         {loading && <SectionLoader message="Loading student roster..." />}
 
@@ -289,13 +285,14 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
         )}
 
         {!loading && !fetchError && <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             
           <StatCard
             label="Total Enrolled Students"
             value={totalStudents}
-            icon={<Users className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-[#002D62] to-[#00428c]"
+            icon={<Users className="h-6 w-6" />}
+            iconBg="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50"
+            accentColor="text-[#002D62] dark:text-blue-400"
             onClick={() => setShowDeptBreakdown(!showDeptBreakdown)}
             trend={
               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
@@ -316,8 +313,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
           <StatCard
             label="Students Placed Successfully"
             value={placedStudents.length}
-            icon={<Briefcase className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700"
+            icon={<Briefcase className="h-6 w-6" />}
+            iconBg="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50"
+            accentColor="text-emerald-600 dark:text-emerald-400"
             trend={
               <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
                 <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Placement Concentration</p>
@@ -338,8 +336,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
           <StatCard
             label="Remaining Bench Strength"
             value={unplacedStudents.length}
-            icon={<XCircle className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-orange-500 to-amber-600"
+            icon={<XCircle className="h-6 w-6" />}
+            iconBg="bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/50"
+            accentColor="text-orange-600 dark:text-orange-400"
             trend={
               <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
                 <p className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider">Unplaced by Dept</p>
@@ -356,8 +355,9 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
           <StatCard
             label="Verified Student Profiles"
             value={students.filter(s => s.isVerified).length}
-            icon={<ShieldCheck className="h-5 w-5 text-white" />}
-            iconBg="bg-gradient-to-br from-blue-600 to-indigo-700"
+            icon={<ShieldCheck className="h-6 w-6" />}
+            iconBg="bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800/50"
+            accentColor="text-violet-600 dark:text-violet-400"
             trend={
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
                 <span>Verification Ratio</span>
@@ -370,14 +370,11 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
 
         </div>
 
-        <div>
-          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase px-1 block mb-3">
-            <span className="inline-flex items-center gap-1.5"><BarChart2 className="h-3.5 w-3.5" />Placement Analytics Charts</span>
-          </span>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <SectionCard title="Placement Analytics" action={<BarChart2 className="h-4 w-4 text-[#002D62] dark:text-blue-400" />} noPadding>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-slate-100 dark:bg-slate-700/80 rounded-b-2xl overflow-hidden">
 
-            <div className="lg:col-span-2 bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Placed vs Not Placed by Department</p>
+            <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] p-5">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Placed vs Not Placed by Department</p>
               {deptChartData.length === 0 ? (
                 <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Department Data" description="Data will appear once students are loaded." />
               ) : (
@@ -393,8 +390,8 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
               )}
             </div>
 
-            <div className="bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm flex flex-col">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Overall Placement Ratio</p>
+            <div className="bg-white dark:bg-[#1E293B] p-5 flex flex-col">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Overall Placement Ratio</p>
               {totalStudents === 0 ? (
                 <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Placement Data" description="Placement ratios will appear once students are loaded." />
               ) : (
@@ -410,8 +407,8 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
               )}
             </div>
 
-            <div className="lg:col-span-3 bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 rounded-[24px] p-5 shadow-sm">
-              <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Readiness Score Distribution</p>
+            <div className="lg:col-span-3 bg-white dark:bg-[#1E293B] p-5">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Readiness Score Distribution</p>
               {totalStudents === 0 ? (
                 <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No Readiness Data" description="Score distribution will appear once students are loaded." />
               ) : (
@@ -427,7 +424,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
             </div>
 
           </div>
-        </div>
+        </SectionCard>
 
         <div className="space-y-4">
 
@@ -499,7 +496,7 @@ export default function StaffDashboard({ user, onLogout, onNavigateToReport, onB
 
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold text-slate-500">Filtered Results ({filteredStudents.length} matching)</span>
+              <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} found</span>
               <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
