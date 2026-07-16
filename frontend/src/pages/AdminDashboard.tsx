@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import {
   Users, UserCheck, Plus, Trash2, Ban, CheckCircle2, Eye, LogOut, Edit2,
   AlertCircle, User, Hash, Phone, Mail, Search, X,
-  LayoutDashboard, GraduationCap, Briefcase, BadgeCheck, Clock,
-  FileText, BarChart2, ArrowRight
+  GraduationCap, Briefcase, BadgeCheck, Clock,
+  FileText, BarChart2, ArrowRight, MapPin, XCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell
@@ -20,7 +20,6 @@ interface AdminUser { fullName: string; email: string; }
 interface AdminDashboardProps {
   user: AdminUser;
   onLogout: () => void;
-  onImpersonate?: (student: { id: string; fullName: string; email: string; idNumber?: string; contactNo?: string; department?: string }) => void;
   onNavigateToStaff?: () => void;
 }
 
@@ -66,7 +65,7 @@ const validateStaff = (f: typeof BLANK_STAFF) => {
   return '';
 };
 
-export default function AdminDashboard({ user, onLogout, onImpersonate, onNavigateToStaff }: AdminDashboardProps) {
+export default function AdminDashboard({ user, onLogout, onNavigateToStaff }: AdminDashboardProps) {
   const [tab, setTab] = useState<'students' | 'staff'>('students');
   const [students, setStudents] = useState<Student[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -176,6 +175,28 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
   // modal state
   const [modal, setModal] = useState<'add-student' | 'add-staff' | 'view-student' | 'view-staff' | 'edit-student' | 'edit-staff' | null>(null);
   const [selected, setSelected] = useState<Student | Staff | null>(null);
+
+  // full student profile (admin view)
+  const [viewStudentData, setViewStudentData] = useState<any>(null);
+  const [viewStudentLoading, setViewStudentLoading] = useState(false);
+  const [viewStudentError, setViewStudentError] = useState<string | null>(null);
+
+  const handleViewStudentProfile = async (id: string) => {
+    setViewStudentData(null);
+    setViewStudentError(null);
+    setViewStudentLoading(true);
+    setModal('view-student');
+    try {
+      const res = await fetch(`${API}/admin/students/${id}`, { headers: adminHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setViewStudentData(data);
+    } catch (e: any) {
+      setViewStudentError(e.message || 'Failed to load student profile.');
+    } finally {
+      setViewStudentLoading(false);
+    }
+  };
 
   // form state
   const [studentForm, setStudentForm] = useState(BLANK_STUDENT);
@@ -439,7 +460,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
           />
           <StatCard
             label="Placed Students"
-            value={students.filter(s => s.placement_status === 'Placed').length}
+            value={chartData.distributionData.find(d => d.name === 'Placed')?.value ?? 0}
             icon={<Briefcase className="h-6 w-6" />}
             iconBg="bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800/50"
             accentColor="text-violet-600 dark:text-violet-400"
@@ -447,7 +468,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-slate-400 dark:text-slate-500">Rate</span>
                 <span className="text-violet-600 dark:text-violet-400">
-                  {students.length > 0 ? Math.round((students.filter(s => s.placement_status === 'Placed').length / students.length) * 100) : 0}% placed
+                  {students.length > 0 ? Math.round(((chartData.distributionData.find(d => d.name === 'Placed')?.value ?? 0) / students.length) * 100) : 0}% placed
                 </span>
               </div>
             }
@@ -566,7 +587,7 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
               {verificationQueue.length > 5 && (
                 <button
                   type="button"
-                  onClick={() => { setTab('students'); setSearchQuery(''); }}
+                  onClick={() => { setTab('students'); setSearchQuery(''); setStatusFilter('all'); }}
                   className="w-full flex items-center justify-center gap-1.5 pt-2 text-[10px] font-black text-[#002D62] dark:text-blue-400 hover:underline cursor-pointer"
                 >
                   <ArrowRight className="h-3 w-3" />
@@ -868,25 +889,16 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
                             variant="ghost"
                             size="xs"
                             title="View Profile Details"
-                            onClick={() => { setSelected(item); setModal(tab === 'students' ? 'view-student' : 'view-staff'); }}
+                            onClick={() => {
+                              if (tab === 'students') {
+                                handleViewStudentProfile(item.id);
+                              } else {
+                                setSelected(item);
+                                setModal('view-staff');
+                              }
+                            }}
                             icon={<Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                           />
-                          {tab === 'students' && onImpersonate && (
-                             <Button
-                               variant="ghost"
-                               size="xs"
-                               title="Enter Student Portal"
-                               onClick={() => onImpersonate({
-                                 id: item.id,
-                                 fullName: s.full_name,
-                                 email: s.email,
-                                 idNumber: s.register_no,
-                                 contactNo: s.phone,
-                                 department: (s as any).branch || 'CSE'
-                                })}
-                               icon={<LayoutDashboard className="h-4 w-4 text-amber-500 hover:text-amber-600 dark:text-amber-400" />}
-                             />
-                           )}
                           <Button
                             variant="ghost"
                             size="xs"
@@ -1146,42 +1158,198 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
         </Modal>
       )}
 
-      {/* View Student */}
-      {modal === 'view-student' && selected && (() => {
-        const s = selected as Student;
-        return (
-          <Modal title="Student Profile Details" onClose={() => setModal(null)} size="md">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-700">
-                <div className="h-12 w-12 rounded-2xl bg-[#002D62]/10 dark:bg-blue-900/40 flex items-center justify-center text-[#002D62] dark:text-blue-400 font-black text-base shrink-0">
-                  {s?.full_name ? s.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'ST'}
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-white">{s?.full_name}</p>
-                  <p className="text-xs text-slate-400">Roll No: {s?.register_no}</p>
-                </div>
-              </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
-                {[
-                  ['Email Address', s.email],
-                  ['Contact Phone', s.phone],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center py-2.5">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{k}</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">{v}</span>
+      {/* View Student — full profile via admin API */}
+      {modal === 'view-student' && (
+        <Modal title="Student Profile" onClose={() => { setModal(null); setViewStudentData(null); setViewStudentError(null); }} maxWidth="max-w-2xl">
+          {viewStudentLoading && <SectionLoader message="Loading profile..." />}
+          {viewStudentError && (
+            <EmptyState
+              icon={<XCircle className="h-8 w-8" />}
+              title="Failed to Load Profile"
+              description={viewStudentError}
+            />
+          )}
+          {!viewStudentLoading && !viewStudentError && viewStudentData && (() => {
+            const p = viewStudentData.profile;
+            const a = viewStudentData.academic;
+            return (
+              <div className="space-y-4 text-[13px]">
+
+                <SectionCard title="Personal Information">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 space-y-2">
+                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-1">Identity</p>
+                      {([['Name', p?.full_name], ['Register No', p?.register_no], ['Department', p?.branch], ['Degree', p?.degree], ['Year', p?.current_year], ['Semester', p?.current_semester], ['Pass Out Year', p?.pass_out_year], ['DOB', p?.dob]] as [string, string][]).map(([k, v]) => v && (
+                        <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                          <span className="text-xs font-semibold text-slate-400">{k}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{v}</span>
+                        </div>
+                      ))}
+                      {p?.linkedin_url && (
+                        <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                          <span className="text-xs font-semibold text-slate-400">LinkedIn</span>
+                          <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">View Profile</a>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 space-y-3">
+                      <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-1">Contact</p>
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><Mail className="h-3.5 w-3.5 shrink-0" /><span>{p?.email}</span></div>
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><Phone className="h-3.5 w-3.5 shrink-0" /><span>{p?.phone || '—'}</span></div>
+                      {p?.address && (
+                        <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>{[p.address, p.district, p.state_name, p.pin_code].filter(Boolean).join(', ')}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black ${
+                          p?.is_verified ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                        }`}>
+                          {p?.is_verified ? <BadgeCheck className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                          {p?.is_verified ? 'Profile Verified' : 'Pending Verification'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-                <div className="flex justify-between items-center py-2.5">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account State</span>
-                  <Badge variant={s.is_blocked ? 'danger' : 'success'} dot>
-                    {s.is_blocked ? 'Blocked' : 'Active'}
-                  </Badge>
-                </div>
+                </SectionCard>
+
+                {a && (
+                  <SectionCard title="Academic Information">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 space-y-2">
+                      {([['10th School', a.tenth_school], ['10th %', a.tenth_percentage], ['12th School', a.twelfth_school], ['12th %', a.twelfth_percentage], ['Diploma %', a.diploma_percentage], ['UG College', a.ug_college], ['UG CGPA', a.ug_cgpa], ['PG College', a.pg_college], ['PG CGPA', a.pg_cgpa], ['Placement', a.placement_status], ['Company', a.company_name]] as [string, any][]).map(([k, v]) => v != null && v !== '' && (
+                        <div key={k} className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-1 last:border-0 last:pb-0">
+                          <span className="text-xs font-semibold text-slate-400">{k}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{String(v)}</span>
+                        </div>
+                      ))}
+                      {Array.isArray(a.sgpa_values) && a.sgpa_values.some((v: string) => v) && (
+                        <div className="pt-3">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">SGPA per Semester</p>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {a.sgpa_values.map((v: string, i: number) => (
+                              <div key={i} className={`p-2 rounded-lg text-center border ${
+                                v ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-800/50' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-700 opacity-40'
+                              }`}>
+                                <span className="text-[9px] text-slate-400 block">S{i + 1}</span>
+                                <span className="text-xs font-black text-[#002D62] dark:text-blue-300">{v || '—'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </SectionCard>
+                )}
+
+                {Array.isArray(viewStudentData.skills) && viewStudentData.skills.length > 0 && (
+                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-100 dark:border-slate-700/60">
+                    <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider mb-3">Skills</p>
+                    <div className="flex flex-wrap gap-2">
+                      {viewStudentData.skills.map((sk: any, i: number) => (
+                        <span key={i} className="text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50 px-2.5 py-1 rounded-lg">
+                          {sk.skill_name}{sk.proficiency ? ` · ${sk.proficiency}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Array.isArray(viewStudentData.certifications) && viewStudentData.certifications.length > 0 && (
+                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 space-y-3 border border-slate-100 dark:border-slate-700/60">
+                    <p className="text-[10px] font-black text-[#002D62] dark:text-blue-400 uppercase tracking-wider">Certifications</p>
+                    {viewStudentData.certifications.map((c: any) => (
+                      <div key={c.id} className="border-b border-slate-100 dark:border-slate-700/80 pb-2 last:border-0 last:pb-0">
+                        <p className="font-bold text-slate-700 dark:text-slate-200 text-xs">{c.certification_name}</p>
+                        {c.certificate_url && (
+                          <a href={c.certificate_url.startsWith('http') ? c.certificate_url : `${import.meta.env.VITE_SUPABASE_URL || ''}${c.certificate_url}`} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">View Certificate</a>
+                        )}
+                        <div className="mt-1">
+                          {c.status?.toLowerCase() === 'approved' ? (
+                            <Badge variant="success"><CheckCircle2 className="h-3 w-3" /> Approved</Badge>
+                          ) : c.status?.toLowerCase() === 'rejected' ? (
+                            <Badge variant="danger"><XCircle className="h-3 w-3" /> Rejected</Badge>
+                          ) : (
+                            <Badge variant="warning"><Clock className="h-3 w-3" /> Pending</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {Array.isArray(viewStudentData.internships) && viewStudentData.internships.length > 0 && (
+                  <SectionCard title="Internships">
+                    <div className="space-y-3">
+                      {viewStudentData.internships.map((intern: any, i: number) => (
+                        <div key={i} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 space-y-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{intern.role}</p>
+                            <Badge variant="muted">{intern.company_name}</Badge>
+                          </div>
+                          {intern.duration && <p className="text-[11px] text-slate-500 dark:text-slate-400">{intern.duration}</p>}
+                          {intern.certificate_url && (
+                            <a href={intern.certificate_url} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                              <Eye className="h-3 w-3" /> View Certificate
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </SectionCard>
+                )}
+
+                {viewStudentData.resume?.resume_url && (
+                  <SectionCard title="Resume">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                        <FileText className="h-4 w-4 text-[#002D62] dark:text-blue-400 shrink-0" />
+                        <span className="font-semibold">Resume Document</span>
+                      </div>
+                      <a href={viewStudentData.resume.resume_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0">
+                        <Eye className="h-3.5 w-3.5" /> View / Download
+                      </a>
+                    </div>
+                  </SectionCard>
+                )}
+
+                {viewStudentData.analysis && (
+                  <SectionCard title="AI Placement Analysis">
+                    <div className="space-y-3">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Readiness Score</p>
+                          <p className="text-2xl font-black text-[#002D62] dark:text-blue-400">{viewStudentData.analysis.readiness_score}%</p>
+                        </div>
+                        {viewStudentData.analysis.readiness_status && <Badge variant="info">{viewStudentData.analysis.readiness_status}</Badge>}
+                      </div>
+                      {viewStudentData.analysis.strengths && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 space-y-1.5">
+                          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Strengths</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudentData.analysis.strengths}</p>
+                        </div>
+                      )}
+                      {viewStudentData.analysis.weaknesses && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 space-y-1.5">
+                          <p className="text-[10px] font-black text-orange-500 dark:text-orange-400 uppercase tracking-wider">Weaknesses</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudentData.analysis.weaknesses}</p>
+                        </div>
+                      )}
+                      {viewStudentData.analysis.recommendations && (
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 space-y-1.5">
+                          <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Recommendations</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{viewStudentData.analysis.recommendations}</p>
+                        </div>
+                      )}
+                    </div>
+                  </SectionCard>
+                )}
+
               </div>
-            </div>
-          </Modal>
-        );
-      })()}
+            );
+          })()}
+        </Modal>
+      )}
 
       {/* View Staff */}
       {modal === 'view-staff' && selected && (() => {

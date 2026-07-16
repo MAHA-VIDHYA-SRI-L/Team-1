@@ -64,7 +64,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
     if (!reportRef.current || downloading) return;
     setDownloading(true);
     try {
-      // Temporarily make the report visible at full width for capture
       const el = reportRef.current;
       const originalStyle = el.style.cssText;
       el.style.width = '794px';
@@ -75,7 +74,6 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         width: 794,
@@ -100,7 +98,7 @@ export default function ReportPage({ user, onBackToDashboard }: ReportProps) {
       const name = profile?.name || user.fullName;
       pdf.save(`${name.replace(/\s+/g, '-')}-placement-report.pdf`);
     } catch (e) {
-      console.error(e);
+      console.error('PDF download failed:', e);
     } finally {
       setDownloading(false);
     }

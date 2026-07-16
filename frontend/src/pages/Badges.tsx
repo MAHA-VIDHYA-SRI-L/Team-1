@@ -102,7 +102,7 @@ export default function Badges({
   const [certificates, setCertificates] = useState<Certificate[]>([]);
 
   useEffect(() => {
-    fetchCertifications()
+    fetchCertifications(true)
       .then((res) => {
         const raw = Array.isArray(res) ? res : res?.certifications ?? [];
         const mapped: Certificate[] = raw.map((c: any) => ({
@@ -112,7 +112,7 @@ export default function Badges({
           category: c.category || 'Hackathon',
           startDate: c.start_date || '',
           endDate: c.end_date || '',
-          fileName: c.certificate_url ? c.certificate_url.split('/').pop() : '',
+          fileName: c.certificate_url ? (c.certificate_url.split('/').pop() ?? '').split('?')[0] : '',
           certificateUrl: c.certificate_url || '',
           status: (c.status === 'Approved' ? 'Approved' : 'Pending Review') as 'Approved' | 'Pending Review',
           description: c.description || '',
@@ -812,7 +812,8 @@ export default function Badges({
               {previewDocument.certificateUrl ? (
                 (() => {
                   const url = previewDocument.certificateUrl!;
-                  const isPdf = url.toLowerCase().includes('.pdf') || url.includes('application/pdf');
+                  const urlPath = url.split('?')[0].toLowerCase();
+                  const isPdf = urlPath.endsWith('.pdf') || urlPath.includes('application/pdf');
                   return isPdf ? (
                     <iframe
                       src={url}
