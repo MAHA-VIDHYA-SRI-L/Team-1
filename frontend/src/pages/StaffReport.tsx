@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   BadgeCheck,
-  Clock,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -19,7 +18,7 @@ import { fetchStaffStudents, mapStudentRecord, type StudentRecord } from '../ser
 import { ThemeToggle } from '../components/ThemeToggle';
 import logoUrl from '../assets/logo.jpg';
 import {
-  Button, Card, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
+  Button, Card, Badge, Input, Select, SectionCard, StatCard, Table, TableRow, Td, SectionLoader, EmptyState, PageHeader
 } from '../components/ui';
 
 interface StaffReportProps {
@@ -454,16 +453,12 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                       </Td>
 
                       <Td>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-lg whitespace-nowrap ${
-                          s.status === 'Placed'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-orange-50 dark:bg-orange-950/40 text-orange-500 dark:text-orange-400'
-                        }`}>
-                          {s.status === 'Placed'
-                            ? <CheckCircle2 className="h-3 w-3" />
-                            : <XCircle className="h-3 w-3" />}
+                        <Badge
+                          variant={s.status === 'Placed' ? 'success' : 'warning'}
+                          dot
+                        >
                           {s.status}
-                        </span>
+                        </Badge>
                       </Td>
 
                       <Td>
@@ -486,27 +481,15 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
                       </Td>
 
                       <Td>
-                        {s.isVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                            <BadgeCheck className="h-4 w-4" /> Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-amber-500 dark:text-amber-400 whitespace-nowrap">
-                            <Clock className="h-4 w-4" /> Pending
-                          </span>
-                        )}
+                        <Badge variant={s.isVerified ? 'info' : 'warning'} dot>
+                          {s.isVerified ? 'Verified' : 'Pending'}
+                        </Badge>
                       </Td>
 
                       <Td>
-                        {s.placementVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                            <CheckCircle2 className="h-4 w-4" /> Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-slate-400 whitespace-nowrap">
-                            <Clock className="h-4 w-4" /> Pending
-                          </span>
-                        )}
+                        <Badge variant={s.placementVerified ? 'success' : 'muted'} dot>
+                          {s.placementVerified ? 'Verified' : 'Pending'}
+                        </Badge>
                       </Td>
                     </TableRow>
                   ))}
