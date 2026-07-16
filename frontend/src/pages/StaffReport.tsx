@@ -231,11 +231,7 @@ export default function StaffReport({ user, onBack }: StaffReportProps) {
       <div className="flex-1 max-w-[1600px] w-full mx-auto p-6 sm:p-10 space-y-8">
 
         {/* ── Loading ── */}
-        {loading && (
-          <Card className="p-12">
-            <SectionLoader message="Loading student data..." />
-          </Card>
-        )}
+        {loading && <SectionLoader message="Loading student data..." />}
 
         {/* ── Error ── */}
         {fetchError && (

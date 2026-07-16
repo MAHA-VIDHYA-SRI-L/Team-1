@@ -503,7 +503,11 @@ export default function AdminDashboard({ user, onLogout, onImpersonate, onNaviga
           <SectionCard title="Recent Activity" subtitle="Latest system events">
             <div className="space-y-1">
               {recentActivity.length === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-6">No activity yet.</p>
+                <EmptyState
+                  icon={<Clock className="h-6 w-6" />}
+                  title="No Recent Activity"
+                  description="Activity will appear as students and staff are provisioned."
+                />
               ) : (
                 recentActivity.map((item, i) => (
                   <div key={i} className="flex items-start gap-3 py-2.5 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
