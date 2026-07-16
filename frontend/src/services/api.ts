@@ -64,6 +64,11 @@ export const setTokens = (token: string, refreshToken?: string) => {
   if (refreshToken) {
     _refreshToken = refreshToken;
     sessionStorage.setItem('_pm_refresh', refreshToken);
+  } else {
+    // Explicitly clear any stale refresh token so tryRefresh cannot fire
+    // with an old token and trigger a spurious 401 → logout cycle
+    _refreshToken = '';
+    sessionStorage.removeItem('_pm_refresh');
   }
   clearApiCache();
 };
@@ -76,7 +81,7 @@ export const clearTokens = () => {
   clearApiCache();
 };
 
-export const setUnauthorizedHandler = (handler: () => void) => {
+export const setUnauthorizedHandler = (handler: (() => void) | null) => {
   _onUnauthorized = handler;
 };
 

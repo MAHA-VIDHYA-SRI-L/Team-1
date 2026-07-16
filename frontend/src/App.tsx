@@ -31,7 +31,10 @@ export default function App() {
   const [activeUser, setActiveUser] = useState<UserSessionData | null>(savedSession?.user ?? null);
 
   useEffect(() => {
-    setUnauthorizedHandler(handleLogout);
+    setUnauthorizedHandler(isAuthenticated ? handleLogout : null);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     // Re-hydrate in-memory token from sessionStorage (covers hot reload)
     const savedToken = sessionStorage.getItem('_pm_token');
     const savedRefresh = sessionStorage.getItem('_pm_refresh');

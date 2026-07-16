@@ -216,7 +216,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       });
       const result = await response.json();
       if (!response.ok) { setLoginError(result.error || 'Invalid email or password. Please try again.'); return; }
-      if (result.token) setTokens(result.token, result.refreshToken);
+      if (result.token) setTokens(result.token, result.refreshToken ?? result.refresh_token);
       localStorage.setItem('_pm_remembered_email', email.trim());
       setToastMessage('Logged in successfully');
       setShowToast(true);
